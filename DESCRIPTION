@@ -1,0 +1,30 @@
+Package: sgdnet
+Title: Fast Sparse Linear Models for Big Data with SAGA
+Version: 0.0.0.9000
+Authors@R: c(person("Johan", "Larsson", email = "johanlarsson@outlook.com",
+                    role = c("aut", "cre"),
+                    comment = c(ORCID = "0000-0002-4029-5945")),
+             person(c("Toby", "Dylan"), "Hocking", role = c("aut")),
+             person("Michael", "Weylandt", role = c("aut")))
+Description: Fast implementations of L1-penalized generalized linear
+    models (gaussian, multivariate gaussian, binomial, multinomial, poisson, and
+    cox-proportional hazards) using SAGA: a fast stochastic average gradient
+    algorithm. The core functionality of the package has been ported
+    from the 'scikit-learn' Python package.
+Depends: R (>= 3.5.0)
+License: GPL-3
+Copyright: See file inst/COPYRIGHTS
+Encoding: UTF-8
+LazyData: true
+URL: https://github.com/jolars/sgdnet
+BugReports: https://github.com/jolars/sgdnet/issues
+RoxygenNote: 6.0.1
+Roxygen: list(markdown = TRUE)
+Suggests: 
+    covr,
+    testthat
+LinkingTo: 
+    Rcpp (>= 0.12.16),
+    RcppArmadillo (>= 0.8.500.0.0)
+Imports: 
+    Rcpp
