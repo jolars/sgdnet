@@ -29,6 +29,8 @@ sgdnet(x, y, ...)
 \item{standardize}{whether to standardize \code{x} or not -- ignored when
 \code{intercept == TRUE}.}
 
+\item{intercept}{whether to fit an intercept or not}
+
 \item{thresh}{tolerance level for termination of the algorithm}
 }
 \value{

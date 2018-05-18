@@ -5,6 +5,7 @@
 #' @param family reponse type
 #' @param alpha elasticnet mixing parameter
 #' @param lambda regularization strength
+#' @param intercept whether to fit an intercept or not
 #' @param maxit maximum number of effective passes (epochs)
 #' @param standardize whether to standardize `x` or not -- ignored when
 #'   `intercept == TRUE`.
