@@ -22,7 +22,8 @@ Roxygen: list(markdown = TRUE)
 Depends: R (>= 3.5.0)
 Imports: 
     Rcpp,
-    Matrix
+    Matrix,
+    methods
 Suggests: 
     covr,
     testthat

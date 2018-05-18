@@ -43,8 +43,8 @@ sgdnet.default <- function(x,
 
   # Convert sparse x to dgCMatrix class from package Matrix.
   if (is_sparse <- inherits(x, "sparseMatrix")) {
-    x <- as(x, "CsparseMatrix")
-    x <- as(x, "dgCMatrix")
+    x <- methods::as(x, "CsparseMatrix")
+    x <- methods::as(x, "dgCMatrix")
   }
 
   # Fit the model by calling the Rcpp routine.
