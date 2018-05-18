@@ -38,7 +38,7 @@ An object of class \code{'sgdnet'}.
 Fit a Generalized Linear Model with Elasticnet Regularization
 }
 \examples{
-x <- rnorm(30, 10, 3)
+x <- matrix(rnorm(30), 10, 3)
 y <- rnorm(10)
 sgdnet(x, y)
 }
