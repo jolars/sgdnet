@@ -63,7 +63,7 @@ sgdnet.default <- function(x,
   # Organize return values
   a0 <- drop(res$a0)
   names(a0) <- paste0("s", seq_along(a0) - 1L)
-  beta <- as(res$beta, "dgCMatrix")
+  beta <- Matrix::Matrix(res$beta)
   dimnames(beta) <- list(colnames(x), names(a0))
 
   structure(list(a0 = a0,
