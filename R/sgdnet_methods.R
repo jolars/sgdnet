@@ -13,6 +13,11 @@
 #' coef(fit)
 coef.sgdnet <- function(object, ...) {
   out <- rbind(object$a0, object$beta)
-  out@Dimnames[[1L]][1L] <- "(Intercept)"
+  varnames <- rownames(object$beta)
+  if (is.null(varnames))
+    varnames <- seq_len(NROW(object$beta))
+
+  dimnames(out) <- list(c("(Intercept)", varnames),
+                        colnames(object$beta))
   out
 }
