@@ -270,7 +270,7 @@ Rcpp::List SagaSolver(T              x,
   double max_weight = 0.0;
 
   // Vector of nonzero indices
-  arma::uvec current_nonzero_indices;
+  arma::field<arma::uvec> nonzero_indices(n_samples);
 
   // Vector to store prediction
   arma::rowvec prediction(n_classes);
@@ -292,15 +292,15 @@ Rcpp::List SagaSolver(T              x,
       if (!seen(sample_ind)) {
         n_seen++;
         seen(sample_ind) = true;
+      } else {
+        // Vector of nonzero indices
+        nonzero_indices(sample_ind) = NonzerosInRow(x, sample_ind);
       }
-
-      // Vector of nonzero indices for sparse matrices
-      current_nonzero_indices = NonzerosInRow(x, sample_ind);
 
       if (it_inner > 0)
         LaggedUpdate(weights,
                      wscale,
-                     current_nonzero_indices,
+                     nonzero_indices(sample_ind),
                      n_samples,
                      n_classes,
                      cumulative_sums,
