@@ -387,8 +387,7 @@ Rcpp::List SagaSolver(T              x,
 
     // check termination conditions
     max_weight = arma::abs(weights).max();
-    max_change = std::max(std::abs((weights - previous_weights).max()),
-                                   max_change);
+    max_change = arma::abs(weights - previous_weights).max();
     previous_weights = weights;
 
     if ((max_weight != 0.0 && max_change/max_weight <= tol)
