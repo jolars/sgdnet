@@ -7,8 +7,8 @@
 using namespace Rcpp;
 
 // FitModel
-Rcpp::List FitModel(SEXP x, arma::mat& y, const std::string& family_in, bool fit_intercept, bool is_sparse, double alpha, double beta, bool normalize, arma::uword max_iter, double tol);
-RcppExport SEXP _sgdnet_FitModel(SEXP xSEXP, SEXP ySEXP, SEXP family_inSEXP, SEXP fit_interceptSEXP, SEXP is_sparseSEXP, SEXP alphaSEXP, SEXP betaSEXP, SEXP normalizeSEXP, SEXP max_iterSEXP, SEXP tolSEXP) {
+Rcpp::List FitModel(SEXP x, arma::mat& y, const std::string& family_in, bool fit_intercept, bool is_sparse, double alpha, double beta, bool normalize, arma::uword max_iter, double tol, bool return_loss);
+RcppExport SEXP _sgdnet_FitModel(SEXP xSEXP, SEXP ySEXP, SEXP family_inSEXP, SEXP fit_interceptSEXP, SEXP is_sparseSEXP, SEXP alphaSEXP, SEXP betaSEXP, SEXP normalizeSEXP, SEXP max_iterSEXP, SEXP tolSEXP, SEXP return_lossSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -22,13 +22,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type normalize(normalizeSEXP);
     Rcpp::traits::input_parameter< arma::uword >::type max_iter(max_iterSEXP);
     Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
-    rcpp_result_gen = Rcpp::wrap(FitModel(x, y, family_in, fit_intercept, is_sparse, alpha, beta, normalize, max_iter, tol));
+    Rcpp::traits::input_parameter< bool >::type return_loss(return_lossSEXP);
+    rcpp_result_gen = Rcpp::wrap(FitModel(x, y, family_in, fit_intercept, is_sparse, alpha, beta, normalize, max_iter, tol, return_loss));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_sgdnet_FitModel", (DL_FUNC) &_sgdnet_FitModel, 10},
+    {"_sgdnet_FitModel", (DL_FUNC) &_sgdnet_FitModel, 11},
     {NULL, NULL, 0}
 };
 

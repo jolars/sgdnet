@@ -163,6 +163,8 @@ void LaggedUpdate(arma::mat&        weights,
 //' @param alpha l2-regularization penalty
 //' @param beta l1-regularization penalty
 //' @param max_iter maximum number of iterations
+//' @param return_loss whether to compute and return the loss at each outer
+//'   iteration
 //'
 //' @return See [FitModel()].
 //'
@@ -177,7 +179,8 @@ Rcpp::List SagaSolver(T              x,
                       double         beta,
                       bool           normalize,
                       arma::uword    max_iter,
-                      double         tol) {
+                      double         tol,
+                      bool           return_loss) {
 
   arma::uword n_samples  = x.n_rows;
   arma::uword n_features = x.n_cols;
@@ -380,10 +383,12 @@ Rcpp::List SagaSolver(T              x,
     wscale = 1.0;
 
     // compute loss for the current solution
-    arma::mat pred = x*weights + arma::repmat(intercept, n_samples, 1);
-    double loss = obj->Loss(pred, y)
-                  + alpha_scaled*std::pow(arma::norm(weights), 2);
-    losses.push_back(loss);
+    if (return_loss) {
+      arma::mat pred = x*weights + arma::repmat(intercept, n_samples, 1);
+      double loss = obj->Loss(pred, y)
+        + alpha_scaled*std::pow(arma::norm(weights), 2);
+      losses.push_back(loss);
+    }
 
     // check termination conditions
     max_weight = arma::abs(weights).max();
@@ -454,7 +459,8 @@ Rcpp::List FitModel(SEXP                x,
                     double              beta,
                     bool                normalize,
                     arma::uword         max_iter,
-                    double              tol) {
+                    double              tol,
+                    bool                return_loss) {
 
   // sgdnet::Family family = static_cast<sgdnet::Family>(family_in);
   sgdnet::Family family;
@@ -474,7 +480,8 @@ Rcpp::List FitModel(SEXP                x,
                       beta,
                       normalize,
                       max_iter,
-                      tol);
+                      tol,
+                      return_loss);
   else
     return SagaSolver(Rcpp::as<arma::mat>(x),
                       y,
@@ -485,6 +492,7 @@ Rcpp::List FitModel(SEXP                x,
                       beta,
                       normalize,
                       max_iter,
-                      tol);
+                      tol,
+                      return_loss);
 }
 

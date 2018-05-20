@@ -10,6 +10,8 @@
 #' @param standardize whether to standardize `x` or not -- ignored when
 #'   `intercept == TRUE`.
 #' @param thresh tolerance level for termination of the algorithm
+#' @param return_loss whether to compute and return the loss at each outer
+#'   iteration, only added here for debugging purposes.
 #' @param ... ignored
 #'
 #' @return An object of class `'sgdnet'`.
@@ -31,6 +33,7 @@ sgdnet.default <- function(x,
                            standardize = TRUE,
                            intercept = TRUE,
                            thresh = 0.001,
+                           return_loss = FALSE,
                            ...) {
 
   n_samples <- NROW(x)
@@ -56,7 +59,8 @@ sgdnet.default <- function(x,
                   beta_sklearn,
                   standardize,
                   maxit,
-                  thresh)
+                  thresh,
+                  return_loss)
 
   variable_names <- colnames(x)
 
@@ -68,6 +72,7 @@ sgdnet.default <- function(x,
 
   structure(list(a0 = a0,
                  beta = beta,
-                 npasses = res$npasses),
+                 npasses = res$npasses,
+                 losses = if (return_loss) res$losses else NULL),
             class = "sgdnet")
 }
