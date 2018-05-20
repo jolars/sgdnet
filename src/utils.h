@@ -125,7 +125,8 @@ void Preprocess(T&            x,
       // Normalize each feature with l2-norm
       for (arma::uword i = 0; i < n_features; ++i) {
         x_scale(i) = arma::norm(x.col(i));
-        x.col(i) /= x_scale(i);
+        if (x_scale(i) != 0)
+          x.col(i) /= x_scale(i);
       }
     } else {
       x_scale.ones();
