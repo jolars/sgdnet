@@ -39,6 +39,8 @@ double RowNormsMax(const T& x) {
 //' @param n_samples the number of samples in X
 //'
 //' @return Step size.
+//'
+//' @keywords internal
 double GetStepSize(double         max_squared_sum,
                    double         alpha_scaled,
                    sgdnet::Family family,
@@ -97,6 +99,7 @@ arma::uvec NonzerosInRow(const arma::mat& x, arma::uword i) {
 //' @param y_offset a vector of means for each column in y
 //'
 //' @return Nothing. x and y are scaled and centered.
+//' @keywords internal
 template <typename T>
 void Preprocess(T&            x,
                 arma::mat&    y,
