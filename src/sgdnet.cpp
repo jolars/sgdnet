@@ -56,6 +56,24 @@
 #include "families.h"
 #include "constants.h"
 
+//' Perform Lagged Updates
+//'
+//' @param weights the weights matrix
+//' @param wscale the weights scale
+//' @param current_nonzero_indices a vector of indices for the nonzero elements
+//'   of the current data point
+//' @param n_samples the number of data points
+//' @param n_classes the number of classes for the outcome
+//' @param cumulative_sums storage for cumulative sums
+//' @param feature_history keeps track of the iteration at which each
+//'   feature was last updated
+//' @param prox nontrivial prox?
+//' @param sum_gradient gradient sum storage
+//' @param reset TRUE if wscale is to be reset and weights rescaled
+//' @param it_inner the current iteration in the inner loop
+//'
+//' @return Weights, cumulative_sums, and feature_history are updated.
+//' @keywords internal
 void LaggedUpdate(arma::mat&        weights,
                   double            wscale,
                   const arma::uvec& current_nonzero_indices,
@@ -135,6 +153,20 @@ void LaggedUpdate(arma::mat&        weights,
     feature_history(current_nonzero_indices).fill(it_inner);
 }
 
+//' SAGA algorithm
+//'
+//' @param x feature matrix
+//' @param y response matrix
+//' @param family response type
+//' @param fit_intercept whether the intercept should be fit
+//' @param intercept_decay intercept decay
+//' @param alpha l2-regularization penalty
+//' @param beta l1-regularization penalty
+//' @param max_iter maximum number of iterations
+//'
+//' @return See [FitModel()].
+//'
+//' @keywords internal
 template <typename T>
 Rcpp::List SagaSolver(T              x,
                       arma::mat&     y,
@@ -390,6 +422,28 @@ Rcpp::List SagaSolver(T              x,
                             Rcpp::Named("return_code") = return_code);
 }
 
+//' Fit a Model with sgdnet
+//'
+//' @param x feature matrix
+//' @param y response matrix
+//' @param family_in the response type
+//' @param is_sparse is x sparse?
+//' @param alpha l2-regularization penalty
+//' @param beta l1-regularization penalty
+//' @param normalize should x be normalized before fitting the model?
+//' @param max_iter the maximum number of iterations
+//' @param tol tolerance for convergence
+//'
+//' @return A list of
+//'   * ao: the intercept
+//'   * beta: the weights
+//'   * losses: the loss at each outer iteration
+//'   * nseen: the number of samples seen
+//'   * npasses: the number of effective passes (epochs)
+//'   * return_code: the convergence result. 0 mean that the algorithm converged,
+//'     1 means that `max_iter` was reached before the algorithm converged.
+//'
+//' @keywords internal
 // [[Rcpp::export]]
 Rcpp::List FitModel(SEXP                x,
                     arma::mat&          y,
