@@ -16,9 +16,8 @@
 #' @export
 #'
 #' @examples
-#' x <- matrix(rnorm(30), 10, 3)
-#' y <- rnorm(10)
-#' sgdnet(x, y)
+#' # Gaussian regression with sparse features
+#' sgdnet(permeability$x, permeability$y, alpha = 0)
 sgdnet <- function(x, y, ...) UseMethod("sgdnet")
 
 #' @export

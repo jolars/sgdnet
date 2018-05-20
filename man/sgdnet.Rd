@@ -40,7 +40,6 @@ An object of class \code{'sgdnet'}.
 Fit a Generalized Linear Model with Elasticnet Regularization
 }
 \examples{
-x <- matrix(rnorm(30), 10, 3)
-y <- rnorm(10)
-sgdnet(x, y)
+# Gaussian regression with sparse features
+sgdnet(permeability$x, permeability$y, alpha = 0)
 }
