@@ -400,7 +400,8 @@ Rcpp::List SagaSolver(T              x,
   // Rescale intercept and weights back to original scale
   if (fit_intercept) {
     for (arma::uword k = 0; k < n_features; ++k) {
-      weights.row(k) /= x_scale(k);
+      if (x_scale(k) != 0)
+        weights.row(k) /= x_scale(k);
     }
     intercept = y_offset - x_offset*weights;
   }
