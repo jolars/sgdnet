@@ -44,5 +44,7 @@ Fit a Generalized Linear Model with Elasticnet Regularization
 }
 \examples{
 # Gaussian regression with sparse features
-sgdnet(permeability$x, permeability$y, alpha = 0)
+x <- Matrix::rsparsematrix(100, 10, density = 0.2)
+y <- rnorm(100)
+sgdnet(x, y)
 }
