@@ -47,12 +47,35 @@ sgdnet.default <- function(x,
   if (is_sparse <- inherits(x, "sparseMatrix")) {
     x <- methods::as(x, "CsparseMatrix")
     x <- methods::as(x, "dgCMatrix")
+  } else {
+    x <- as.matrix(x)
   }
+
+  y <- as.matrix(y)
+
+  stopifnot(identical(NROW(y), NROW(x)),
+            !any(is.na(y)),
+            !any(is.na(x)),
+            alpha >= 0 && alpha <= 1,
+            thresh > 0,
+            lambda >= 0,
+            is.logical(intercept),
+            is.logical(standardize),
+            is.logical(return_loss))
+
+  # Setup reponse type options and assert that input is correct
+  switch(
+    match.arg(family),
+    gaussian = {
+      stopifnot(is.numeric(y),
+                identical(NCOL(y), 1L))
+    }
+  )
 
   # Fit the model by calling the Rcpp routine.
   res <- FitModel(x,
-                  as.matrix(y),
-                  match.arg(family),
+                  y,
+                  family,
                   intercept,
                   is_sparse,
                   alpha_sklearn,
