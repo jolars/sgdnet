@@ -61,7 +61,7 @@ NULL
 #'     1 means that `max_iter` was reached before the algorithm converged.
 #'
 #' @keywords internal
-FitModel <- function(x, y, family_in, fit_intercept, is_sparse, alpha, beta, normalize, max_iter, tol, return_loss) {
-    .Call(`_sgdnet_FitModel`, x, y, family_in, fit_intercept, is_sparse, alpha, beta, normalize, max_iter, tol, return_loss)
+FitModel <- function(x_in, y, family_in, fit_intercept, is_sparse, alpha, beta, normalize, max_iter, tol, return_loss) {
+    .Call(`_sgdnet_FitModel`, x_in, y, family_in, fit_intercept, is_sparse, alpha, beta, normalize, max_iter, tol, return_loss)
 }
 

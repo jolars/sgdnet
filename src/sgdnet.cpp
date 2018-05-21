@@ -182,16 +182,16 @@ Rcpp::List SagaSolver(T              x,
                       double         tol,
                       bool           return_loss) {
 
-  arma::uword n_samples  = x.n_rows;
-  arma::uword n_features = x.n_cols;
+  arma::uword n_samples  = x.n_cols;
+  arma::uword n_features = x.n_rows;
   arma::uword n_targets  = y.n_cols;
 
   double alpha_scaled = alpha/n_samples; // l2 penalty
   double beta_scaled  = beta/n_samples;  // l1 penalty
 
   // Preprocess data
-  arma::rowvec x_offset(n_features);
-  arma::rowvec x_scale(n_features);
+  arma::vec x_offset(n_features);
+  arma::vec x_scale(n_features);
   arma::rowvec y_offset(y.n_cols);
 
   Preprocess(x, y, normalize, fit_intercept, x_offset, x_scale, y_offset);
@@ -234,7 +234,7 @@ Rcpp::List SagaSolver(T              x,
   arma::uword n_seen = 0;
 
   // Maximum of sums of squares over rows (samples)
-  double max_squared_sum = RowNormsMax(x);
+  double max_squared_sum = ColNormsMax(x);
 
   // Automatically compute step size given the data and response type
   double step_size = GetStepSize(max_squared_sum,
@@ -294,7 +294,7 @@ Rcpp::List SagaSolver(T              x,
         seen(sample_ind) = true;
       } else {
         // Vector of nonzero indices
-        nonzero_indices(sample_ind) = NonzerosInRow(x, sample_ind);
+        nonzero_indices(sample_ind) = Nonzeros(x, sample_ind);
       }
 
       if (it_inner > 0)
@@ -309,7 +309,8 @@ Rcpp::List SagaSolver(T              x,
                      sum_gradient,
                      false,
                      it_inner);
-      prediction = wscale*x.row(sample_ind)*weights + intercept;
+
+      prediction = wscale*x.col(sample_ind).t()*weights + intercept;
       gradient = obj->Gradient(prediction, y.row(sample_ind));
 
       // L2-regularization by rescaling the weights
@@ -317,7 +318,7 @@ Rcpp::List SagaSolver(T              x,
 
       // Update the sum of gradients
       gradient_correction =
-        x.row(sample_ind).t()*(gradient - gradient_memory.row(sample_ind));
+        x.col(sample_ind)*(gradient - gradient_memory.row(sample_ind));
 
       weights -= (gradient_correction*step_size*(1.0 - 1.0/n_seen)/wscale);
       sum_gradient += gradient_correction;
@@ -384,7 +385,7 @@ Rcpp::List SagaSolver(T              x,
 
     // compute loss for the current solution
     if (return_loss) {
-      arma::mat pred = x*weights + arma::repmat(intercept, n_samples, 1);
+      arma::mat pred = x.t()*weights + arma::repmat(intercept, n_samples, 1);
       double loss = obj->Loss(pred, y)
         + alpha_scaled*std::pow(arma::norm(weights), 2);
       losses.push_back(loss);
@@ -407,7 +408,7 @@ Rcpp::List SagaSolver(T              x,
       if (x_scale(k) != 0)
         weights.row(k) /= x_scale(k);
     }
-    intercept = y_offset - x_offset*weights;
+    intercept = y_offset - x_offset.t()*weights;
   }
 
   arma::uword return_code;
@@ -450,7 +451,7 @@ Rcpp::List SagaSolver(T              x,
 //'
 //' @keywords internal
 // [[Rcpp::export]]
-Rcpp::List FitModel(SEXP                x,
+Rcpp::List FitModel(SEXP                x_in,
                     arma::mat&          y,
                     const std::string&  family_in,
                     bool                fit_intercept,
@@ -470,8 +471,10 @@ Rcpp::List FitModel(SEXP                x,
     Rcpp::stop("invalid family.");
   }
 
-  if (is_sparse)
-    return SagaSolver(Rcpp::as<arma::sp_mat>(x),
+  if (is_sparse) {
+    arma::sp_mat x = arma::trans(Rcpp::as<arma::sp_mat>(x_in));
+
+    return SagaSolver(x,
                       y,
                       family,
                       fit_intercept,
@@ -482,8 +485,11 @@ Rcpp::List FitModel(SEXP                x,
                       max_iter,
                       tol,
                       return_loss);
-  else
-    return SagaSolver(Rcpp::as<arma::mat>(x),
+  } else {
+    arma::mat x = Rcpp::as<arma::mat>(x_in);
+    arma::inplace_trans(x);
+
+    return SagaSolver(x,
                       y,
                       family,
                       fit_intercept,
@@ -494,5 +500,6 @@ Rcpp::List FitModel(SEXP                x,
                       max_iter,
                       tol,
                       return_loss);
+  }
 }
 
