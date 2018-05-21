@@ -26,6 +26,7 @@ matrix:
       after_success:
         - Rscript -e 'covr::codecov()'
 
+  allow_failures:
     - os: osx
       r: release
       latex: false
