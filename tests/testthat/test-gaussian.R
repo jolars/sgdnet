@@ -10,7 +10,6 @@ test_that("gaussian regression with dense features work", {
 
 
 test_that("gaussian regression with sparse features work", {
-  set.seed(1)
   x <- Matrix::rsparsematrix(10, 3, density = 0.5)
   y <- as.matrix(rnorm(nrow(x)))
 
@@ -18,3 +17,4 @@ test_that("gaussian regression with sparse features work", {
 
   expect_s3_class(fit, "sgdnet")
 })
+
