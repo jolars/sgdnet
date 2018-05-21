@@ -4,12 +4,10 @@
 \alias{FitModel}
 \title{Fit a Model with sgdnet}
 \usage{
-FitModel(x, y, family_in, fit_intercept, is_sparse, alpha, beta, normalize,
+FitModel(x_in, y, family_in, fit_intercept, is_sparse, alpha, beta, normalize,
   max_iter, tol, return_loss)
 }
 \arguments{
-\item{x}{feature matrix}
-
 \item{y}{response matrix}
 
 \item{family_in}{the response type}
@@ -25,6 +23,8 @@ FitModel(x, y, family_in, fit_intercept, is_sparse, alpha, beta, normalize,
 \item{max_iter}{the maximum number of iterations}
 
 \item{tol}{tolerance for convergence}
+
+\item{x}{feature matrix}
 }
 \value{
 A list of
