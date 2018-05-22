@@ -3,7 +3,7 @@
 \name{sgdnet}
 \alias{sgdnet}
 \alias{sgdnet.default}
-\title{Fit a Generalized Linear Model with Elasticnet Regularization}
+\title{Fit a Generalized Linear Model with Elastic Net Regularization}
 \usage{
 sgdnet(x, y, ...)
 
@@ -40,7 +40,7 @@ iteration, only added here for debugging purposes.}
 An object of class \code{'sgdnet'}.
 }
 \description{
-Fit a Generalized Linear Model with Elasticnet Regularization
+Fit a Generalized Linear Model with Elastic Net Regularization
 }
 \examples{
 # Gaussian regression with sparse features

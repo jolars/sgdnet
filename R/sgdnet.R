@@ -1,4 +1,4 @@
-#' Fit a Generalized Linear Model with Elasticnet Regularization
+#' Fit a Generalized Linear Model with Elastic Net Regularization
 #'
 #' @param x input matrix
 #' @param y response variable
