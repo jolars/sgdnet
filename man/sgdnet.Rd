@@ -20,14 +20,14 @@ sgdnet(x, y, ...)
 
 \item{family}{reponse type}
 
-\item{alpha}{elasticnet mixing parameter}
+\item{alpha}{elastic net mixing parameter}
 
 \item{lambda}{regularization strength}
 
 \item{maxit}{maximum number of effective passes (epochs)}
 
 \item{standardize}{whether to standardize \code{x} or not -- ignored when
-\code{intercept == TRUE}.}
+\code{intercept == FALSE}.}
 
 \item{intercept}{whether to fit an intercept or not}
 
