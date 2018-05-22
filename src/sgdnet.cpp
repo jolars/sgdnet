@@ -153,6 +153,23 @@ void LaggedUpdate(arma::mat&        weights,
     feature_history(current_nonzero_indices).fill(it_inner);
 }
 
+//' Predict Sample
+//'
+//' @param x sample
+//' @param weights weights
+//' @param wscale scale for weights
+//' @param intercept intercept
+//'
+//' @return The prediction at the current sample
+template <typename T>
+arma::rowvec PredictSample(const T&            x,
+                           const arma::mat&    weights,
+                           const double        wscale,
+                           const arma::rowvec& intercept) {
+
+  return x.t()*(wscale*weights) + intercept;
+}
+
 //' SAGA algorithm
 //'
 //' @param x feature matrix
@@ -318,7 +335,11 @@ Rcpp::List SagaSolver(T              x,
                      false,
                      it_inner);
 
-      prediction = wscale*x.col(sample_ind).t()*weights + intercept;
+      prediction = PredictSample(x.col(sample_ind),
+                                 weights,
+                                 wscale,
+                                 intercept);
+
       gradient = obj->Gradient(prediction, y.row(sample_ind));
 
       // L2-regularization by rescaling the weights

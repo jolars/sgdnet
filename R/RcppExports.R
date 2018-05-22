@@ -21,6 +21,16 @@
 #' @keywords internal
 NULL
 
+#' Predict Sample
+#'
+#' @param x sample
+#' @param weights weights
+#' @param wscale scale for weights
+#' @param intercept intercept
+#'
+#' @return The prediction at the current sample
+NULL
+
 #' SAGA algorithm
 #'
 #' @param x feature matrix
