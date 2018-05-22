@@ -27,7 +27,7 @@ sgdnet(x, y, ...)
 \item{maxit}{maximum number of effective passes (epochs)}
 
 \item{standardize}{whether to standardize \code{x} or not -- ignored when
-\code{intercept == TRUE}.}
+\code{intercept == FALSE}.}
 
 \item{intercept}{whether to fit an intercept or not}
 

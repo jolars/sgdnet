@@ -8,7 +8,7 @@
 #' @param intercept whether to fit an intercept or not
 #' @param maxit maximum number of effective passes (epochs)
 #' @param standardize whether to standardize `x` or not -- ignored when
-#'   `intercept == TRUE`.
+#'   `intercept == FALSE`.
 #' @param thresh tolerance level for termination of the algorithm
 #' @param return_loss whether to compute and return the loss at each outer
 #'   iteration, only added here for debugging purposes.
