@@ -107,7 +107,8 @@ void Preprocess(T&            x,
                 const bool    fit_intercept,
                 arma::vec&    x_offset,
                 arma::vec&    x_scale,
-                arma::rowvec& y_offset) {
+                arma::rowvec& y_offset,
+                const bool    is_sparse) {
 
   // TODO: what is the reason for not scaling and centering when the intercept
   //       is not fit?
@@ -117,9 +118,13 @@ void Preprocess(T&            x,
     arma::uword n_features = x.n_rows;
 
     // Center feature matrix
-    x_offset = arma::mean(x, 1);
-    for (arma::uword i = 0; i < n_features; ++i)
-      x.row(i) -= x_offset(i);
+    if (!is_sparse) {
+      x_offset = arma::mean(x, 1);
+      for (arma::uword i = 0; i < n_features; ++i)
+        x.row(i) -= x_offset(i);
+    } else {
+      x_offset.zeros();
+    }
 
     if (normalize) {
       // Normalize each feature with l2-norm

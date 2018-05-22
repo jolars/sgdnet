@@ -180,7 +180,8 @@ Rcpp::List SagaSolver(T              x,
                       bool           normalize,
                       arma::uword    max_iter,
                       double         tol,
-                      bool           return_loss) {
+                      bool           return_loss,
+                      bool           is_sparse) {
 
   arma::uword n_samples  = x.n_cols;
   arma::uword n_features = x.n_rows;
@@ -194,7 +195,14 @@ Rcpp::List SagaSolver(T              x,
   arma::vec x_scale(n_features);
   arma::rowvec y_offset(y.n_cols);
 
-  Preprocess(x, y, normalize, fit_intercept, x_offset, x_scale, y_offset);
+  Preprocess(x,
+             y,
+             normalize,
+             fit_intercept,
+             x_offset,
+             x_scale,
+             y_offset,
+             is_sparse);
 
   // Setup family-specific options
   arma::uword n_classes;
@@ -484,7 +492,8 @@ Rcpp::List FitModel(SEXP                x_in,
                       normalize,
                       max_iter,
                       tol,
-                      return_loss);
+                      return_loss,
+                      is_sparse);
   } else {
     arma::mat x = Rcpp::as<arma::mat>(x_in);
     arma::inplace_trans(x);
@@ -499,7 +508,7 @@ Rcpp::List FitModel(SEXP                x_in,
                       normalize,
                       max_iter,
                       tol,
-                      return_loss);
+                      return_loss,
+                      is_sparse);
   }
 }
-
