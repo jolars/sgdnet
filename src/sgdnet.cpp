@@ -208,17 +208,17 @@ Rcpp::List SagaSolver(T              x,
   double beta_scaled  = beta/n_samples;  // l1 penalty
 
   // Preprocess data
-  arma::vec x_offset(n_features);
+  arma::vec x_center(n_features);
   arma::vec x_scale(n_features);
-  arma::rowvec y_offset(y.n_cols);
+  arma::rowvec y_center(y.n_cols);
 
   Preprocess(x,
              y,
              normalize,
              fit_intercept,
-             x_offset,
+             x_center,
              x_scale,
-             y_offset,
+             y_center,
              is_sparse);
 
   // Setup family-specific options
@@ -437,7 +437,7 @@ Rcpp::List SagaSolver(T              x,
       if (x_scale(k) != 0)
         weights.row(k) /= x_scale(k);
     }
-    intercept = y_offset - x_offset.t()*weights;
+    intercept = y_center - x_center.t()*weights;
   }
 
   arma::uword return_code;

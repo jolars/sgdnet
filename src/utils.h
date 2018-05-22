@@ -94,9 +94,9 @@ arma::uvec Nonzeros(const arma::mat& x, arma::uword i) {
 //' @param normalize whether to normalize x
 //' @param fit_intercept wheter to fit the intercept. If false, no
 //'   scaling or centering is done.
-//' @param x_offset a vector of offsets for each feature
+//' @param x_center a vector of offsets for each feature
 //' @param x_scale a vector of scaling factors (l2 norms) for each vector
-//' @param y_offset a vector of means for each column in y
+//' @param y_center a vector of means for each column in y
 //'
 //' @return Nothing. x and y are scaled and centered.
 //' @keywords internal
@@ -105,9 +105,9 @@ void Preprocess(T&            x,
                 arma::mat&    y,
                 const bool    normalize,
                 const bool    fit_intercept,
-                arma::vec&    x_offset,
+                arma::vec&    x_center,
                 arma::vec&    x_scale,
-                arma::rowvec& y_offset,
+                arma::rowvec& y_center,
                 const bool    is_sparse) {
 
   // TODO: what is the reason for not scaling and centering when the intercept
@@ -119,11 +119,11 @@ void Preprocess(T&            x,
 
     // Center feature matrix
     if (!is_sparse) {
-      x_offset = arma::mean(x, 1);
+      x_center = arma::mean(x, 1);
       for (arma::uword i = 0; i < n_features; ++i)
-        x.row(i) -= x_offset(i);
+        x.row(i) -= x_center(i);
     } else {
-      x_offset.zeros();
+      x_center.zeros();
     }
 
     if (normalize) {
@@ -138,14 +138,14 @@ void Preprocess(T&            x,
     }
 
     // Center targets
-    y_offset = arma::mean(y);
+    y_center = arma::mean(y);
     for (arma::uword i = 0; i < y.n_cols; ++i)
-      y.col(i) -= y_offset(i);
+      y.col(i) -= y_center(i);
 
   } else {
-    x_offset.zeros();
+    x_center.zeros();
     x_scale.ones();
-    y_offset.zeros();
+    y_center.zeros();
   }
 }
 
