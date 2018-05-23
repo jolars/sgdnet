@@ -31,6 +31,7 @@ NULL
 #' @param intercept intercept
 #'
 #' @return The prediction at the current sample
+#'
 #' @noRd
 #' @keywords internal
 NULL
@@ -41,14 +42,19 @@ NULL
 #' @param y response matrix
 #' @param family response type
 #' @param fit_intercept whether the intercept should be fit
-#' @param intercept_decay intercept decay
+#' @param intercept_decay intercept updates are scaled by
+#'   this decay factor to avoid intercept oscillation when features are
+#'   sparse
 #' @param alpha l2-regularization penalty
 #' @param beta l1-regularization penalty
+#' @param normalize whether to normalize x
 #' @param max_iter maximum number of iterations
 #' @param return_loss whether to compute and return the loss at each outer
 #'   iteration
+#' @param is_sparse is x sparse?
 #'
 #' @return See [FitModel()].
+#'
 #' @noRd
 #' @keywords internal, programming
 NULL
