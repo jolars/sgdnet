@@ -18,6 +18,8 @@
 #' @param it_inner the current iteration in the inner loop
 #'
 #' @return Weights, cumulative_sums, and feature_history are updated.
+#'
+#' @noRd
 #' @keywords internal
 NULL
 
@@ -29,6 +31,8 @@ NULL
 #' @param intercept intercept
 #'
 #' @return The prediction at the current sample
+#' @noRd
+#' @keywords internal
 NULL
 
 #' SAGA algorithm
@@ -45,8 +49,8 @@ NULL
 #'   iteration
 #'
 #' @return See [FitModel()].
-#'
-#' @keywords internal
+#' @noRd
+#' @keywords internal, programming
 NULL
 
 #' Fit a Model with sgdnet
@@ -59,7 +63,8 @@ NULL
 #' @param beta l1-regularization penalty
 #' @param normalize should x be normalized before fitting the model?
 #' @param max_iter the maximum number of iterations
-#' @param tol tolerance for convergence
+#' @param tol tolerance for convergence. The algorithm terminates when
+#'   max(change in weights)/max(weights) < tol.
 #'
 #' @return A list of
 #'   * ao: the intercept

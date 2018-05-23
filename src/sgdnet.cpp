@@ -74,6 +74,8 @@
 //' @param it_inner the current iteration in the inner loop
 //'
 //' @return Weights, cumulative_sums, and feature_history are updated.
+//'
+//' @noRd
 //' @keywords internal
 void LaggedUpdate(arma::mat&        weights,
                   double            wscale,
@@ -163,6 +165,8 @@ void LaggedUpdate(arma::mat&        weights,
 //' @param intercept intercept
 //'
 //' @return The prediction at the current sample
+//' @noRd
+//' @keywords internal
 template <typename T>
 arma::rowvec PredictSample(const T&            x,
                            const arma::mat&    weights,
@@ -186,8 +190,8 @@ arma::rowvec PredictSample(const T&            x,
 //'   iteration
 //'
 //' @return See [FitModel()].
-//'
-//' @keywords internal
+//' @noRd
+//' @keywords internal, programming
 template <typename T>
 Rcpp::List SagaSolver(T              x,
                       arma::mat&     y,
@@ -475,7 +479,8 @@ Rcpp::List SagaSolver(T              x,
 //' @param beta l1-regularization penalty
 //' @param normalize should x be normalized before fitting the model?
 //' @param max_iter the maximum number of iterations
-//' @param tol tolerance for convergence
+//' @param tol tolerance for convergence. The algorithm terminates when
+//'   max(change in weights)/max(weights) < tol.
 //'
 //' @return A list of
 //'   * ao: the intercept
