@@ -47,7 +47,6 @@ sgdnet.default <- function(x,
 
   # Convert sparse x to dgCMatrix class from package Matrix.
   if (is_sparse <- inherits(x, "sparseMatrix")) {
-    x <- methods::as(x, "CsparseMatrix")
     x <- methods::as(x, "dgCMatrix")
   } else {
     x <- as.matrix(x)
