@@ -41,11 +41,11 @@
 // ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE FOR
 // ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
 // DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-//            SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-//            CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-//            LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-//            OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-//            DAMAGE.
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+// OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+// DAMAGE.
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -79,7 +79,7 @@
 //' @keywords internal
 void LaggedUpdate(arma::mat&        weights,
                   double            wscale,
-                  const arma::uvec& current_nonzero_indices,
+                  const arma::uvec& nonzero_indices,
                   arma::uword       n_samples,
                   arma::uword       n_classes,
                   arma::mat&        cumulative_sums,
@@ -90,32 +90,34 @@ void LaggedUpdate(arma::mat&        weights,
                   arma::uword       it_inner,
                   sgdnet::Prox     *prox) {
 
-  arma::uvec::const_iterator feat_itr = current_nonzero_indices.begin();
-  arma::uvec::const_iterator feat_end = current_nonzero_indices.end();
+  arma::uvec::const_iterator feature_itr = nonzero_indices.begin();
+  arma::uvec::const_iterator feature_end = nonzero_indices.end();
 
-  for (; feat_itr != feat_end; ++feat_itr) {
+  for (; feature_itr != feature_end; ++feature_itr) {
+
+    arma::uword feature_ind = (*feature_itr);
 
     arma::rowvec cum_sum = cumulative_sums.row(it_inner - 1);
 
-    if (feature_history(*feat_itr) != 0) {
-      cum_sum -= cumulative_sums.row(feature_history(*feat_itr) - 1);
+    if (feature_history(feature_ind) != 0) {
+      cum_sum -= cumulative_sums.row(feature_history(feature_ind) - 1);
     }
 
     if (nontrivial_prox) {
 
       for (arma::uword class_ind = 0; class_ind < n_classes; ++class_ind) {
 
-        if (std::abs(sum_gradient(*feat_itr, class_ind)*cum_sum(0))
+        if (std::abs(sum_gradient(feature_ind, class_ind)*cum_sum(0))
             < cum_sum(1)) {
 
-          weights(*feat_itr, class_ind) -=
-            cum_sum(0)*sum_gradient(*feat_itr, class_ind);
-          weights(*feat_itr, class_ind) =
-            prox->Evaluate(weights(*feat_itr, class_ind), cum_sum(1));
+          weights(feature_ind, class_ind) -=
+            cum_sum(0)*sum_gradient(feature_ind, class_ind);
+          weights(feature_ind, class_ind) =
+            prox->Evaluate(weights(feature_ind, class_ind), cum_sum(1));
 
         } else {
 
-          arma::sword last_update_ind = feature_history(*feat_itr) - 1;
+          arma::sword last_update_ind = feature_history(feature_ind) - 1;
 
           if (last_update_ind == -1)
             last_update_ind = it_inner - 1;
@@ -133,28 +135,30 @@ void LaggedUpdate(arma::mat&        weights,
             else
               steps = cumulative_sums.row(lagged_ind);
 
-            weights(*feat_itr, class_ind) -=
-              sum_gradient(*feat_itr, class_ind)*steps(0);
-            weights(*feat_itr, class_ind) =
-              prox->Evaluate(weights(*feat_itr, class_ind), cum_sum(1));
+            weights(feature_ind, class_ind) -=
+              sum_gradient(feature_ind, class_ind)*steps(0);
+            weights(feature_ind, class_ind) =
+              prox->Evaluate(weights(feature_ind, class_ind), cum_sum(1));
           }
         }
       }
     } else { // Trivial prox
-      weights.row(*feat_itr) -= cum_sum(0)*sum_gradient.row(*feat_itr);
+      weights.row(feature_ind) -= cum_sum(0)*sum_gradient.row(feature_ind);
     }
-  }
+    if (!reset) {
+      feature_history(feature_ind) = it_inner;
+    }
+  } // for each feature
 
   if (reset) {
-    weights.rows(current_nonzero_indices) *= wscale;
+    weights *= wscale;
 
     if (!(weights.is_finite()))
       Rcpp::stop("non-finite weights.");
 
-    feature_history(current_nonzero_indices).fill(it_inner % n_samples);
+    feature_history.fill(it_inner % n_samples);
     cumulative_sums.row(it_inner - 1).zeros();
-  } else
-    feature_history(current_nonzero_indices).fill(it_inner);
+  }
 }
 
 //' Predict Sample
@@ -308,13 +312,13 @@ Rcpp::List SagaSolver(T              x,
   // Keep a vector of the full range of indicies for each row for when
   // we update the full range of weights
   arma::uvec full_range_indices = arma::regspace<arma::uvec>(0, n_features - 1);
+  arma::uvec nonzero_indices;
+  if (!is_sparse)
+    nonzero_indices = full_range_indices;
 
   // Scalars for computing stopping criteria
   double max_change = 0.0;
   double max_weight = 0.0;
-
-  // Vector of nonzero indices
-  arma::field<arma::uvec> nonzero_indices(n_samples);
 
   // Vector to store prediction
   arma::rowvec prediction(n_classes);
@@ -336,15 +340,15 @@ Rcpp::List SagaSolver(T              x,
       if (!seen(sample_ind)) {
         n_seen++;
         seen(sample_ind) = true;
-      } else {
-        // Vector of nonzero indices
-        nonzero_indices(sample_ind) = Nonzeros(x, sample_ind);
       }
+
+      if (is_sparse)
+        nonzero_indices = Nonzeros(x.col(sample_ind));
 
       if (it_inner > 0)
         LaggedUpdate(weights,
                      wscale,
-                     nonzero_indices(sample_ind),
+                     nonzero_indices,
                      n_samples,
                      n_classes,
                      cumulative_sums,

@@ -66,10 +66,10 @@ double GetStepSize(double         max_squared_sum,
 //' @return Index of iterator in current row or column.
 //'
 //' @keywords internal
-arma::uvec Nonzeros(const arma::sp_mat& x, arma::uword i) {
+arma::uvec Nonzeros(const arma::SpSubview<double> x) {
 
-  arma::sp_mat::const_col_iterator x_itr = x.begin_col(i);
-  arma::sp_mat::const_col_iterator x_end = x.end_col(i);
+  arma::SpSubview<double>::const_iterator x_itr = x.begin();
+  arma::SpSubview<double>::const_iterator x_end = x.end();
 
   std::vector<unsigned int> out;
 
@@ -82,8 +82,8 @@ arma::uvec Nonzeros(const arma::sp_mat& x, arma::uword i) {
 // For dense matrices, just return a sequence of integers
 // TODO: consider using a conditional for sparse matrices to avoid
 //       entering this function.
-arma::uvec Nonzeros(const arma::mat& x, arma::uword i) {
-  return arma::regspace<arma::uvec>(0, x.n_rows - 1);
+arma::uvec Nonzeros(const arma::subview<double> x) {
+  return arma::regspace<arma::uvec>(0, 1);
 }
 
 //' Preprocess data
