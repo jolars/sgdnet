@@ -12,7 +12,7 @@
 #' @param cumulative_sums storage for cumulative sums
 #' @param feature_history keeps track of the iteration at which each
 #'   feature was last updated
-#' @param prox nontrivial prox?
+#' @param nontrivial_prox nontrivial proximal operator?
 #' @param sum_gradient gradient sum storage
 #' @param reset TRUE if wscale is to be reset and weights rescaled
 #' @param it_inner the current iteration in the inner loop

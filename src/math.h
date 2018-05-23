@@ -29,17 +29,4 @@ inline double LogSumExp(const arma::vec& x) {
   return std::log(arma::accu(arma::exp(x - x_max))) + x_max;
 }
 
-//' Soft thresholding operator
-//'
-//' Solves \f$ \argmin_{x} 0.5||x - y||^{2} + \alpha ||x||_{1} \f$.
-//'
-//' @param x a double
-//' @param y a double
-//'
-//' @return
-inline double SoftThresholding(const double x,
-                               const double shrinkage) {
-  return std::max(x - shrinkage, 0.0) - std::max(-x - shrinkage, 0.0);
-}
-
 #endif // SGDNET_MATH_

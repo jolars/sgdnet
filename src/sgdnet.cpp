@@ -55,6 +55,7 @@
 #include "objectives.h"
 #include "families.h"
 #include "constants.h"
+#include "prox.h"
 
 //' Perform Lagged Updates
 //'
@@ -67,7 +68,7 @@
 //' @param cumulative_sums storage for cumulative sums
 //' @param feature_history keeps track of the iteration at which each
 //'   feature was last updated
-//' @param prox nontrivial prox?
+//' @param nontrivial_prox nontrivial proximal operator?
 //' @param sum_gradient gradient sum storage
 //' @param reset TRUE if wscale is to be reset and weights rescaled
 //' @param it_inner the current iteration in the inner loop
@@ -81,10 +82,11 @@ void LaggedUpdate(arma::mat&        weights,
                   arma::uword       n_classes,
                   arma::mat&        cumulative_sums,
                   arma::uvec&       feature_history,
-                  bool              prox,
+                  bool              nontrivial_prox,
                   const arma::mat&  sum_gradient,
                   bool              reset,
-                  arma::uword       it_inner) {
+                  arma::uword       it_inner,
+                  sgdnet::Prox     *prox) {
 
   arma::uvec::const_iterator feat_itr = current_nonzero_indices.begin();
   arma::uvec::const_iterator feat_end = current_nonzero_indices.end();
@@ -97,7 +99,7 @@ void LaggedUpdate(arma::mat&        weights,
       cum_sum -= cumulative_sums.row(feature_history(*feat_itr) - 1);
     }
 
-    if (prox) {
+    if (nontrivial_prox) {
 
       for (arma::uword class_ind = 0; class_ind < n_classes; ++class_ind) {
 
@@ -107,7 +109,7 @@ void LaggedUpdate(arma::mat&        weights,
           weights(*feat_itr, class_ind) -=
             cum_sum(0)*sum_gradient(*feat_itr, class_ind);
           weights(*feat_itr, class_ind) =
-            SoftThresholding(weights(*feat_itr, class_ind), cum_sum(1));
+            prox->Evaluate(weights(*feat_itr, class_ind), cum_sum(1));
 
         } else {
 
@@ -132,11 +134,11 @@ void LaggedUpdate(arma::mat&        weights,
             weights(*feat_itr, class_ind) -=
               sum_gradient(*feat_itr, class_ind)*steps(0);
             weights(*feat_itr, class_ind) =
-              SoftThresholding(weights(*feat_itr, class_ind), steps(1));
+              prox->Evaluate(weights(*feat_itr, class_ind), cum_sum(1));
           }
         }
       }
-    } else { // Not prox
+    } else { // Trivial prox
       weights.row(*feat_itr) -= cum_sum(0)*sum_gradient.row(*feat_itr);
     }
   }
@@ -278,10 +280,13 @@ Rcpp::List SagaSolver(T              x,
   double wscale = 1.0;
 
   // Check if we need the nontrivial prox
-  bool prox = beta > 0.0;
+  bool nontrivial_prox = beta > 0.0;
+  sgdnet::Prox *prox = NULL;
+
+  prox = new sgdnet::SoftThreshold();
 
   // Store a matrix of cumulative sums, prox sums in second column
-  arma::mat cumulative_sums(n_samples, 1 + prox, arma::fill::zeros);
+  arma::mat cumulative_sums(n_samples, 1 + nontrivial_prox, arma::fill::zeros);
 
   // Precomputated stepsize
   double wscale_update = 1.0 - step_size*alpha_scaled;
@@ -330,10 +335,11 @@ Rcpp::List SagaSolver(T              x,
                      n_classes,
                      cumulative_sums,
                      feature_history,
-                     prox,
+                     nontrivial_prox,
                      sum_gradient,
                      false,
-                     it_inner);
+                     it_inner,
+                     prox);
 
       prediction = PredictSample(x.col(sample_ind),
                                  weights,
@@ -370,12 +376,12 @@ Rcpp::List SagaSolver(T              x,
       // Update cumulative sums
       if (it_inner == 0) {
         cumulative_sums(0, 0) = step_size/(wscale*n_seen);
-        if (prox)
+        if (nontrivial_prox)
           cumulative_sums(0, 1) = step_size*beta/wscale;
       } else {
         cumulative_sums(it_inner, 0) =
           cumulative_sums(it_inner - 1, 0) + (step_size/(wscale*n_seen));
-        if (prox)
+        if (nontrivial_prox)
           cumulative_sums(it_inner, 1) =
             cumulative_sums(it_inner - 1, 1) + (step_size*beta/wscale);
       }
@@ -389,10 +395,11 @@ Rcpp::List SagaSolver(T              x,
                      n_classes,
                      cumulative_sums,
                      feature_history,
-                     prox,
+                     nontrivial_prox,
                      sum_gradient,
                      true,
-                     it_inner + 1);
+                     it_inner + 1,
+                     prox);
         wscale = 1.0;
       }
     } // inner loop
@@ -405,10 +412,11 @@ Rcpp::List SagaSolver(T              x,
                  n_classes,
                  cumulative_sums,
                  feature_history,
-                 prox,
+                 nontrivial_prox,
                  sum_gradient,
                  true,
-                 n_samples);
+                 n_samples,
+                 prox);
 
     wscale = 1.0;
 
