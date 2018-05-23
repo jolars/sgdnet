@@ -22,7 +22,8 @@ FitModel(x_in, y, family_in, fit_intercept, is_sparse, alpha, beta, normalize,
 
 \item{max_iter}{the maximum number of iterations}
 
-\item{tol}{tolerance for convergence}
+\item{tol}{tolerance for convergence. The algorithm terminates when
+max(change in weights)/max(weights) < tol.}
 
 \item{x}{feature matrix}
 }
