@@ -3,15 +3,26 @@
 
 namespace sgdnet {
 
-//! Base class for proximal operators
+//' Base class for proximal operators
+//'
+//' @param x value
+//' @param shrinkage shrinkage
+//'
+//' @noRd
+//' @keywords internal
 class Prox {
 public:
   virtual double Evaluate(const double x, const double shrinkage) = 0;
 };
 
-//! Soft thresholding operator for L1-regularization
-
-//! Solves \f$ \argmin_{x} 0.5||x - y||^{2} + \alpha ||x||_{1} \f$.
+//' Soft thresholding operator for L1-regularization
+//'
+//' Solves \f$ \argmin_{x} 0.5||x - y||^{2} + \alpha ||x||_{1} \f$.
+//'
+//' @inheritParams Prox
+//'
+//' @noRd
+//' @keywords internal
 class SoftThreshold : public Prox {
 public:
   double Evaluate(const double x, const double shrinkage) {
