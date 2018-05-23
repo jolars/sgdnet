@@ -73,9 +73,8 @@ arma::uvec Nonzeros(const arma::sp_mat& x, arma::uword i) {
 
   std::vector<unsigned int> out;
 
-  for(; x_itr != x_end; ++x_itr) {
+  for(; x_itr != x_end; ++x_itr)
     out.push_back(x_itr.row());
-  }
 
   return arma::conv_to< arma::uvec >::from(out);
 }
