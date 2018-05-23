@@ -9,7 +9,13 @@
 #' @param maxit maximum number of effective passes (epochs)
 #' @param standardize whether to standardize `x` or not -- ignored when
 #'   `intercept == FALSE`.
-#' @param thresh tolerance level for termination of the algorithm
+#' @param thresh tolerance level for termination of the algorithm. The
+#'   algorithm terminates when
+#'   \deqn{
+#'     \frac{\mathrm{change~in~weights}}{\mathrm{weights}} < \mathrm{thresh}.
+#'   }{
+#'     max(change in weights)/max(weights) < thresh.
+#'   }
 #' @param return_loss whether to compute and return the loss at each outer
 #'   iteration, only added here for debugging purposes.
 #' @param ... ignored

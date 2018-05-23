@@ -31,7 +31,13 @@ sgdnet(x, y, ...)
 
 \item{intercept}{whether to fit an intercept or not}
 
-\item{thresh}{tolerance level for termination of the algorithm}
+\item{thresh}{tolerance level for termination of the algorithm. The
+algorithm terminates when
+\deqn{
+    \frac{\mathrm{change~in~weights}}{\mathrm{weights}} < \mathrm{thresh}.
+  }{
+    max(change in weights)/max(weights) < thresh.
+  }}
 
 \item{return_loss}{whether to compute and return the loss at each outer
 iteration, only added here for debugging purposes.}
