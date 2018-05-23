@@ -32,8 +32,6 @@
 #'   }{
 #'     max(change in weights)/max(weights) < thresh.
 #'   }
-#' @param return_loss whether to compute and return the loss at each outer
-#'   iteration, only added here for debugging purposes.
 #' @param ... ignored
 #'
 #' @return An object of class `'sgdnet'`.
@@ -57,7 +55,6 @@ sgdnet.default <- function(x,
                            standardize = TRUE,
                            intercept = TRUE,
                            thresh = 0.001,
-                           return_loss = FALSE,
                            ...) {
 
   n_samples <- NROW(x)
@@ -76,6 +73,8 @@ sgdnet.default <- function(x,
 
   y <- as.matrix(y)
 
+  debug <- getOption("sgdnet.debug")
+
   stopifnot(identical(NROW(y), NROW(x)),
             !any(is.na(y)),
             !any(is.na(x)),
@@ -84,7 +83,7 @@ sgdnet.default <- function(x,
             lambda >= 0,
             is.logical(intercept),
             is.logical(standardize),
-            is.logical(return_loss))
+            is.logical(debug))
 
   # Setup reponse type options and assert that input is correct
   switch(
@@ -106,7 +105,7 @@ sgdnet.default <- function(x,
                   standardize,
                   maxit,
                   thresh,
-                  return_loss)
+                  debug)
 
   variable_names <- colnames(x)
 
@@ -116,9 +115,11 @@ sgdnet.default <- function(x,
   beta <- Matrix::Matrix(res$beta)
   dimnames(beta) <- list(colnames(x), names(a0))
 
-  structure(list(a0 = a0,
-                 beta = beta,
-                 npasses = res$npasses,
-                 losses = if (return_loss) res$losses else NULL),
-            class = "sgdnet")
+  out <- structure(list(a0 = a0,
+                        beta = beta,
+                        npasses = res$npasses),
+                   class = "sgdnet")
+  if (debug)
+    attr(out, "debug_info") <- list(loss = res$losses)
+  out
 }

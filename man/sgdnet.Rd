@@ -9,7 +9,7 @@ sgdnet(x, y, ...)
 
 \method{sgdnet}{default}(x, y, family = c("gaussian"), alpha = 1,
   lambda = 1/NROW(x), maxit = 1000, standardize = TRUE,
-  intercept = TRUE, thresh = 0.001, return_loss = FALSE, ...)
+  intercept = TRUE, thresh = 0.001, ...)
 }
 \arguments{
 \item{x}{input matrix}
@@ -38,9 +38,6 @@ algorithm terminates when
   }{
     max(change in weights)/max(weights) < thresh.
   }}
-
-\item{return_loss}{whether to compute and return the loss at each outer
-iteration, only added here for debugging purposes.}
 }
 \value{
 An object of class \code{'sgdnet'}.

@@ -5,7 +5,7 @@
 \title{Fit a Model with sgdnet}
 \usage{
 FitModel(x_in, y, family_in, fit_intercept, is_sparse, alpha, beta, normalize,
-  max_iter, tol, return_loss)
+  max_iter, tol, debug)
 }
 \arguments{
 \item{y}{response matrix}

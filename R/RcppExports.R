@@ -49,8 +49,7 @@ NULL
 #' @param beta l1-regularization penalty
 #' @param normalize whether to normalize x
 #' @param max_iter maximum number of iterations
-#' @param return_loss whether to compute and return the loss at each outer
-#'   iteration
+#' @param debug if `TRUE`, we are debugging and should return loss
 #' @param is_sparse is x sparse?
 #'
 #' @return See [FitModel()].
@@ -82,7 +81,7 @@ NULL
 #'     1 means that `max_iter` was reached before the algorithm converged.
 #'
 #' @keywords internal
-FitModel <- function(x_in, y, family_in, fit_intercept, is_sparse, alpha, beta, normalize, max_iter, tol, return_loss) {
-    .Call(`_sgdnet_FitModel`, x_in, y, family_in, fit_intercept, is_sparse, alpha, beta, normalize, max_iter, tol, return_loss)
+FitModel <- function(x_in, y, family_in, fit_intercept, is_sparse, alpha, beta, normalize, max_iter, tol, debug) {
+    .Call(`_sgdnet_FitModel`, x_in, y, family_in, fit_intercept, is_sparse, alpha, beta, normalize, max_iter, tol, debug)
 }
 

@@ -190,8 +190,7 @@ arma::rowvec PredictSample(const T&            x,
 //' @param beta l1-regularization penalty
 //' @param normalize whether to normalize x
 //' @param max_iter maximum number of iterations
-//' @param return_loss whether to compute and return the loss at each outer
-//'   iteration
+//' @param debug if `TRUE`, we are debugging and should return loss
 //' @param is_sparse is x sparse?
 //'
 //' @return See [FitModel()].
@@ -209,7 +208,7 @@ Rcpp::List SagaSolver(T              x,
                       bool           normalize,
                       arma::uword    max_iter,
                       double         tol,
-                      bool           return_loss,
+                      bool           debug,
                       bool           is_sparse) {
 
   arma::uword n_samples  = x.n_cols;
@@ -434,8 +433,8 @@ Rcpp::List SagaSolver(T              x,
 
     wscale = 1.0;
 
-    // compute loss for the current solution
-    if (return_loss) {
+    // compute loss for the current solution if debugging
+    if (debug) {
       arma::mat pred = x.t()*weights + arma::repmat(intercept, n_samples, 1);
       double loss = obj->Loss(pred, y)
         + alpha_scaled*std::pow(arma::norm(weights), 2);
@@ -518,7 +517,7 @@ Rcpp::List FitModel(SEXP                x_in,
                     bool                normalize,
                     arma::uword         max_iter,
                     double              tol,
-                    bool                return_loss) {
+                    bool                debug) {
 
   // sgdnet::Family family = static_cast<sgdnet::Family>(family_in);
   sgdnet::Family family;
@@ -541,7 +540,7 @@ Rcpp::List FitModel(SEXP                x_in,
                       normalize,
                       max_iter,
                       tol,
-                      return_loss,
+                      debug,
                       is_sparse);
   } else {
     arma::mat x = Rcpp::as<arma::mat>(x_in);
@@ -557,7 +556,7 @@ Rcpp::List FitModel(SEXP                x_in,
                       normalize,
                       max_iter,
                       tol,
-                      return_loss,
+                      debug,
                       is_sparse);
   }
 }
