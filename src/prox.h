@@ -10,6 +10,8 @@ public:
 };
 
 //! Soft thresholding operator for L1-regularization
+
+//! Solves \f$ \argmin_{x} 0.5||x - y||^{2} + \alpha ||x||_{1} \f$.
 class SoftThreshold : public Prox {
 public:
   double Evaluate(const double x, const double shrinkage) {
