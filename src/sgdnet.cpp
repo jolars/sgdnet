@@ -459,7 +459,12 @@ Rcpp::List SagaSolver(T              x,
       if (x_scale(k) != 0)
         weights.row(k) /= x_scale(k);
     }
-    intercept = y_center - x_center.t()*weights;
+
+    if (is_sparse) {
+      intercept += y_center;
+    } else {
+      intercept = y_center - x_center.t()*weights;
+    }
   }
 
   arma::uword return_code;
