@@ -18,10 +18,10 @@
 #define SGDNET_CONSTANTS_
 
 namespace sgdnet {
-  // Small value to use to figure out when we need to rescale
-  // TODO(JL): We probably need to reconsider this. Perhaps it is beter
-  //           to sticking to 1e-9 as in scikit-learn.
-  constexpr double SMALL =
+// Small value to use to figure out when we need to rescale
+// TODO(JL): We probably need to reconsider this. Perhaps it is beter
+//           to sticking to 1e-9 as in scikit-learn.
+constexpr double SMALL =
     std::pow(std::numeric_limits<double>::epsilon(), 0.75);
 }
 
