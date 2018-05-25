@@ -12,12 +12,18 @@
 #' fit <- sgdnet(matrix(rnorm(100), 50, 2), rnorm(50))
 #' coef(fit)
 coef.sgdnet <- function(object, ...) {
-  out <- rbind(object$a0, object$beta)
-  varnames <- rownames(object$beta)
-  if (is.null(varnames))
-    varnames <- seq_len(NROW(object$beta))
+  beta <- object$beta
+  a0 <- object$a0
 
-  dimnames(out) <- list(c("(Intercept)", varnames),
-                        colnames(object$beta))
-  out
+  if (is.list(beta)) {
+    for (i in seq_along(beta)) {
+      beta[[i]] <- rbind(a0[i, ], beta[[i]])
+      rownames(beta)[[i]][1L] <- "(Intercept)"
+    }
+  } else {
+    beta <- rbind(a0, beta)
+    rownames(beta)[1L] <- "(Intercept)"
+  }
+
+  beta
 }
