@@ -13,7 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-//
+
 // This code is part translation from the Python package scikit-learn,
 // which comes with the following copyright notice:
 //
@@ -71,6 +71,9 @@
 //' @param is_sparse whether the features are sparse
 //'
 //' @return `weights` and `intercept` are rescaled.
+//'
+//' @noRd
+//' @keywords internal
 void Rescale(arma::cube&       weights,
              arma::mat&        intercept,
              arma::rowvec&     x_center,
@@ -115,6 +118,22 @@ void AdaptiveTranspose(arma::mat& x) {
   arma::inplace_trans(x);
 }
 
+
+//' Setup sgdnet Model Options
+//'
+//' Collect parameters from `control` and setup storage for coefficients,
+//' intercepts, gradients, and more so that we can iterate along the
+//' regularization path using warm starts for successive iterations.
+//'
+//' @param x features
+//' @param y response
+//' @param is_sparse whether x is sparse or not
+//' @param control a list of control parameters
+//'
+//' @return See [SgdnetCpp].
+//'
+//' @noRd
+//' @keywords internal
 template <typename T>
 Rcpp::List SetupSgdnet(T&                x,
                        arma::mat         y,
@@ -276,25 +295,24 @@ Rcpp::List SetupSgdnet(T&                x,
 
 //' Fit a Model with sgdnet
 //'
-//' @param x feature matrix
+//' This main use of this function is calling the templated SetupSgdnet()
+//' so that the dense and sparse implementations are compiled and
+//' called appropriately. The control parameters in `control` are just
+//' passed along.
+//'
+//' @param x_in feature matrix
 //' @param y response matrix
-//' @param family_in the response type
-//' @param is_sparse is x sparse?
-//' @param alpha l2-regularization penalty
-//' @param beta l1-regularization penalty
-//' @param normalize should x be normalized before fitting the model?
-//' @param max_iter the maximum number of iterations
-//' @param tol tolerance for convergence. The algorithm terminates when
-//'   max(change in weights)/max(weights) < tol.
+//' @param control a list of control parameters
 //'
 //' @return A list of
-//'   * ao: the intercept
-//'   * beta: the weights
-//'   * losses: the loss at each outer iteration
-//'   * nseen: the number of samples seen
-//'   * npasses: the number of effective passes (epochs)
-//'   * return_code: the convergence result. 0 mean that the algorithm converged,
-//'     1 means that `max_iter` was reached before the algorithm converged.
+//'   * ao: the intercept,
+//'   * beta: the weights,
+//'   * losses: the loss at each outer iteration per fit,
+//'   * npasses: the number of effective passes (epochs) accumulated over,
+//'     all lambda values, and
+//'   * return_codes: the convergence result. 0 mean that the algorithm
+//'     converged, 1 means that `max_iter` was reached before the algorithm
+//'     converged.
 //'
 //' @keywords internal
 // [[Rcpp::export]]
