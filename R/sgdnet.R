@@ -28,7 +28,7 @@
 #' @param thresh tolerance level for termination of the algorithm. The
 #'   algorithm terminates when
 #'   \deqn{
-#'     \frac{\mathrm{change~in~weights}}{\mathrm{weights}} < \mathrm{thresh}.
+#'     \frac{|\beta^{(t)} - \beta^{(t-1)}|{\infty}}{|\beta^{(t)}|{\infty}} < \mathrm{thresh}
 #'   }{
 #'     max(change in weights)/max(weights) < thresh.
 #'   }
@@ -69,53 +69,77 @@ sgdnet.default <- function(x,
     x <- as.matrix(x)
   }
 
+  # Collect response and variable names (if they are given) and otherwise
+  # make new.
+  response_names <- colnames(y)
+  variable_names <- colnames(x)
+
+  if (is.null(variable_names))
+    variable_names <- paste0("V", seq_len(NCOL(x)))
+  if (is.null(variable_names))
+    response_names <- paste0("y", seq_len(NCOL(y)))
+
   y <- as.matrix(y)
 
+  # Collect sgdnet-specific options for debugging and more
   debug <- getOption("sgdnet.debug")
 
   stopifnot(identical(NROW(y), NROW(x)),
             !any(is.na(y)),
             !any(is.na(x)),
             alpha >= 0 && alpha <= 1,
+            length(alpha) == 1L,
             thresh > 0,
             lambda >= 0,
             is.logical(intercept),
             is.logical(standardize),
             is.logical(debug))
 
-  # Setup reponse type options and assert that input is correct
-  switch(
-    match.arg(family),
-    gaussian = {
-      stopifnot(is.numeric(y),
-                identical(NCOL(y), 1L))
-    }
-  )
+  # Setup reponse type options and assert appropriate input
+  family <- match.arg(family)
+
+  switch(family,
+         gaussian = {
+           stopifnot(is.numeric(y),
+                     identical(NCOL(y), 1L))
+           }
+         )
+
+  control <- list(family = family,
+                  intercept = intercept,
+                  is_sparse = is_sparse,
+                  alpha = alpha_sklearn,
+                  beta = beta_sklearn,
+                  normalize = standardize,
+                  max_iter = maxit,
+                  tol = thresh,
+                  debug = debug)
 
   # Fit the model by calling the Rcpp routine.
-  res <- FitModel(x,
-                  y,
-                  family,
-                  intercept,
-                  is_sparse,
-                  alpha_sklearn,
-                  beta_sklearn,
-                  standardize,
-                  maxit,
-                  thresh,
-                  debug)
+  res <- SgdnetCpp(x, y, control)
 
-  variable_names <- colnames(x)
+  # Setup return values
 
-  # Organize return values
-  a0 <- drop(res$a0)
-  names(a0) <- paste0("s", seq_along(a0) - 1L)
-  beta <- Matrix::Matrix(res$beta)
-  dimnames(beta) <- list(colnames(x), names(a0))
+  a0 <- t(as.matrix(res$a0))
+  beta <- res$beta
+
+  colnames(a0) <- paste0("s", seq_along(lambda) - 1L)
+  dimnames(beta) <- list(variable_names, response_names, rownames(a0))
+
+  beta <- lapply(seq(dim(beta)[2L]),
+                 function(x) methods::as(as.matrix(beta[ , x, ]), "dgCMatrix"))
+
+  if (family %in% c("gaussian", "binomial", "poisson", "cox")) {
+    # NOTE(jolars): I would rather not to this, i.e. have different outputs
+    # depending on family, but this is what they do in glmnet.
+    beta <- beta[[1L]]
+  }
 
   out <- structure(list(a0 = a0,
                         beta = beta,
-                        npasses = res$npasses),
+                        npasses = res$npasses,
+                        lambda = lambda,
+                        alpha = alpha),
                    class = "sgdnet")
   if (debug)
     attr(out, "debug_info") <- list(loss = res$losses)
