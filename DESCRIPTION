@@ -23,7 +23,8 @@ Depends: R (>= 3.3.0)
 Imports: 
     Rcpp,
     Matrix,
-    methods
+    methods,
+    lattice
 Suggests: 
     covr,
     testthat
