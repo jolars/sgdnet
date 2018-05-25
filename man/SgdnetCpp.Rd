@@ -7,38 +7,29 @@
 SgdnetCpp(x_in, y, control)
 }
 \arguments{
+\item{x_in}{feature matrix}
+
 \item{y}{response matrix}
 
-\item{x}{feature matrix}
-
-\item{family_in}{the response type}
-
-\item{is_sparse}{is x sparse?}
-
-\item{alpha}{l2-regularization penalty}
-
-\item{beta}{l1-regularization penalty}
-
-\item{normalize}{should x be normalized before fitting the model?}
-
-\item{max_iter}{the maximum number of iterations}
-
-\item{tol}{tolerance for convergence. The algorithm terminates when
-max(change in weights)/max(weights) < tol.}
+\item{control}{a list of control parameters}
 }
 \value{
 A list of
 \itemize{
-\item ao: the intercept
-\item beta: the weights
-\item losses: the loss at each outer iteration
-\item nseen: the number of samples seen
-\item npasses: the number of effective passes (epochs)
-\item return_code: the convergence result. 0 mean that the algorithm converged,
-1 means that \code{max_iter} was reached before the algorithm converged.
+\item ao: the intercept,
+\item beta: the weights,
+\item losses: the loss at each outer iteration per fit,
+\item npasses: the number of effective passes (epochs) accumulated over,
+all lambda values, and
+\item return_codes: the convergence result. 0 mean that the algorithm
+converged, 1 means that \code{max_iter} was reached before the algorithm
+converged.
 }
 }
 \description{
-Fit a Model with sgdnet
+This main use of this function is calling the templated SetupSgdnet()
+so that the dense and sparse implementations are compiled and
+called appropriately. The control parameters in \code{control} are just
+passed along.
 }
 \keyword{internal}

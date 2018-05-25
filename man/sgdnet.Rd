@@ -34,7 +34,7 @@ sgdnet(x, y, ...)
 \item{thresh}{tolerance level for termination of the algorithm. The
 algorithm terminates when
 \deqn{
-    \frac{\mathrm{change~in~weights}}{\mathrm{weights}} < \mathrm{thresh}.
+    \frac{|\beta^{(t)} - \beta^{(t-1)}|{\infty}}{|\beta^{(t)}|{\infty}} < \mathrm{thresh}
   }{
     max(change in weights)/max(weights) < thresh.
   }}
