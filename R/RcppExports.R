@@ -16,6 +16,9 @@
 #' @param is_sparse whether the features are sparse
 #'
 #' @return `weights` and `intercept` are rescaled.
+#'
+#' @noRd
+#' @keywords internal
 NULL
 
 #' Adapative transposing of feature matrix
@@ -44,6 +47,7 @@ NULL
 #' @param control a list of control parameters
 #'
 #' @return See [SgdnetCpp].
+#'
 #' @noRd
 #' @keywords internal
 NULL
