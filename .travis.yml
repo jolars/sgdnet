@@ -3,6 +3,42 @@
 language: R
 sudo: false
 cache: packages
+warnings_are_errors: true
 
-after_success:
-  - Rscript -e 'covr::codecov()'
+matrix:
+  include:
+    - os: linux
+      r: devel
+      compiler: gcc
+      latex: false
+      addons:
+        apt:
+          packages:
+            - valgrind
+      r_check_args: '--ignore-vignettes --use-valgrind'
+      r_build_args: '--no-build-vignettes'
+      env:
+        - VALGRIND_OPTS='--leak-check=full --track-origins=yes'
+
+    - os: linux
+      r: release
+      compiler: clang
+      after_success:
+        - Rscript -e 'covr::codecov()'
+
+    - os: linux
+      r: oldrel
+      compiler: gcc
+
+  allow_failures:
+    - os: osx
+      r: release
+      latex: false
+      r_build_args: '--no-build-vignettes'
+      r_check_args: '--ignore-vignettes --no-examples'
+
+    - os: osx
+      r: oldrel
+      latex: false
+      r_build_args: '--no-build-vignettes'
+      r_check_args: '--ignore-vignettes --no-examples'
