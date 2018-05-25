@@ -29,7 +29,7 @@ This function calls \code{\link[lattice:xyplot]{lattice::xyplot()}} under the ho
 arranged the plotting data slightly.
 }
 \examples{
-fit <- sgdnet(iris[, 1], iris[, 2:4])
+fit <- sgdnet(iris[, 2:4], iris[, 1])
 plot(fit, main = "Lassoing with sgdnet", type = "S")
 }
 \seealso{

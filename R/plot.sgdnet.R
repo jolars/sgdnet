@@ -35,7 +35,7 @@
 #' @seealso [lattice::xyplot()], [sgdnet()]
 #'
 #' @examples
-#' fit <- sgdnet(iris[, 1], iris[, 2:4])
+#' fit <- sgdnet(iris[, 2:4], iris[, 1])
 #' plot(fit, main = "Lassoing with sgdnet", type = "S")
 plot.sgdnet <- function(x, xvar = c("norm", "lambda", "dev"), ...) {
   lambda <- x$lambda
