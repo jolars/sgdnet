@@ -133,6 +133,8 @@ sgdnet.default <- function(x,
     # NOTE(jolars): I would rather not to this, i.e. have different outputs
     # depending on family, but this is what they do in glmnet.
     beta <- beta[[1L]]
+  } else {
+    rownames(a0) <- response_names
   }
 
   out <- structure(list(a0 = a0,
@@ -142,6 +144,6 @@ sgdnet.default <- function(x,
                         alpha = alpha),
                    class = "sgdnet")
   if (debug)
-    attr(out, "debug_info") <- list(loss = res$losses)
+    attr(out, "diagnostics") <- list(loss = res$losses)
   out
 }

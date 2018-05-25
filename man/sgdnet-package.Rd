@@ -15,7 +15,7 @@ Parts of the \link{sgdnet} API can be interfaced with via
 
 \itemize{
 \item \code{sgdnet.debug}: set to \code{TRUE} to enable debugging features,
-which will be accessible via a \code{'debug_info'}
+which will be accessible via a \code{'diagnostics'}
 attribute to the \code{'sgdnet'} object
 that is returned by \code{\link[=sgdnet]{sgdnet()}}.
 }

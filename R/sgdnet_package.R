@@ -27,7 +27,7 @@ NULL
 #'
 #' \itemize{
 #'   \item \code{sgdnet.debug}: set to `TRUE` to enable debugging features,
-#'                              which will be accessible via a `'debug_info'`
+#'                              which will be accessible via a `'diagnostics'`
 #'                              attribute to the `'sgdnet'` object
 #'                              that is returned by [sgdnet()].
 #' }
