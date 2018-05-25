@@ -30,32 +30,6 @@ double ColNormsMax(const T& x) {
   return arma::sum(arma::square(x), 0).max();
 }
 
-//' Retrieve step size for the chosen family and feature matrix X
-//'
-//' @param max_squared_sum the maximum squared rowise norm from X
-//' @param alpha_scaled alpha/n_samples
-//' @param family the model family
-//' @param fit_intercept should an intercept be added to the model?
-//' @param n_samples the number of samples in X
-//'
-//' @return Step size.
-//'
-//' @keywords internal
-double GetStepSize(double         max_squared_sum,
-                   double         alpha_scaled,
-                   sgdnet::Family family,
-                   bool           fit_intercept,
-                   arma::uword    n_samples) {
-  double L;
-
-  switch(family) {
-    case sgdnet::GAUSSIAN: L = max_squared_sum + fit_intercept + alpha_scaled;
-                           break;
-  }
-
-  return 1.0 / (2.0*L + std::min(2.0*n_samples*alpha_scaled, L));
-}
-
 //' Return index of nonzero elements
 //'
 //' The function is overloaded to work with both dense and sparse matrices.
@@ -100,27 +74,27 @@ arma::uvec Nonzeros(const arma::subview<double> x) {
 //' @return Nothing. x and y are scaled and centered.
 //' @keywords internal
 template <typename T>
-void Preprocess(T&            x,
-                arma::mat&    y,
-                const bool    normalize,
-                const bool    fit_intercept,
-                arma::vec&    x_center,
-                arma::vec&    x_scale,
-                arma::rowvec& y_center,
-                const bool    is_sparse) {
+void Preprocess(T&                x,
+                arma::mat&        y,
+                const bool        normalize,
+                const bool        fit_intercept,
+                arma::rowvec&     x_center,
+                arma::vec&        x_scale,
+                arma::rowvec&     y_center,
+                const bool        is_sparse,
+                const arma::uword n_features,
+                const arma::uword n_classes) {
 
   // TODO: what is the reason for not scaling and centering when the intercept
   //       is not fit?
 
   if (fit_intercept) {
 
-    arma::uword n_features = x.n_rows;
-
     // Center feature matrix
     if (!is_sparse) {
-      x_center = arma::mean(x, 1);
+      x_center = arma::mean(x);
       for (arma::uword i = 0; i < n_features; ++i)
-        x.row(i) -= x_center(i);
+        x.col(i) -= x_center(i);
     } else {
       x_center.zeros();
     }
@@ -128,9 +102,9 @@ void Preprocess(T&            x,
     if (normalize) {
       // Normalize each feature with l2-norm
       for (arma::uword i = 0; i < n_features; ++i) {
-        x_scale(i) = arma::norm(x.row(i));
-        if (x_scale(i) != 0)
-          x.row(i) /= x_scale(i);
+        x_scale(i) = arma::norm(x.col(i));
+        if (x_scale(i) != 0.0)
+          x.col(i) /= x_scale(i);
       }
     } else {
       x_scale.ones();
@@ -138,7 +112,7 @@ void Preprocess(T&            x,
 
     // Center targets
     y_center = arma::mean(y);
-    for (arma::uword i = 0; i < y.n_cols; ++i)
+    for (arma::uword i = 0; i < n_classes; ++i)
       y.col(i) -= y_center(i);
 
   } else {
