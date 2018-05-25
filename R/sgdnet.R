@@ -119,22 +119,28 @@ sgdnet.default <- function(x,
   res <- SgdnetCpp(x, y, control)
 
   # Setup return values
-
+  a0 <- res$a0
   a0 <- t(as.matrix(res$a0))
   beta <- res$beta
 
-  colnames(a0) <- paste0("s", seq_along(lambda) - 1L)
-  dimnames(beta) <- list(variable_names, response_names, rownames(a0))
+  path_names <- paste0("s", seq_along(lambda) - 1L)
+  names <- path_names
 
   beta <- lapply(seq(dim(beta)[2L]),
-                 function(x) methods::as(as.matrix(beta[ , x, ]), "dgCMatrix"))
+                 function(x) Matrix::Matrix(as.matrix(beta[ , x, ]),
+                                            dimnames = list(variable_names,
+                                                            path_names),
+                                            sparse = TRUE))
 
   if (family %in% c("gaussian", "binomial", "poisson", "cox")) {
     # NOTE(jolars): I would rather not to this, i.e. have different outputs
-    # depending on family, but this is what they do in glmnet.
+    # depending on family, but this makes it equivalent to glmnet output
     beta <- beta[[1L]]
+    names(a0) <- path_names
   } else {
+    a0 <- t(a0)
     rownames(a0) <- response_names
+    colnames(a0) <- path_names
   }
 
   out <- structure(list(a0 = a0,
