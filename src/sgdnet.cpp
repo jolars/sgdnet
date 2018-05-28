@@ -87,9 +87,8 @@ void Rescale(arma::cube&         weights,
   if (fit_intercept) {
     for (arma::uword i = 0; i < n_features; ++i) {
       if (x_scale(i) != 0.0) {
-        for (arma::uword j = 0; j < y_scale.n_elem; ++j) {
+        for (arma::uword j = 0; j < y_scale.n_elem; ++j)
           weights.tube(i, j) /= x_scale(i);
-        }
       }
     }
 
