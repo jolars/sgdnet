@@ -108,7 +108,7 @@ void LaggedUpdate(arma::mat&                     weights,
               < cum_sum(1)) {
 
           weights(feature_ind, class_ind) -=
-          cum_sum(0)*sum_gradient(feature_ind, class_ind);
+            cum_sum(0)*sum_gradient(feature_ind, class_ind);
           weights(feature_ind, class_ind) =
             prox->Evaluate(weights(feature_ind, class_ind), cum_sum(1));
 
@@ -124,7 +124,7 @@ void LaggedUpdate(arma::mat&                     weights,
                --lagged_ind) {
 
             // Grad and prox steps
-            arma::rowvec steps(cumulative_sums.n_cols);
+            arma::rowvec::fixed<2> steps;
 
             if (lagged_ind > 0)
               steps = cumulative_sums.row(lagged_ind)
@@ -135,7 +135,7 @@ void LaggedUpdate(arma::mat&                     weights,
             weights(feature_ind, class_ind) -=
               sum_gradient(feature_ind, class_ind)*steps(0);
             weights(feature_ind, class_ind) =
-              prox->Evaluate(weights(feature_ind, class_ind), cum_sum(1));
+              prox->Evaluate(weights(feature_ind, class_ind), steps(1));
           }
         }
       }
@@ -371,10 +371,10 @@ void Saga(const T&                          x,
           cumulative_sums(0, 1) = step_size*beta_scaled/wscale;
       } else {
         cumulative_sums(it_inner, 0) =
-          cumulative_sums(it_inner - 1, 0) + (step_size/(wscale*n_seen));
+          cumulative_sums(it_inner - 1, 0) + step_size/(wscale*n_seen);
         if (nontrivial_prox)
           cumulative_sums(it_inner, 1) =
-            cumulative_sums(it_inner - 1, 1) + (step_size*beta_scaled/wscale);
+            cumulative_sums(it_inner - 1, 1) + step_size*beta_scaled/wscale;
       }
 
       // if wscale is too small, reset the scale
@@ -393,6 +393,7 @@ void Saga(const T&                          x,
                      prox);
         wscale = 1.0;
       }
+
     } // inner loop
 
     // scale the weights for every epoch and reset the JIT update system
