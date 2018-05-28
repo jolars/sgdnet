@@ -1,6 +1,6 @@
-context("test-predictions.R")
+context("predictions")
 
-test_that("prediction for gaussian models", {
+test_that("prediction for gaussian models peform as expected", {
   set.seed(1)
 
   x <- with(trees, cbind(Girth, Volume))
