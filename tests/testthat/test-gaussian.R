@@ -24,9 +24,7 @@ test_that("gaussian regression with sparse and dense features work", {
   set.seed(seed)
   fit_dense <- sgdnet(as.matrix(x), y, alpha = 0, intercept = FALSE)
 
-  diff <- coef(fit_sparse)[-1]/coef(fit_dense)[-1]
-
-  expect_equal(diff, rep(1, length(diff)), tolerance = 0.001)
+  expect_equal(coef(fit_sparse), coef(fit_dense))
 })
 
 test_that("we can approximately reproduce the OLS solution", {
@@ -92,4 +90,19 @@ test_that("we can approximate the closed form ridge regression solution", {
 
   expect_equivalent(beta_theoretical, coef(sgdnet_fit)[-1],
                     tolerance = 1e-3)
+})
+
+test_that("we generate the same lambda path as in glmnet", {
+  set.seed(1)
+
+  x <- with(trees, cbind(Girth, Height))
+  y <- trees$Volume
+
+  library(glmnet)
+  glmnet.control(fdev = 0) # make sure that the whole lambda path is returned
+
+  glmnetfit <- glmnet(x, y)
+  sgdnetfit <- sgdnet(x, y)
+
+  expect_equal(glmnetfit$lambda, sgdnetfit$lambda)
 })

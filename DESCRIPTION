@@ -27,7 +27,8 @@ Imports:
     lattice
 Suggests: 
     covr,
-    testthat
+    testthat,
+    glmnet
 LinkingTo: 
     Rcpp (>= 0.12.16),
     RcppArmadillo (>= 0.8.500.0.0)
