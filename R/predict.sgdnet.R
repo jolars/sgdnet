@@ -161,8 +161,12 @@ lambda_interpolate <- function(lambda, s) {
 #'
 #' @examples
 #' # Gaussian
-#' gaussian_fit <- sgdnet(iris[, 2:4], iris[, 1])
-#' predict(gaussian_fit, type = "response")
+#' gaussian_fit <- sgdnet(iris[1:100, 2:4], iris[, 1])
+#' predict(gaussian_fit,
+#'         newx = iris[101:150, 2:4],
+#'         s = 4.23,
+#'         type = "response",
+#'         exact = TRUE)
 predict.sgdnet <- function(object,
                            newx,
                            s = NULL,

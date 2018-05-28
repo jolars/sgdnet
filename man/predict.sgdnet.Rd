@@ -41,8 +41,12 @@ Predictions for sgdnet Models
 }
 \examples{
 # Gaussian
-gaussian_fit <- sgdnet(iris[, 2:4], iris[, 1])
-predict(gaussian_fit, type = "response")
+gaussian_fit <- sgdnet(iris[1:100, 2:4], iris[, 1])
+predict(gaussian_fit,
+        newx = iris[101:150, 2:4],
+        s = 4.23,
+        type = "response",
+        exact = TRUE)
 }
 \seealso{
 \code{\link[=sgdnet]{sgdnet()}}, \code{\link[=coef.sgdnet]{coef.sgdnet()}}
