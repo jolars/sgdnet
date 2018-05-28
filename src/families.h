@@ -38,6 +38,11 @@ public:
                              const arma::vec&   alpha_scaled,
                              const bool         fit_intercept,
                              const arma::uword  n_samples) = 0;
+
+  virtual void PreprocessResponse(arma::mat&    y,
+                                  arma::rowvec& y_center,
+                                  arma::rowvec& y_scale,
+                                  const bool    fit_intercept) = 0;
 };
 
 class Gaussian : public Family {
@@ -56,7 +61,7 @@ public:
 
   arma::uword NClasses(const arma::mat& y) {
     return 1;
-  }
+  };
 
   arma::vec StepSize(const double       max_squared_sum,
                      const arma::vec&   alpha_scaled,
@@ -67,6 +72,28 @@ public:
     arma::vec mu_n = 2.0*n_samples*alpha_scaled;
     return 1.0 / (2.0*L + arma::min(L, mu_n));
   };
+
+  void PreprocessResponse(arma::mat&    y,
+                          arma::rowvec& y_center,
+                          arma::rowvec& y_scale,
+                          const bool    fit_intercept) {
+
+    if (fit_intercept) {
+      y_center = arma::mean(y);
+      //y_scale  = arma::sqrt(arma::var(y, 1));
+
+      for (arma::uword i = 0; i < y.n_cols; ++i) {
+        y.col(i) -= y_center(i);
+        //if (y_scale(i) != 0)
+        //  y.col(i) /= y_scale(i);
+      }
+      y_scale.ones();
+    } else {
+      y_center.zeros();
+      y_scale.ones();
+    }
+  };
+
 };
 
 class FamilyFactory {

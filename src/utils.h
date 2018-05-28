@@ -74,23 +74,20 @@ arma::uvec Nonzeros(const arma::subview<double> x) {
 //' @return Nothing. x and y are scaled and centered.
 //' @keywords internal
 template <typename T>
-void Preprocess(T&                x,
-                arma::mat&        y,
-                const bool        normalize,
-                const bool        fit_intercept,
-                arma::rowvec&     x_center,
-                arma::vec&        x_scale,
-                arma::rowvec&     y_center,
-                const bool        is_sparse,
-                const arma::uword n_features,
-                const arma::uword n_classes) {
+void PreprocessFeatures(T&                x,
+                        const bool        normalize,
+                        const bool        fit_intercept,
+                        arma::rowvec&     x_center,
+                        arma::rowvec&     x_scale,
+                        const bool        is_sparse,
+                        const arma::uword n_features) {
 
   // TODO: what is the reason for not scaling and centering when the intercept
   //       is not fit?
 
   if (fit_intercept) {
 
-    // Center feature matrix
+    // Center feature matrix with mean
     if (!is_sparse) {
       x_center = arma::mean(x);
       for (arma::uword i = 0; i < n_features; ++i)
@@ -100,25 +97,19 @@ void Preprocess(T&                x,
     }
 
     if (normalize) {
-      // Normalize each feature with l2-norm
+      // Scale with biased standard deviation
+      x_scale = arma::sqrt(arma::var(x, 1));
+      // Normalize each feature with standard deviation
       for (arma::uword i = 0; i < n_features; ++i) {
-        x_scale(i) = arma::norm(x.col(i));
         if (x_scale(i) != 0.0)
           x.col(i) /= x_scale(i);
       }
     } else {
       x_scale.ones();
     }
-
-    // Center targets
-    y_center = arma::mean(y);
-    for (arma::uword i = 0; i < n_classes; ++i)
-      y.col(i) -= y_center(i);
-
   } else {
     x_center.zeros();
     x_scale.ones();
-    y_center.zeros();
   }
 }
 
