@@ -2,6 +2,7 @@
 
 S3method(coef,sgdnet)
 S3method(plot,sgdnet)
+S3method(predict,sgdnet)
 S3method(sgdnet,default)
 export(sgdnet)
 importFrom(Rcpp,sourceCpp)

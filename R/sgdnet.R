@@ -35,6 +35,10 @@
 #' @param ... ignored
 #'
 #' @return An object of class `'sgdnet'`.
+#'
+#' @seealso [predict.sgdnet()], [plot.sgdnet()], [coef.sgdnet()],
+#'   [sgdnet_package()]
+#'
 #' @export
 #'
 #' @examples
@@ -57,6 +61,9 @@ sgdnet.default <- function(x,
                            intercept = TRUE,
                            thresh = 0.001,
                            ...) {
+
+  # Collect the call so we can use it in update() later on
+  ocall <- match.call(call = sys.call(1))
 
   n_samples <- NROW(x)
 
@@ -149,8 +156,9 @@ sgdnet.default <- function(x,
                         beta = beta,
                         npasses = res$npasses,
                         lambda = lambda,
-                        alpha = alpha),
-                   class = "sgdnet")
+                        alpha = alpha,
+                        call = ocall),
+                   class = c("sgdnet", family))
   if (debug)
     attr(out, "diagnostics") <- list(loss = res$losses)
   out

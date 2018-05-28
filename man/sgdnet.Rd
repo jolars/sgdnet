@@ -50,3 +50,7 @@ Fit a Generalized Linear Model with Elastic Net Regularization
 # Gaussian regression with sparse features
 fit <- sgdnet(permeability$x, permeability$y, alpha = 0)
 }
+\seealso{
+\code{\link[=predict.sgdnet]{predict.sgdnet()}}, \code{\link[=plot.sgdnet]{plot.sgdnet()}}, \code{\link[=coef.sgdnet]{coef.sgdnet()}},
+\code{\link[=sgdnet_package]{sgdnet_package()}}
+}
