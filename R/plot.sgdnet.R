@@ -49,12 +49,14 @@ plot.sgdnet <- function(x, xvar = c("norm", "lambda", "dev"), ...) {
     data = quote(plot_data),
     type = "l",
     ylab = expression(beta),
-    auto.key = list(space = "right", lines = TRUE, points = FALSE)
+    auto.key = list(space = "right", lines = TRUE, points = FALSE),
+    abline = within(lattice::trellis.par.get("reference.line"), {h = 0})
   )
 
   switch(match.arg(xvar),
          norm = {
-           plot_args$xlab <- "L1 Norm"
+           plot_args$xlab <-
+             expression(group("|", group("|", beta, "|"), "|")[1])
            plot_data$xval <- rowSums(abs(beta))
          },
          lambda = {
