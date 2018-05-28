@@ -37,7 +37,7 @@
 #' @return An object of class `'sgdnet'`.
 #'
 #' @seealso [predict.sgdnet()], [plot.sgdnet()], [coef.sgdnet()],
-#'   [sgdnet_package()]
+#'   [sgdnet-package()]
 #'
 #' @export
 #'
