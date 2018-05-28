@@ -74,28 +74,73 @@
 //'
 //' @noRd
 //' @keywords internal
-void Rescale(arma::cube&       weights,
-             arma::mat&        intercept,
-             arma::rowvec&     x_center,
-             arma::vec&        x_scale,
-             arma::rowvec&     y_center,
-             const arma::uword n_features,
-             const arma::uword fit_intercept,
-             const bool        is_sparse) {
+void Rescale(arma::cube&         weights,
+             arma::mat&          intercept,
+             const arma::rowvec& x_center,
+             const arma::rowvec& x_scale,
+             const arma::rowvec& y_center,
+             const arma::rowvec& y_scale,
+             const arma::uword   n_features,
+             const arma::uword   fit_intercept,
+             const bool          is_sparse) {
 
   if (fit_intercept) {
     for (arma::uword i = 0; i < n_features; ++i) {
-      if (x_scale(i) != 0)
-        weights.tube(arma::span(i, i), arma::span::all) /= x_scale(i);
+      if (x_scale(i) != 0.0) {
+        for (arma::uword j = 0; j < y_scale.n_elem; ++j) {
+          weights.tube(i, j) /= x_scale(i);
+        }
+      }
     }
 
     if (is_sparse) {
       intercept.each_row() += y_center;
     } else {
-      for (arma::uword i = 0; i < weights.n_slices; ++i)
-        intercept.row(i) += y_center - x_center*weights.slice(i);
+      for (arma::uword i = 0; i < weights.n_slices; ++i) {
+        intercept.row(i) = y_center - x_center*weights.slice(i);
+      }
     }
   }
+}
+
+//' Compute Regularization Path
+//'
+//' This function computes the regularization path as in glmnet so that
+//' the first solution is the null solution (if elasticnet_mix != 0).
+template <typename T>
+void RegularizationPath(arma::vec&          lambda,
+                        const arma::uword   n_lambda,
+                        const double        lambda_min_ratio,
+                        const double        elasticnet_mix,
+                        const T&            x,
+                        const arma::mat&    y,
+                        const arma::uword   n_samples,
+                        arma::vec&          alpha,
+                        arma::vec&          beta) {
+
+  if (lambda.is_empty()) {
+    arma::vec y_vec = arma::conv_to<arma::vec>::from(y);
+
+    double y_scale = arma::stddev(y_vec, 1);
+
+    y_vec -= arma::mean(y_vec);
+    y_vec /= y_scale;
+
+    double lambda_max = arma::abs(y_vec.t() * x).max() / n_samples;
+    // Cap elasticnet_mix (alpha in glmnet) to 0.001
+    lambda_max *= y_scale/std::max(elasticnet_mix, 0.001);
+
+    lambda = arma::exp(arma::linspace<arma::vec>(
+      std::log(lambda_max), std::log(lambda_max*lambda_min_ratio), n_lambda));
+  }
+
+  // The algorithm uses a different penalty construction than
+  // glmnet, so convert lambda values to match alpha and beta from scikit-learn.
+
+  // Scaled L2 penalty
+  alpha = lambda*(1 - elasticnet_mix)/2;
+  // Scaled L1 penalty
+  beta = lambda*elasticnet_mix;
 }
 
 //' Adapative transposing of feature matrix
@@ -140,29 +185,34 @@ Rcpp::List SetupSgdnet(T&                x,
                        bool              is_sparse,
                        const Rcpp::List& control) {
 
-  std::string family_choice = Rcpp::as<std::string>(control["family"]);
-  bool        fit_intercept = Rcpp::as<bool>(control["intercept"]);
-  arma::vec   alpha         = Rcpp::as<arma::vec>(control["alpha"]);
-  arma::vec   beta          = Rcpp::as<arma::vec>(control["beta"]);
-  bool        normalize     = Rcpp::as<bool>(control["normalize"]);
-  arma::uword max_iter      = Rcpp::as<arma::uword>(control["max_iter"]);
-  double      tol           = Rcpp::as<double>(control["tol"]);
-  bool        debug         = Rcpp::as<bool>(control["debug"]);
+  std::string  family_choice    = Rcpp::as<std::string>(control["family"]);
+  bool         fit_intercept    = Rcpp::as<bool>(control["intercept"]);
+  double       elasticnet_mix   = Rcpp::as<double>(control["elasticnet_mix"]);
+  arma::vec    lambda           = Rcpp::as<arma::vec>(control["lambda"]);
+  arma::uword  n_lambda         = Rcpp::as<arma::uword>(control["n_lambda"]);
+  double       lambda_min_ratio = Rcpp::as<double>(control["lambda_min_ratio"]);
+  bool         normalize        = Rcpp::as<bool>(control["normalize"]);
+  arma::uword  max_iter         = Rcpp::as<arma::uword>(control["max_iter"]);
+  double       tol              = Rcpp::as<double>(control["tol"]);
+  bool         debug            = Rcpp::as<bool>(control["debug"]);
 
   arma::uword n_samples   = x.n_rows;
   arma::uword n_features  = x.n_cols;
   arma::uword n_targets   = y.n_cols;
-  arma::uword n_penalties = alpha.n_elem;
 
-  alpha /= n_samples; // l2 penalty scaled
-  beta /= n_samples;  // l1 penalty scaled
+  // Preprocess features
+  arma::rowvec x_center(n_features);
+  arma::rowvec x_scale(n_features);
+
+  PreprocessFeatures(x,
+                     normalize,
+                     fit_intercept,
+                     x_center,
+                     x_scale,
+                     is_sparse,
+                     n_features);
 
   double intercept_decay = is_sparse ? 0.01 : 1.0;
-
-  // Preprocess data
-  arma::rowvec x_center(n_features);
-  arma::vec    x_scale(n_features);
-  arma::rowvec y_center(y.n_cols);
 
   // Setup family-specific options
   sgdnet::FamilyFactory family_factory;
@@ -171,16 +221,27 @@ Rcpp::List SetupSgdnet(T&                x,
 
   arma::uword n_classes = family->NClasses(y);
 
-  Preprocess(x,
-             y,
-             normalize,
-             fit_intercept,
-             x_center,
-             x_scale,
-             y_center,
-             is_sparse,
-             n_features,
-             n_classes);
+  // Preprocess response
+  arma::rowvec y_center(n_targets);
+  arma::rowvec y_scale(n_targets);
+
+  // Compute the lambda sequence
+  arma::vec alpha;
+  arma::vec beta;
+
+  RegularizationPath(lambda,
+                     n_lambda,
+                     lambda_min_ratio,
+                     elasticnet_mix,
+                     x,
+                     y,
+                     n_samples,
+                     alpha,
+                     beta);
+
+  family->PreprocessResponse(y, y_center, y_scale, fit_intercept);
+
+  arma::uword n_penalties = lambda.n_elem;
 
   // Transpose x for more efficient access of samples
   AdaptiveTranspose(x);
@@ -280,6 +341,7 @@ Rcpp::List SetupSgdnet(T&                x,
           x_center,
           x_scale,
           y_center,
+          y_scale,
           n_features,
           fit_intercept,
           is_sparse);
@@ -289,6 +351,7 @@ Rcpp::List SetupSgdnet(T&                x,
     Rcpp::Named("beta") = Rcpp::wrap(weights_archive),
     Rcpp::Named("losses") = Rcpp::wrap(losses_archive),
     Rcpp::Named("npasses") = n_iter,
+    Rcpp::Named("lambda") = Rcpp::wrap(lambda),
     Rcpp::Named("return_codes") = Rcpp::wrap(return_codes)
   );
 }
