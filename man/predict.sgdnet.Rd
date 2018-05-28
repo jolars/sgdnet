@@ -41,12 +41,20 @@ Predictions for sgdnet Models
 }
 \examples{
 # Gaussian
-gaussian_fit <- sgdnet(iris[1:100, 2:4], iris[, 1])
-predict(gaussian_fit,
-        newx = iris[101:150, 2:4],
-        s = 4.23,
-        type = "response",
-        exact = TRUE)
+
+# Split into training and test sets
+id <- sample.int(nrow(iris))
+train_ind <- id[1:100]
+test_ind <- id[101:150]
+gaussian_fit <- sgdnet(iris[train_ind, 2:4], iris[train_ind, 1])
+pred <- predict(gaussian_fit,
+                newx = iris[test_ind, 2:4],
+                s = 0.003,
+                type = "response",
+                exact = TRUE)
+
+# Mean absolute error
+mae <- 1/length(test_ind)*sum(abs(iris[test_ind, 2:4] - pred))
 }
 \seealso{
 \code{\link[=sgdnet]{sgdnet()}}, \code{\link[=coef.sgdnet]{coef.sgdnet()}}

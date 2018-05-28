@@ -161,16 +161,20 @@ lambda_interpolate <- function(lambda, s) {
 #'
 #' @examples
 #' # Gaussian
+#'
+#' # Split into training and test sets
 #' id <- sample.int(nrow(iris))
 #' train_ind <- id[1:100]
 #' test_ind <- id[101:150]
 #' gaussian_fit <- sgdnet(iris[train_ind, 2:4], iris[train_ind, 1])
 #' pred <- predict(gaussian_fit,
 #'                 newx = iris[test_ind, 2:4],
-#'                 s = 4.23,
+#'                 s = 0.003,
 #'                 type = "response",
 #'                 exact = TRUE)
 #'
+#' # Mean absolute error
+#' mae <- 1/length(test_ind)*sum(abs(iris[test_ind, 2:4] - pred))
 predict.sgdnet <- function(object,
                            newx,
                            s = NULL,
