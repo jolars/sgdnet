@@ -16,10 +16,27 @@
 
 #' Fit a Generalized Linear Model with Elastic Net Regularization
 #'
+#' @section Regularization Path:
+#' The default regularization path is a sequence of `nlambda`
+#' log-spaced elements
+#' from \eqn{\log_e{\lambda_{\mathrm{max}}}}{log(lambda_max)} to
+#' \eqn{\log_e{\lambda_{\mathrm{max}}} \times \mathtt{lambda.min.ratio}}{
+#'      log(lambda_max)*lambda.min.ratio},
+#' For the gaussian family, for instance,
+#' \eqn{\lambda_{\mathrm{max}}}{lambda_max} is
+#' the largest absolute inner product of the feature vectors and the response
+#' vector,
+#' \deqn{\max_i \frac{1}{n}|\langle\mathbf{x}_i, y\rangle|.}{
+#'       max |<x, y>|/n.}
+#'
 #' @param x input matrix
 #' @param y response variable
 #' @param family reponse type
 #' @param alpha elastic net mixing parameter
+#' @param nlambda number of penalties in the regualrization path
+#' @param lambda.min.ratio the ratio between `lambda_max` (the smallest
+#'   penalty at which the solution is completely sparse) and the smallest
+#'   lambda value on the path. See section **Regularization Path** for details.
 #' @param lambda regularization strength
 #' @param intercept whether to fit an intercept or not
 #' @param maxit maximum number of effective passes (epochs)

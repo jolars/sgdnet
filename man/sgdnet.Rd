@@ -23,6 +23,12 @@ sgdnet(x, y, ...)
 
 \item{alpha}{elastic net mixing parameter}
 
+\item{nlambda}{number of penalties in the regualrization path}
+
+\item{lambda.min.ratio}{the ratio between \code{lambda_max} (the smallest
+penalty at which the solution is completely sparse) and the smallest
+lambda value on the path. See section \strong{Regularization Path} for details.}
+
 \item{lambda}{regularization strength}
 
 \item{maxit}{maximum number of effective passes (epochs)}
@@ -46,6 +52,21 @@ An object of class \code{'sgdnet'}.
 \description{
 Fit a Generalized Linear Model with Elastic Net Regularization
 }
+\section{Regularization Path}{
+
+The default regularization path is a sequence of \code{nlambda}
+log-spaced elements
+from \eqn{\log_e{\lambda_{\mathrm{max}}}}{log(lambda_max)} to
+\eqn{\log_e{\lambda_{\mathrm{max}}} \times \mathtt{lambda.min.ratio}}{
+     log(lambda_max)*lambda.min.ratio},
+For the gaussian family, for instance,
+\eqn{\lambda_{\mathrm{max}}}{lambda_max} is
+the largest absolute inner product of the feature vectors and the response
+vector,
+\deqn{\max_i \frac{1}{n}|\langle\mathbf{x}_i, y\rangle|.}{
+      max |<x, y>|/n.}
+}
+
 \examples{
 # Gaussian regression with sparse features
 fit <- sgdnet(permeability$x, permeability$y, alpha = 0)
