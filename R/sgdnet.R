@@ -48,7 +48,10 @@ sgdnet.default <- function(x,
                            y,
                            family = c("gaussian"),
                            alpha = 1,
-                           lambda = 1/NROW(x),
+                           nlambda = 100,
+                           lambda.min.ratio =
+                             if (NROW(x) < NCOL(x)) 0.01 else 0.0001,
+                           lambda = NULL,
                            maxit = 1000,
                            standardize = TRUE,
                            intercept = TRUE,
@@ -56,11 +59,6 @@ sgdnet.default <- function(x,
                            ...) {
 
   n_samples <- NROW(x)
-
-  # The internal optimizer uses a different penalty construction than
-  # glmnet. Convert lambda vallues to match alpha and beta from scikit-learn.
-  alpha_sklearn <- lambda/2*n_samples*(1 - alpha)
-  beta_sklearn <- lambda/2*n_samples*alpha
 
   # Convert sparse x to dgCMatrix class from package Matrix.
   if (is_sparse <- inherits(x, "sparseMatrix")) {
@@ -84,13 +82,16 @@ sgdnet.default <- function(x,
   # Collect sgdnet-specific options for debugging and more
   debug <- getOption("sgdnet.debug")
 
+  if (is.null(lambda))
+    lambda <- double(0L)
+
   stopifnot(identical(NROW(y), NROW(x)),
             !any(is.na(y)),
             !any(is.na(x)),
             alpha >= 0 && alpha <= 1,
             length(alpha) == 1L,
             thresh > 0,
-            lambda >= 0,
+            all(lambda >= 0),
             is.logical(intercept),
             is.logical(standardize),
             is.logical(debug))
@@ -108,8 +109,10 @@ sgdnet.default <- function(x,
   control <- list(family = family,
                   intercept = intercept,
                   is_sparse = is_sparse,
-                  alpha = alpha_sklearn,
-                  beta = beta_sklearn,
+                  lambda = lambda,
+                  elasticnet_mix = alpha,
+                  n_lambda = nlambda,
+                  lambda_min_ratio = lambda.min.ratio,
                   normalize = standardize,
                   max_iter = maxit,
                   tol = thresh,
@@ -119,12 +122,11 @@ sgdnet.default <- function(x,
   res <- SgdnetCpp(x, y, control)
 
   # Setup return values
-  a0 <- res$a0
-  a0 <- t(as.matrix(res$a0))
+  a0 <- drop(t(as.matrix(res$a0)))
   beta <- res$beta
+  lambda <- drop(res$lambda)
 
   path_names <- paste0("s", seq_along(lambda) - 1L)
-  names <- path_names
 
   beta <- lapply(seq(dim(beta)[2L]),
                  function(x) Matrix::Matrix(as.matrix(beta[ , x, ]),

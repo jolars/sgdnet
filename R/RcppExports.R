@@ -21,6 +21,12 @@
 #' @keywords internal
 NULL
 
+#' Compute Regularization Path
+#'
+#' This function computes the regularization path as in glmnet so that
+#' the first solution is the null solution (if elasticnet_mix != 0).
+NULL
+
 #' Adapative transposing of feature matrix
 #'
 #' For sparse matrices, armadillo does not (yet?) have a inplace

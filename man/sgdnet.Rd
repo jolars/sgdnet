@@ -8,8 +8,9 @@
 sgdnet(x, y, ...)
 
 \method{sgdnet}{default}(x, y, family = c("gaussian"), alpha = 1,
-  lambda = 1/NROW(x), maxit = 1000, standardize = TRUE,
-  intercept = TRUE, thresh = 0.001, ...)
+  nlambda = 100, lambda.min.ratio = if (NROW(x) < NCOL(x)) 0.01 else 1e-04,
+  lambda = NULL, maxit = 1000, standardize = TRUE, intercept = TRUE,
+  thresh = 0.001, ...)
 }
 \arguments{
 \item{x}{input matrix}
