@@ -104,7 +104,7 @@ nonzero_coefs <- function(beta, bystep = FALSE) {
 #' @keywords internal
 lambda_interpolate <- function(lambda, s) {
 
-  if(length(lambda) == 1) {
+  if (length(lambda) == 1) {
 
     nums <- length(s)
     left <- rep(1, nums)
@@ -118,7 +118,7 @@ lambda_interpolate <- function(lambda, s) {
     k <- length(lambda)
     sfrac <- (lambda[1] - s)/(lambda[1] - lambda[k])
     lambda <- (lambda[1] - lambda)/(lambda[1] - lambda[k])
-    coord <- approx(lambda, seq(lambda), sfrac)$y
+    coord <- stats::approx(lambda, seq(lambda), sfrac)$y
     left <- floor(coord)
     right <- ceiling(coord)
     sfrac <- (sfrac - lambda[right])/(lambda[left] - lambda[right])
@@ -161,12 +161,16 @@ lambda_interpolate <- function(lambda, s) {
 #'
 #' @examples
 #' # Gaussian
-#' gaussian_fit <- sgdnet(iris[1:100, 2:4], iris[, 1])
-#' predict(gaussian_fit,
-#'         newx = iris[101:150, 2:4],
-#'         s = 4.23,
-#'         type = "response",
-#'         exact = TRUE)
+#' id <- sample.int(nrow(iris))
+#' train_ind <- id[1:100]
+#' test_ind <- id[101:150]
+#' gaussian_fit <- sgdnet(iris[train_ind, 2:4], iris[train_ind, 1])
+#' pred <- predict(gaussian_fit,
+#'                 newx = iris[test_ind, 2:4],
+#'                 s = 4.23,
+#'                 type = "response",
+#'                 exact = TRUE)
+#'
 predict.sgdnet <- function(object,
                            newx,
                            s = NULL,
@@ -190,7 +194,7 @@ predict.sgdnet <- function(object,
 
     if (!all(which > 0)) {
       lambda <- unique(rev(sort(c(s, lambda))))
-      object <- update(object, lambda = lambda)
+      object <- stats::update(object, lambda = lambda)
     }
   }
 
@@ -219,16 +223,20 @@ predict.sgdnet <- function(object,
     link = {
       if (inherits(newx, "sparseMatrix"))
         newx <- methods::as(newx, "dgCMatrix")
+      else
+        newx <- as.matrix(newx)
 
       if (inherits(object, "gaussian"))
-        as.matrix(methods::cbind2(1, newx) %*% beta)
+        as.matrix(cbind(1, newx) %*% beta)
     },
     response = {
       if (inherits(newx, "sparseMatrix"))
         newx <- methods::as(newx, "dgCMatrix")
+      else
+        newx <- as.matrix(newx)
 
       if (inherits(object, "gaussian"))
-        as.matrix(methods::cbind2(1, newx) %*% beta)
+        as.matrix(cbind(1, newx) %*% beta)
     },
     coefficients = beta,
     nonzero = nonzero_coefs(beta[-1, , drop = FALSE], bystep = TRUE)
@@ -254,5 +262,5 @@ predict.sgdnet <- function(object,
 #' fit <- sgdnet(matrix(rnorm(100), 50, 2), rnorm(50))
 #' coef(fit)
 coef.sgdnet <- function(object, ...) {
-  predict(object, type = "coefficients", ...)
+  stats::predict(object, type = "coefficients", ...)
 }
