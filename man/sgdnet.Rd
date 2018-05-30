@@ -5,7 +5,7 @@
 \alias{sgdnet.default}
 \title{Fit a Generalized Linear Model with Elastic Net Regularization}
 \usage{
-sgdnet(x, y, ...)
+sgdnet(x, ...)
 
 \method{sgdnet}{default}(x, y, family = c("gaussian"), alpha = 1,
   nlambda = 100, lambda.min.ratio = if (NROW(x) < NCOL(x)) 0.01 else 1e-04,
@@ -15,9 +15,9 @@ sgdnet(x, y, ...)
 \arguments{
 \item{x}{input matrix}
 
-\item{y}{response variable}
-
 \item{...}{ignored}
+
+\item{y}{response variable}
 
 \item{family}{reponse type}
 

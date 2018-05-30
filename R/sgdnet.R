@@ -61,7 +61,7 @@
 #' @examples
 #' # Gaussian regression with sparse features
 #' fit <- sgdnet(permeability$x, permeability$y, alpha = 0)
-sgdnet <- function(x, y, ...) UseMethod("sgdnet")
+sgdnet <- function(x, ...) UseMethod("sgdnet")
 
 #' @export
 #' @rdname sgdnet
