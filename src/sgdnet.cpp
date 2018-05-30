@@ -88,7 +88,7 @@ void Rescale(arma::cube&         weights,
     for (arma::uword i = 0; i < n_features; ++i) {
       if (x_scale(i) != 0.0) {
         for (arma::uword j = 0; j < y_scale.n_elem; ++j)
-          weights.tube(i, j) /= x_scale(i);
+          weights.tube(i, j) *= y_scale(j)/x_scale(i);
       }
     }
 
@@ -96,7 +96,7 @@ void Rescale(arma::cube&         weights,
       intercept.each_row() += y_center;
     } else {
       for (arma::uword i = 0; i < weights.n_slices; ++i) {
-        intercept.row(i) = y_center - x_center*weights.slice(i);
+        intercept.row(i) = intercept.row(i)*y_scale + y_center - x_center*weights.slice(i);
       }
     }
   }
@@ -120,14 +120,9 @@ void RegularizationPath(arma::vec&          lambda,
   if (lambda.is_empty()) {
     arma::vec y_vec = arma::conv_to<arma::vec>::from(y);
 
-    double y_scale = arma::stddev(y_vec, 1);
-
-    y_vec -= arma::mean(y_vec);
-    y_vec /= y_scale;
-
     double lambda_max = arma::abs(y_vec.t() * x).max() / n_samples;
     // Cap elasticnet_mix (alpha in glmnet) to 0.001
-    lambda_max *= y_scale/std::max(elasticnet_mix, 0.001);
+    lambda_max /= std::max(elasticnet_mix, 0.001);
 
     lambda = arma::exp(arma::linspace<arma::vec>(
       std::log(lambda_max), std::log(lambda_max*lambda_min_ratio), n_lambda));
@@ -228,6 +223,8 @@ Rcpp::List SetupSgdnet(T&                x,
   arma::vec alpha;
   arma::vec beta;
 
+  family->PreprocessResponse(y, y_center, y_scale, fit_intercept);
+
   RegularizationPath(lambda,
                      n_lambda,
                      lambda_min_ratio,
@@ -238,7 +235,9 @@ Rcpp::List SetupSgdnet(T&                x,
                      alpha,
                      beta);
 
-  family->PreprocessResponse(y, y_center, y_scale, fit_intercept);
+  // FIXME(jolars): This needs to be handled appropriately when we extend to
+  // multivariate regression.
+  lambda *= y_scale(0);
 
   arma::uword n_penalties = lambda.n_elem;
 

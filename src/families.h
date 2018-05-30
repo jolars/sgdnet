@@ -26,8 +26,8 @@ class Family {
 public:
   virtual ~Family() {};
 
-  virtual double Loss(const arma::rowvec& prediction,
-                      const arma::rowvec& y) = 0;
+  virtual double Loss(const arma::mat& prediction,
+                      const arma::mat& y) = 0;
 
   virtual arma::rowvec Gradient(const arma::rowvec& prediction,
                                 const arma::rowvec& y) = 0;
@@ -49,8 +49,8 @@ class Gaussian : public Family {
 public:
   virtual ~Gaussian() {};
 
-  double Loss(const arma::rowvec& prediction,
-              const arma::rowvec& y) {
+  double Loss(const arma::mat& prediction,
+              const arma::mat& y) {
     return 0.5*arma::accu(arma::square(prediction - y));
   };
 
@@ -80,14 +80,13 @@ public:
 
     if (fit_intercept) {
       y_center = arma::mean(y);
-      //y_scale  = arma::sqrt(arma::var(y, 1));
+      y_scale  = arma::sqrt(arma::var(y, 1));
 
       for (arma::uword i = 0; i < y.n_cols; ++i) {
         y.col(i) -= y_center(i);
-        //if (y_scale(i) != 0)
-        //  y.col(i) /= y_scale(i);
+        if (y_scale(i) != 0)
+          y.col(i) /= y_scale(i);
       }
-      y_scale.ones();
     } else {
       y_center.zeros();
       y_scale.ones();
