@@ -113,8 +113,8 @@ lambda_interpolate <- function(lambda, s) {
 
   } else{
 
-    s[s > max(lambda)] = max(lambda)
-    s[s < min(lambda)] = min(lambda)
+    s[s > max(lambda)] <- max(lambda)
+    s[s < min(lambda)] <- min(lambda)
     k <- length(lambda)
     sfrac <- (lambda[1] - s)/(lambda[1] - lambda[k])
     lambda <- (lambda[1] - lambda)/(lambda[1] - lambda[k])
