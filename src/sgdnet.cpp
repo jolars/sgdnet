@@ -114,9 +114,8 @@ void RegularizationPath(arma::vec&          lambda,
                         arma::vec&          beta) {
 
   if (lambda.is_empty()) {
-    arma::vec y_vec = arma::conv_to<arma::vec>::from(y);
 
-    double lambda_max = arma::abs(y_vec.t() * x).max() / n_samples;
+    double lambda_max = arma::abs(y.t() * x).max() / n_samples;
     // Cap elasticnet_mix (alpha in glmnet) to 0.001
     lambda_max /= std::max(elasticnet_mix, 0.001);
 
