@@ -56,9 +56,9 @@ Fit a Generalized Linear Model with Elastic Net Regularization
 
 The default regularization path is a sequence of \code{nlambda}
 log-spaced elements
-from \eqn{\log_e{\lambda_{\mathrm{max}}}}{log(lambda_max)} to
-\eqn{\log_e{\lambda_{\mathrm{max}}} \times \mathtt{lambda.min.ratio}}{
-     log(lambda_max)*lambda.min.ratio},
+from \eqn{\lambda_{\mathrm{max}}}{lambda_max} to
+\eqn{\lambda_{\mathrm{max}} \times \mathtt{lambda.min.ratio}}{
+     lambda_max*lambda.min.ratio},
 For the gaussian family, for instance,
 \eqn{\lambda_{\mathrm{max}}}{lambda_max} is
 the largest absolute inner product of the feature vectors and the response
