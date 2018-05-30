@@ -152,11 +152,17 @@ sgdnet.default <- function(x,
 
   path_names <- paste0("s", seq_along(lambda) - 1L)
 
-  beta <- lapply(seq(dim(beta)[2L]),
-                 function(x) Matrix::Matrix(as.matrix(beta[ , x, ]),
-                                            dimnames = list(variable_names,
-                                                            path_names),
-                                            sparse = TRUE))
+  beta <- lapply(
+    seq(dim(beta)[2L]),
+    function(x) {
+      dat <- as.matrix(beta[, x, ])
+      if (NCOL(dat) == 1L)
+        dat <- t(dat)
+      rownames(dat) <- variable_names
+      colnames(dat) <- path_names
+      Matrix::Matrix(dat, sparse = TRUE)
+    }
+  )
 
   if (family %in% c("gaussian", "binomial", "poisson", "cox")) {
     # NOTE(jolars): I would rather not to this, i.e. have different outputs
