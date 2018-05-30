@@ -81,8 +81,7 @@ void Rescale(arma::cube&         weights,
              const arma::rowvec& y_center,
              const arma::rowvec& y_scale,
              const arma::uword   n_features,
-             const arma::uword   fit_intercept,
-             const bool          is_sparse) {
+             const arma::uword   fit_intercept) {
 
   if (fit_intercept) {
     for (arma::uword i = 0; i < n_features; ++i) {
@@ -92,12 +91,9 @@ void Rescale(arma::cube&         weights,
       }
     }
 
-    if (is_sparse) {
-      intercept.each_row() += y_center;
-    } else {
-      for (arma::uword i = 0; i < weights.n_slices; ++i) {
-        intercept.row(i) = intercept.row(i)*y_scale + y_center - x_center*weights.slice(i);
-      }
+    for (arma::uword i = 0; i < weights.n_slices; ++i) {
+      intercept.row(i) =
+        intercept.row(i)*y_scale + y_center - x_center*weights.slice(i);
     }
   }
 }
@@ -341,8 +337,7 @@ Rcpp::List SetupSgdnet(T&                x,
           y_center,
           y_scale,
           n_features,
-          fit_intercept,
-          is_sparse);
+          fit_intercept);
 
   return Rcpp::List::create(
     Rcpp::Named("a0") = Rcpp::wrap(intercept_archive),
