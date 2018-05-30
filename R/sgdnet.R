@@ -83,6 +83,7 @@ sgdnet.default <- function(x,
   ocall <- match.call(call = sys.call(1))
 
   n_samples <- NROW(x)
+  n_features <- NCOL(x)
 
   # Convert sparse x to dgCMatrix class from package Matrix.
   if (is_sparse <- inherits(x, "sparseMatrix")) {
@@ -149,18 +150,17 @@ sgdnet.default <- function(x,
   a0 <- drop(t(as.matrix(res$a0)))
   beta <- res$beta
   lambda <- drop(res$lambda)
+  n_penalties <- length(lambda)
 
   path_names <- paste0("s", seq_along(lambda) - 1L)
 
-  beta <- lapply(
-    seq(dim(beta)[2L]),
-    function(x) {
-      dat <- as.matrix(beta[, x, ])
-      if (NCOL(dat) == 1L)
-        dat <- t(dat)
-      rownames(dat) <- variable_names
-      colnames(dat) <- path_names
-      Matrix::Matrix(dat, sparse = TRUE)
+  beta <- lapply(seq(dim(beta)[2L]), function(x) {
+      Matrix::Matrix(as.vector(beta[, x, ]),
+                     nrow = n_features,
+                     ncol = n_penalties,
+                     dimnames = list(variable_names,
+                                     path_names),
+                     sparse = TRUE)
     }
   )
 
