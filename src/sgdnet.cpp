@@ -282,6 +282,15 @@ Rcpp::List SetupSgdnet(T&                x,
   // Setup a field of losses to return upon exit
   arma::field<arma::vec> losses_archive(n_penalties);
   std::vector<double> losses;
+  losses.reserve(n_penalties);
+
+  // Setup a vector to compute deviance at each iteration
+  std::vector<double> deviance_ratio;
+  deviance_ratio.reserve(n_penalties);
+  arma::mat prediction(n_samples, n_classes);
+
+  double null_deviance =
+    arma::accu(arma::sum(arma::square(y)) % arma::square(y_scale));
 
   // Keep track of number of iteratios per penalty
   arma::uword n_iter = 0;
@@ -315,6 +324,10 @@ Rcpp::List SetupSgdnet(T&                x,
          losses,
          debug);
 
+    // Compute deviance
+    prediction = x.t() * weights;
+    deviance_ratio.push_back(family->Deviance(prediction, y));
+
     // Store intercepts and weights for the current solution
     weights_archive.slice(penalty_ind) = weights;
     intercept_archive.row(penalty_ind) = intercept;
@@ -343,6 +356,8 @@ Rcpp::List SetupSgdnet(T&                x,
     Rcpp::Named("beta") = Rcpp::wrap(weights_archive),
     Rcpp::Named("losses") = Rcpp::wrap(losses_archive),
     Rcpp::Named("npasses") = n_iter,
+    Rcpp::Named("nulldev") = null_deviance,
+    Rcpp::Named("dev.ratio") = Rcpp::wrap(deviance_ratio),
     Rcpp::Named("lambda") = Rcpp::wrap(lambda),
     Rcpp::Named("return_codes") = Rcpp::wrap(return_codes)
   );

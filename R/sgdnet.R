@@ -177,10 +177,13 @@ sgdnet.default <- function(x,
 
   out <- structure(list(a0 = a0,
                         beta = beta,
-                        npasses = res$npasses,
                         lambda = lambda,
+                        dev.ratio = res$dev.ratio,
+                        nulldev = res$nulldev,
+                        npasses = res$npasses,
                         alpha = alpha,
-                        call = ocall),
+                        call = ocall,
+                        nobs = n_samples),
                    class = c("sgdnet", family))
   if (debug)
     attr(out, "diagnostics") <- list(loss = res$losses)
