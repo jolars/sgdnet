@@ -14,8 +14,8 @@ test_that("we receive the correct deviance from deviance.sgdnet()", {
 
   expect_equal(deviance(sfit1), deviance(gfit1), tolerance = 0.001)
 
-  sfit2 <- update(sfit1, alpha = 0)
-  gfit2 <- update(gfit1, alpha = 0)
+  sfit2 <- sgdnet(x, y, alpha = 0, thresh = 1e-10)
+  gfit2 <- sgdnet(x, y, alpha = 0, thresh = 1e-10)
 
   expect_equal(deviance(sfit2), deviance(gfit2), tolerance = 0.001)
   expect_equal(deviance(sfit1), (1 - sfit1$dev.ratio)*sfit1$nulldev)
