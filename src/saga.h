@@ -199,7 +199,7 @@ void UpdateIntercept(const arma::rowvec& gradient,
                      const double        intercept_decay,
                      const double        step_size,
                      const arma::uword   n_seen) {
-  intercept_correction = gradient - gradient;
+  intercept_correction = gradient - gradient_memory;
   intercept_sum_gradient += intercept_correction;
   intercept_correction *= step_size*(1.0 - 1.0/n_seen);
   intercept -= step_size*intercept_sum_gradient/n_seen*intercept_decay
