@@ -11,7 +11,7 @@ test_that("sgdnet options can be set and respected", {
 
   diagnostics <- attr(fit, "diagnostics")
   loss <- diagnostics$loss
-  expect_is(loss, "matrix")
+  expect_is(loss, "list")
 
   options(opts)
 })
