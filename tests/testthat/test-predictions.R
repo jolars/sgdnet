@@ -3,6 +3,9 @@ context("predictions")
 test_that("prediction for gaussian models peform as expected", {
   set.seed(1)
 
+  library(glmnet)
+  glmnet.control(fdev = 0)
+
   x <- with(trees, cbind(Girth, Volume))
   y <- trees$Height
 
@@ -15,6 +18,15 @@ test_that("prediction for gaussian models peform as expected", {
 
   # test that these predictions are equal
   expect_equal(pred_link, pred_response, pred_manual)
+
+  # compare against glmnet
+  fit2 <- glmnet(x, y)
+
+  for (type in c("link", "response")) {
+    expect_equal(predict(fit, x, type = type),
+                 predict(fit2, x, type = type),
+                 tolerance = 0.001)
+  }
 
   # check that we get the expected nonzero indices
   pred_nonzero <- predict(fit, x, type = "nonzero")
@@ -40,6 +52,27 @@ test_that("prediction for gaussian models peform as expected", {
 
   expect_true(all(abs(as.vector(pred_one)) > abs(as.vector(pred_old))))
   expect_true(all(abs(as.vector(pred_two)) < abs(as.vector(pred_old))))
+})
+
+test_that("predictions for binomial model works appropriately", {
+  set.seed(1)
+
+  library(glmnet)
+
+  glmnet.control(fdev = 0)
+
+  x <- as.matrix(with(infert, cbind(age, parity)))
+  y <- infert$case
+
+  sgdfit <- sgdnet(x, y, family = "binomial")
+  glmfit <- glmnet(x, y, family = "binomial")
+
+  # expect equivalent output for all the types of predictions
+  for (type in c("link", "response", "class")) {
+    expect_equal(predict(sgdfit, x, type = type),
+                 predict(glmfit, x, type = type),
+                 tolerance = 0.001)
+  }
 })
 
 test_that("assertations for incorrect input throw errors", {
