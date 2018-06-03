@@ -5,7 +5,7 @@
 \title{Predictions for sgdnet Models}
 \usage{
 \method{predict}{sgdnet}(object, newx, s = NULL, type = c("link",
-  "response", "coefficients", "nonzero"), exact = FALSE, ...)
+  "response", "coefficients", "nonzero", "class"), exact = FALSE, ...)
 }
 \arguments{
 \item{object}{an object of class \code{'sgdnet'}.}
