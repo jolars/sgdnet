@@ -6,19 +6,31 @@ test_that("we receive the correct deviance from deviance.sgdnet()", {
   library(glmnet)
   glmnet.control(fdev = 0)
 
-  x <- with(rock, cbind(area, peri, shape))
-  y <- rock$perm
+  d <- 2
+  n <- 1000
+  x <- matrix(rnorm(n*d), nrow = n, ncol = d)
 
-  sfit1 <- sgdnet(x, y, thresh = 1e-10)
-  gfit1 <- glmnet(x, y, thresh = 1e-10)
+  # loop over all families
+  for (family in c("gaussian", "binomial")) {
+    y <- switch(family,
+                gaussian = rnorm(n),
+                binomial = rbinom(n, 1, 0.5))
 
-  expect_equal(deviance(sfit1), deviance(gfit1), tolerance = 0.001)
+    # return deviance of intercept-only model
+    nulldev <- switch(family,
+                      gaussian = sum((y - mean(y))^2),
+                      binomial = -2*sum(y*log(mean(y)/(1 - mean(y)))
+                                        - log(1 + exp(log(mean(y)
+                                                          /(1 - mean(y)))))))
 
-  sfit2 <- sgdnet(x, y, alpha = 0, thresh = 1e-10)
-  gfit2 <- sgdnet(x, y, alpha = 0, thresh = 1e-10)
+    # loop over variations of penalties (ridge, lasso, elastic net)
+    for (alpha in c(0, 0.5, 1)) {
+      sfit <- sgdnet(x, y, alpha = alpha)
+      gfit <- glmnet(x, y, alpha = alpha)
 
-  expect_equal(deviance(sfit2), deviance(gfit2), tolerance = 0.001)
-  expect_equal(deviance(sfit1), (1 - sfit1$dev.ratio)*sfit1$nulldev)
-  expect_equal(sfit1$dev.ratio[1], 0)
-  expect_equal(sfit1$nulldev, sum((y - mean(y))^2))
+      expect_equal(deviance(sfit), deviance(gfit), tolerance = 0.01)
+      expect_equal(deviance(sfit), (1 - sfit$dev.ratio)*sfit$nulldev)
+      expect_equal(sfit$nulldev, gfit$nulldev, nulldev)
+    }
+  }
 })
