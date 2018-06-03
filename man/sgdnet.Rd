@@ -7,10 +7,10 @@
 \usage{
 sgdnet(x, ...)
 
-\method{sgdnet}{default}(x, y, family = c("gaussian"), alpha = 1,
-  nlambda = 100, lambda.min.ratio = if (NROW(x) < NCOL(x)) 0.01 else 1e-04,
-  lambda = NULL, maxit = 1000, standardize = TRUE, intercept = TRUE,
-  thresh = 0.001, ...)
+\method{sgdnet}{default}(x, y, family = c("gaussian", "binomial"),
+  alpha = 1, nlambda = 100, lambda.min.ratio = if (NROW(x) < NCOL(x)) 0.01
+  else 1e-04, lambda = NULL, maxit = 1000, standardize = TRUE,
+  intercept = TRUE, thresh = 0.001, ...)
 }
 \arguments{
 \item{x}{input matrix}
@@ -19,7 +19,8 @@ sgdnet(x, ...)
 
 \item{y}{response variable}
 
-\item{family}{reponse type}
+\item{family}{reponse type, one of \code{'gaussian'} and \code{'binomial'}. See
+\strong{Supported families} for details.}
 
 \item{alpha}{elastic net mixing parameter}
 
@@ -41,7 +42,8 @@ lambda value on the path. See section \strong{Regularization Path} for details.}
 \item{thresh}{tolerance level for termination of the algorithm. The
 algorithm terminates when
 \deqn{
-    \frac{|\beta^{(t)} - \beta^{(t-1)}|{\infty}}{|\beta^{(t)}|{\infty}} < \mathrm{thresh}
+    \frac{|\beta^{(t)}
+    - \beta^{(t-1)}|{\infty}}{|\beta^{(t)}|{\infty}} < \mathrm{thresh}
   }{
     max(change in weights)/max(weights) < thresh.
   }}
@@ -52,6 +54,36 @@ An object of class \code{'sgdnet'}.
 \description{
 Fit a Generalized Linear Model with Elastic Net Regularization
 }
+\section{Model families}{
+
+Two model families are currently supported: gaussian univariate
+regression and binomial logistic regression, the choice of which is made
+using the \code{family} argument.
+
+The \emph{gaussian} family solves the following objective:
+
+\deqn{
+  \frac{1}{2n} \sum_{i=1}^n (y_i -\beta_0 - x_i^\intercal \beta)^2
+  + \lambda \left( \frac{1 - \alpha}{2} ||\beta||_2^2
+                   + \alpha||\beta||_1 \right)
+}{
+  1/(2n) \sum (y -\beta_0 - x^T \beta)^2
+  + \lambda [(1 - \alpha)/2 ||\beta||_2^2 + \alpha||\beta||_1]
+}
+
+The \emph{binomial} family solves the following objective:
+
+\deqn{
+  -\frac1n \sum_{i=1}^n \log\Big(1 + e^{-y_i x_i^\intercal \beta + \beta_0}\Big)
+  + \lambda \left( \frac{1 - \alpha}{2} ||\beta||_2^2
+                   + \alpha||\beta||_1 \right),
+}{
+  -1/n \sum log[1 + exp(-y x^T \beta + \beta_0)]
+  + \lambda [(1 - \alpha)/2 ||\beta||_2^2 + \alpha||\beta||_1],
+}
+where \eqn{y_i \in {-1, 1}}{y ~ {-1, 1}}.
+}
+
 \section{Regularization Path}{
 
 The default regularization path is a sequence of \code{nlambda}
