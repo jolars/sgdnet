@@ -414,10 +414,12 @@ void Saga(const T&                          x,
 
     // compute loss for the current solution if debugging
     if (debug) {
-      arma::mat pred = x.t()*weights;
-      double loss = family->Loss(pred, y)/n_samples
-                       + alpha_scaled*arma::accu(arma::square(weights))
-                       + beta_scaled*arma::accu(arma::abs(weights));
+      double loss =
+        family->Loss(x.t()*weights
+                     + arma::repmat(intercept, n_samples, n_classes), y)
+                    /n_samples
+                    + alpha_scaled*arma::accu(arma::square(weights))
+                    + beta_scaled*arma::accu(arma::abs(weights));
       losses.push_back(loss);
     }
 
