@@ -79,7 +79,8 @@ void LaggedUpdate(arma::mat&                     weights,
                   const arma::uvec&              nonzero_indices,
                   arma::uword                    n_samples,
                   arma::uword                    n_classes,
-                  arma::mat&                     cumulative_sums,
+                  std::vector<double>&           cumulative_sums,
+                  std::vector<double>&           cumulative_sums_prox,
                   arma::uvec&                    feature_history,
                   bool                           nontrivial_prox,
                   const arma::mat&               sum_gradient,
@@ -94,23 +95,26 @@ void LaggedUpdate(arma::mat&                     weights,
 
     arma::uword feature_ind = (*feature_itr);
 
-    arma::rowvec cum_sum = cumulative_sums.row(it_inner - 1);
+    double cum_sum = cumulative_sums[it_inner - 1];
 
-    if (feature_history(feature_ind) != 0) {
-      cum_sum -= cumulative_sums.row(feature_history(feature_ind) - 1);
-    }
+    if (feature_history(feature_ind) != 0)
+      cum_sum -= cumulative_sums[feature_history(feature_ind) - 1];
 
     if (nontrivial_prox) {
+      double cum_sum_prox = cumulative_sums_prox[it_inner - 1];
+
+      if (feature_history(feature_ind) != 0)
+        cum_sum_prox -= cumulative_sums_prox[feature_history(feature_ind) - 1];
 
       for (arma::uword class_ind = 0; class_ind < n_classes; ++class_ind) {
 
-        if (std::abs(sum_gradient(feature_ind, class_ind)*cum_sum(0))
-              < cum_sum(1)) {
+        if (std::abs(sum_gradient(feature_ind, class_ind)*cum_sum)
+              < cum_sum_prox) {
 
           weights(feature_ind, class_ind) -=
-            cum_sum(0)*sum_gradient(feature_ind, class_ind);
+          cum_sum*sum_gradient(feature_ind, class_ind);
           weights(feature_ind, class_ind) =
-            prox->Evaluate(weights(feature_ind, class_ind), cum_sum(1));
+            prox->Evaluate(weights(feature_ind, class_ind), cum_sum_prox);
 
         } else {
 
@@ -124,23 +128,28 @@ void LaggedUpdate(arma::mat&                     weights,
                --lagged_ind) {
 
             // Grad and prox steps
-            arma::rowvec::fixed<2> steps;
+            double grad_step;
+            double prox_step;
 
-            if (lagged_ind > 0)
-              steps = cumulative_sums.row(lagged_ind)
-              - cumulative_sums.row(lagged_ind - 1);
-            else
-              steps = cumulative_sums.row(lagged_ind);
+            if (lagged_ind > 0) {
+              grad_step = cumulative_sums[lagged_ind]
+                          - cumulative_sums[lagged_ind - 1];
+              prox_step = cumulative_sums_prox[lagged_ind]
+                          - cumulative_sums_prox[lagged_ind - 1];
+            } else {
+              grad_step = cumulative_sums[lagged_ind];
+              prox_step = cumulative_sums_prox[lagged_ind];
+            }
 
             weights(feature_ind, class_ind) -=
-              sum_gradient(feature_ind, class_ind)*steps(0);
+              sum_gradient(feature_ind, class_ind)*grad_step;
             weights(feature_ind, class_ind) =
-              prox->Evaluate(weights(feature_ind, class_ind), steps(1));
+              prox->Evaluate(weights(feature_ind, class_ind), prox_step);
           }
         }
       }
     } else { // Trivial prox
-      weights.row(feature_ind) -= cum_sum(0)*sum_gradient.row(feature_ind);
+      weights.row(feature_ind) -= cum_sum*sum_gradient.row(feature_ind);
     }
     if (!reset) {
       feature_history(feature_ind) = it_inner;
@@ -154,7 +163,8 @@ void LaggedUpdate(arma::mat&                     weights,
       Rcpp::stop("non-finite weights.");
 
     feature_history.fill(it_inner % n_samples);
-    cumulative_sums.row(it_inner - 1).zeros();
+    cumulative_sums[it_inner - 1] = 0.0;
+    cumulative_sums_prox[it_inner - 1] = 0.0;
   }
 }
 
@@ -278,7 +288,12 @@ void Saga(const T&                          x,
   double wscale = 1.0;
 
   // Store a matrix of cumulative sums, prox sums in second column
-  arma::mat cumulative_sums(n_samples, 1 + nontrivial_prox, arma::fill::zeros);
+  std::vector<double> cumulative_sums(n_samples);
+  cumulative_sums.reserve(n_samples);
+
+  std::vector<double> cumulative_sums_prox;
+  if (nontrivial_prox)
+    cumulative_sums_prox.reserve(n_samples);
 
   // Precomputated stepsize
   double wscale_update = 1.0 - step_size*alpha_scaled;
@@ -326,6 +341,7 @@ void Saga(const T&                          x,
                      n_samples,
                      n_classes,
                      cumulative_sums,
+                     cumulative_sums_prox,
                      feature_history,
                      nontrivial_prox,
                      sum_gradient,
@@ -366,15 +382,15 @@ void Saga(const T&                          x,
 
       // Update cumulative sums
       if (it_inner == 0) {
-        cumulative_sums(0, 0) = step_size/(wscale*n_seen);
+        cumulative_sums[0] = step_size/(wscale*n_seen);
         if (nontrivial_prox)
-          cumulative_sums(0, 1) = step_size*beta_scaled/wscale;
+          cumulative_sums_prox[0] = step_size*beta_scaled/wscale;
       } else {
-        cumulative_sums(it_inner, 0) =
-          cumulative_sums(it_inner - 1, 0) + step_size/(wscale*n_seen);
+        cumulative_sums[it_inner] =
+          cumulative_sums[it_inner - 1] + step_size/(wscale*n_seen);
         if (nontrivial_prox)
-          cumulative_sums(it_inner, 1) =
-            cumulative_sums(it_inner - 1, 1) + step_size*beta_scaled/wscale;
+          cumulative_sums_prox[it_inner] =
+            cumulative_sums_prox[it_inner - 1] + step_size*beta_scaled/wscale;
       }
 
       // if wscale is too small, reset the scale
@@ -385,6 +401,7 @@ void Saga(const T&                          x,
                      n_samples,
                      n_classes,
                      cumulative_sums,
+                     cumulative_sums_prox,
                      feature_history,
                      nontrivial_prox,
                      sum_gradient,
@@ -403,6 +420,7 @@ void Saga(const T&                          x,
                  n_samples,
                  n_classes,
                  cumulative_sums,
+                 cumulative_sums_prox,
                  feature_history,
                  nontrivial_prox,
                  sum_gradient,
@@ -422,6 +440,7 @@ void Saga(const T&                          x,
                     + beta_scaled*arma::accu(arma::abs(weights));
       losses.push_back(loss);
     }
+
 
     // check termination conditions
     max_weight = arma::abs(weights).max();
