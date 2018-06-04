@@ -289,11 +289,10 @@ void Saga(const T&                          x,
 
   // Store a matrix of cumulative sums, prox sums in second column
   std::vector<double> cumulative_sums(n_samples);
-  cumulative_sums.reserve(n_samples);
 
   std::vector<double> cumulative_sums_prox;
   if (nontrivial_prox)
-    cumulative_sums_prox.reserve(n_samples);
+    cumulative_sums_prox.resize(n_samples);
 
   // Precomputated stepsize
   double wscale_update = 1.0 - step_size*alpha_scaled;
