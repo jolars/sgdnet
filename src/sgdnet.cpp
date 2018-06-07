@@ -56,7 +56,6 @@
 #include "saga.h"
 #include "math.h"
 #include <memory>
-// #include <gperftools/profiler.h>
 
 template <typename T>
 double Deviance(const T&                         x,
@@ -89,6 +88,56 @@ double Deviance(const T&                         x,
     }
   }
 
+  return 2.0 * loss;
+}
+
+//' Deviance
+//'
+//' Computes the deviance of the model given by `weights` and `intercept`.
+//'
+//' @param x a feature matrix (dense or sparse)
+//' @param y a response vector
+//' @param weights a vector of coefficients
+//' @param intercept an intercept vector
+//' @param is_sparse whether x is sparse
+//' @param n_samples the number of samples
+//' @param n_feature the number of features
+//' @param n_classes the number of classes
+//'
+//' @return Returns the deviance.
+//'
+//' @noRd
+//' @keywords internal
+template <typename T>
+double Deviance(const T&                         x,
+                const std::vector<double>&       y,
+                const std::vector<double>&       weights,
+                const std::vector<double>&       intercept,
+                const bool                       is_sparse,
+                const std::size_t                n_samples,
+                const std::size_t                n_features,
+                const std::size_t                n_classes,
+                std::unique_ptr<sgdnet::Family>& family) {
+
+  double loss = 0.0;
+
+  std::vector<std::size_t> nonzero_indices = Nonzeros(x.col(0));
+
+  for (std::size_t sample_ind = 0; sample_ind < n_samples; ++sample_ind) {
+    if (is_sparse && sample_ind > 0)
+      nonzero_indices = Nonzeros(x.col(sample_ind));
+
+    for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
+      auto x_itr = x.begin_col(sample_ind);
+      double inner_product = 0.0;
+      for (const auto& feature_ind : nonzero_indices) {
+        inner_product += (*x_itr)*weights[feature_ind*n_classes + class_ind];
+        ++x_itr;
+      }
+      loss += family->Loss(inner_product + intercept[class_ind],
+                           y[sample_ind*n_classes + class_ind]);
+    }
+  }
   return 2.0 * loss;
 }
 
@@ -444,8 +493,6 @@ Rcpp::List SgdnetCpp(SEXP                 x_in,
                      std::vector<double>& y,
                      const Rcpp::List&    control) {
 
-  // ProfilerStart("/tmp/sgdnet.prof");
-
   bool is_sparse = Rcpp::as<bool>(control["is_sparse"]);
 
   if (is_sparse) {
@@ -455,6 +502,5 @@ Rcpp::List SgdnetCpp(SEXP                 x_in,
     arma::mat x = Rcpp::as<arma::mat>(x_in);
     return SetupSgdnet(x, y, is_sparse, control);
   }
-  // ProfilerStop();
 }
 
