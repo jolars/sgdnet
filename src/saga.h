@@ -74,7 +74,6 @@
 //' @return Weights, cumulative_sums, and feature_history are updated.
 //'
 //' @noRd
-//' @keywords internal
 void LaggedUpdate(std::vector<double>&            weights,
                   double                          wscale,
                   const std::vector<std::size_t>& nonzero_indices,
@@ -181,7 +180,6 @@ void LaggedUpdate(std::vector<double>&            weights,
 //'
 //' @return `intercept` and `intercept_sum_gradient` are updated
 //' @noRd
-//' @keywords internal
 void UpdateIntercept(const std::vector<double>& gradient,
                      const std::vector<double>& gradient_memory,
                      std::vector<double>&       intercept_sum_gradient,
@@ -205,18 +203,39 @@ void UpdateIntercept(const std::vector<double>& gradient,
   }
 }
 
+//' Update the gradient
+//'
+//' Update the gradient and store it in `gradient_memory` and update
+//' coefficients
+//'
+//' @param x the current sample
+//' @param nonzero_indices vector of indices of nonzero elements in the
+//'   current sample
+//' @param weights coefficients
+//' @param gradient gradient for current sample
+//' @param gradient_memory memory of gradients for each sample
+//' @param sum_gradient gradient sum
+//' @param step_size step size
+//' @param wscale scale for weights
+//' @param n_seen number of samples seen so far
+//' @param n_classes pseudo-number of classes
+//' @param sample_ind index of current sample
+//'
+//' @return Updates weights and sum_gradient.
+//'
+//' @noRd
 template <typename T>
-void UpdateGradient(const T&                        x,
-                    const std::vector<std::size_t>& nonzero_indices,
-                    std::vector<double>&            weights,
-                    const std::vector<double>&      gradient,
-                    const std::vector<double>&      gradient_memory,
-                    std::vector<double>&            sum_gradient,
-                    const double                    step_size,
-                    const double                    wscale,
-                    const std::size_t               n_seen,
-                    const std::size_t               n_classes,
-                    const std::size_t               sample_ind) {
+void UpdateWeights(const T&                        x,
+                   const std::vector<std::size_t>& nonzero_indices,
+                   std::vector<double>&            weights,
+                   const std::vector<double>&      gradient,
+                   const std::vector<double>&      gradient_memory,
+                   std::vector<double>&            sum_gradient,
+                   const double                    step_size,
+                   const double                    wscale,
+                   const std::size_t               n_seen,
+                   const std::size_t               n_classes,
+                   const std::size_t               sample_ind) {
   auto x_itr = x.begin();
 
   for (const auto& feature_ind : nonzero_indices) {
@@ -225,7 +244,7 @@ void UpdateGradient(const T&                        x,
         (*x_itr)*(gradient[class_ind]
                     - gradient_memory[sample_ind*n_classes + class_ind]);
       weights[feature_ind*n_classes + class_ind] -=
-      gradient_correction*step_size*(1.0 - 1.0/n_seen)/wscale;
+        gradient_correction*step_size*(1.0 - 1.0/n_seen)/wscale;
       sum_gradient[feature_ind*n_classes + class_ind] += gradient_correction;
     }
     ++x_itr;
@@ -236,23 +255,38 @@ void UpdateGradient(const T&                        x,
 //'
 //' @param x feature matrix
 //' @param y response matrix
+//' @param weights coefficients
+//' @param fit_intercept whether to fit the intercept
+//' @param intercept intercept
+//' @param intercept_decay weight of intercept update, which is different
+//'   for the sparse implementation
+//' @param intercept_sum_gradient gradient sum for the intercept
 //' @param family response type
-//' @param fit_intercept whether the intercept should be fit
-//' @param intercept_decay intercept updates are scaled by
-//'   this decay factor to avoid intercept oscillation when features are
-//'   sparse
-//' @param alpha l2-regularization penalty
-//' @param beta l1-regularization penalty
-//' @param normalize whether to normalize x
+//' @param prox proximal operator
+//' @param step_size step size
+//' @param alpha_scaled scaled l2-penalty weight
+//' @param beta_scaled scaled l1-penalty weight
+//' @param sum_gradient gradient sum for the weights
+//' @param gradient_memory storage for gradients for each sample
+//' @param seen vector of indices for whether the sample has been seen
+//'   previously
+//' @param n_seen number of previously seen samples
+//' @param n_samples number of samples
+//' @param n_features number of features (variables)
+//' @param n_classes pseudo-number of classes
+//' @param is_sparse whether x is sparse
 //' @param max_iter maximum number of iterations
-//' @param debug if `TRUE`, we are debugging and should return loss
-//' @param is_sparse is x sparse?
+//' @param tol treshold for convergence (stops if max weight/max change
+//'   in weights < tol)
+//' @param n_iter number of accumulated effective passes
+//' @param return_codes vector of return codes for each fit
+//' @param losses vector of losses for each fit and pass
+//' @param debug whether diagnostic information should be computed
 //'
 //' @return Updates weights, intercept, sum_gradient, intercept_sum_gradient,
 //'   gradient_memory.
 //'
 //' @noRd
-//' @keywords internal, programming
 template <typename T>
 void Saga(const T&                         x,
           const std::vector<double>&       y,
@@ -367,17 +401,17 @@ void Saga(const T&                         x,
       // L2-regularization by rescaling the weights
       wscale *= wscale_update;
 
-      UpdateGradient(x.col(sample_ind),
-                     nonzero_indices,
-                     weights,
-                     gradient,
-                     gradient_memory,
-                     sum_gradient,
-                     step_size,
-                     wscale,
-                     n_seen,
-                     n_classes,
-                     sample_ind);
+      UpdateWeights(x.col(sample_ind),
+                    nonzero_indices,
+                    weights,
+                    gradient,
+                    gradient_memory,
+                    sum_gradient,
+                    step_size,
+                    wscale,
+                    n_seen,
+                    n_classes,
+                    sample_ind);
 
       if (fit_intercept)
         UpdateIntercept(gradient,

@@ -121,6 +121,20 @@ void PreprocessFeatures(T&                   x,
   }
 }
 
+//' Compute lambda max
+//'
+//' Computes lambda_max, the penalty at which all features are
+//' expected to be zero, i.e. result in a completely sparse solution.
+//'
+//' @param x feature matrix, dense or sparse
+//' @param y response vector
+//' @param n_samples number of samples
+//' @param elasticnet_mix ratio of l1-penalty to l2-penalty. Same as alpha
+//'   in glmnet.
+//'
+//' @return Lambda_max
+//'
+//' @noRd
 // TODO(jolars): move this into the Family class
 template <typename T>
 inline double LambdaMax(const T&                   x,
@@ -136,15 +150,17 @@ inline double LambdaMax(const T&                   x,
 
 //' Predict Sample
 //'
-//' @param x sample
+//' @param prediction current prediction (will be modified)
+//' @param x current sample
+//' @param nonzero_indices indices of nonzero elements in current sample
 //' @param weights weights
 //' @param wscale scale for weights
 //' @param intercept intercept
+//' @param n_classes number of classes
 //'
-//' @return The prediction at the current sample
+//' @return The prediction at the current sample.
 //'
 //' @noRd
-//' @keywords internal
 template <typename T>
 void PredictSample(std::vector<double>&            prediction,
                    const T&                        x,
@@ -166,6 +182,24 @@ void PredictSample(std::vector<double>&            prediction,
   }
 }
 
+//' Loss for the current epoch
+//'
+//' @param x feature matrix
+//' @param y response vector
+//' @param weights coefficients
+//' @param intercept the intercept
+//' @param family a Family class object for the current response type
+//' @param alpha_scaled scaled l2-penalty
+//' @param beta_scaled scaled l1-penalty
+//' @param n_samples number of samples
+//' @param n_classes number of pseudo-classes
+//' @param is_sparse whether x is sparse
+//' @param losses loss vector, which the current loss vector will be
+//'   appended to
+//'
+//' @return The loss of the current epoch is appended to `losses`.
+//'
+//' @noRd
 template <typename T>
 void EpochLoss(const T&                         x,
                const std::vector<double>&       y,

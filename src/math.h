@@ -56,11 +56,27 @@ inline std::vector<double> LogSpace(const double      from,
   return out;
 }
 
+//' Artithmetic mean of vector
+//'
+//' @param x vector-like object
+//' @param n number of samples
+//'
+//' @return The arithmethic mean.
+//'
+//' @noRd
 template <typename T>
 inline double Mean(const T& x, const std::size_t n) {
   return std::accumulate(x.begin(), x.end(), 0.0)/n;
 }
 
+//' Standard deviation
+//'
+//' @param x vector-like container
+//' @param n number of samples
+//'
+//' @return The arithmetic mean.
+//'
+//' @noRd
 template <typename T>
 inline double StandardDeviation(const T& x, const std::size_t n) {
   double x_mean = Mean(x, n);

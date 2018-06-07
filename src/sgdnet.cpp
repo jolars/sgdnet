@@ -113,18 +113,21 @@ double Deviance(const T&                         x,
 //' when the intercept is fit. If x is sparse.
 //'
 //' @param weights weights
+//' @param weights_archive storage for weights
 //' @param intercept intercept
+//' @param intercept_archive storage for intercepts on a per-penalty basis
 //' @param x_center the offset (mean) used to possibly have centered x
 //' @param x_scale the scaling that was applied to x
 //' @param y_center the offset (mean) that y was offset with
+//' @param y_scale scaling for y
 //' @param n_features the number of features
+//' @param n_classes number of classes
 //' @param fit_intercept whether to fit the intercept
-//' @param is_sparse whether the features are sparse
 //'
-//' @return `weights` and `intercept` are rescaled.
+//' @return `weights` and `intercept` are rescaled and stored in weights_archive
+//'   and intercept_archive.
 //'
 //' @noRd
-//' @keywords internal
 void Rescale(std::vector<double>                 weights,
              std::vector< std::vector<double> >& weights_archive,
              std::vector<double>                 intercept,
@@ -164,6 +167,22 @@ void Rescale(std::vector<double>                 weights,
 //'
 //' This function computes the regularization path as in glmnet so that
 //' the first solution is the null solution (if elasticnet_mix != 0).
+//'
+//' @param lambda lambda values in input -- empty by default
+//' @param n_lambda required number of penalties
+//' @param lambda_min_ratio smallest lambda_min_ratio
+//' @param elasticnet_mix ratio of l1 penalty to l2. Same as alpha in glmnet.
+//' @param x feature matrix
+//' @param y response vector
+//' @param n_samples number of samples
+//' @param alpha l2-penalty
+//' @param beta l1-penalty
+//' @param y_scale scale of y, used only to return lambda values to same
+//'   scale as in glmnet
+//'
+//' @return lambda, alpha and beta are updated.
+//'
+//' @noRd
 template <typename T>
 void RegularizationPath(std::vector<double>&       lambda,
                         const std::size_t          n_lambda,
@@ -176,12 +195,12 @@ void RegularizationPath(std::vector<double>&       lambda,
                         std::vector<double>&       beta,
                         const std::vector<double>& y_scale) {
 
-  double alpha_ratio = (1.0 - elasticnet_mix);
+  double alpha_ratio = 2.0*(1.0 - elasticnet_mix);
   double beta_ratio = elasticnet_mix;
-  // double scaling = alpha_ratio + beta_ratio;
+  double scaling = alpha_ratio + beta_ratio;
 
-  // alpha_ratio /= scaling;
-  // beta_ratio /= scaling;
+  alpha_ratio /= scaling;
+  beta_ratio /= scaling;
 
   if (lambda.empty()) {
     double lambda_max = LambdaMax(x, y, n_samples, beta_ratio);
@@ -192,10 +211,10 @@ void RegularizationPath(std::vector<double>&       lambda,
   // glmnet, so convert lambda values to match alpha and beta from scikit-learn.
   for (auto& lambda_val : lambda) {
     // Scaled L2 penalty
-    alpha.push_back(alpha_ratio*lambda_val*0.5);
+    alpha.push_back(alpha_ratio*lambda_val);
     // Scaled L1 penalty
     beta.push_back(beta_ratio*lambda_val);
-    lambda_val *= y_scale[0];
+    lambda_val *= y_scale[0]/scaling;
   }
 }
 
