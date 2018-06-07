@@ -25,9 +25,11 @@ test_that("basic model fitting with dense and sparse features", {
   expect_is(fit1, "binomial")
   expect_equivalent(coef(fit1), coef(fit2), tolerance = 0.01)
 
-  fit3 <- sgdnet(x, y, family = "gaussian", standardize = FALSE, alpha = 0,
+  fit3 <- sgdnet(as.matrix(x), y, family = "gaussian", standardize = TRUE,
+                 alpha = 0,
                  intercept = TRUE)
-  fit4 <- glmnet(x, y, family = "gaussian", standardize = FALSE, alpha = 0,
+  fit4 <- glmnet(as.matrix(x), y, family = "gaussian", standardize = TRUE,
+                 alpha = 0,
                  intercept = TRUE)
 
   expect_equal(coef(fit3), coef(fit4), tolerance = 0.01)
@@ -65,11 +67,8 @@ test_that("regularization path is correctly computed", {
 test_that("non-penalized logistic regression has similar results as glm()", {
   set.seed(1)
 
-  sd2 <- function(x) sqrt(sum((x - mean(x))^2)/length(x))
-
   x <- as.matrix(with(Puromycin, cbind(conc, rate)))
   y <- Puromycin$state
-  xs <- scale(x, scale = apply(x, 2, sd2))
 
   sgdfit <- sgdnet(x, y, family = "binomial", lambda = 0, thresh = 1e-9)
   glmfit <- glm(y ~ x, family = "binomial")
