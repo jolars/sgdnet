@@ -39,14 +39,14 @@ public:
   virtual double NullDeviance(const std::vector<double>& y) = 0;
 
   std::vector<double> StepSize(const double               max_squared_sum,
-                               const std::vector<double>& alpha,
+                               const std::vector<double>& alpha_scaled,
                                const bool                 fit_intercept,
                                const std::size_t          n_samples) {
     // Lipschitz constant approximation
     std::vector<double> step_sizes;
-    step_sizes.reserve(alpha.size());
+    step_sizes.reserve(alpha_scaled.size());
 
-    for (auto alpha_val : alpha) {
+    for (auto alpha_val : alpha_scaled) {
       double L = L_scaling*(max_squared_sum + fit_intercept) + alpha_val;
       double mu_n = 2.0*n_samples*alpha_val;
       step_sizes.push_back(1.0 / (2.0*L + std::min(L, mu_n)));

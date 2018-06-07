@@ -57,40 +57,6 @@
 #include "math.h"
 #include <memory>
 
-template <typename T>
-double Deviance(const T&                         x,
-                const std::vector<double>&       y,
-                const std::vector<double>&       weights,
-                const std::vector<double>&       intercept,
-                const bool                       is_sparse,
-                const std::size_t                n_samples,
-                const std::size_t                n_features,
-                const std::size_t                n_classes,
-                std::unique_ptr<sgdnet::Family>& family) {
-
-  double loss = 0.0;
-
-  std::vector<std::size_t> nonzero_indices = Nonzeros(x.col(0));
-
-  for (std::size_t sample_ind = 0; sample_ind < n_samples; ++sample_ind) {
-    if (is_sparse && sample_ind > 0)
-      nonzero_indices = Nonzeros(x.col(sample_ind));
-
-    for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
-      auto x_itr = x.begin_col(sample_ind);
-      double inner_product = 0.0;
-      for (const auto& feature_ind : nonzero_indices) {
-        inner_product += (*x_itr)*weights[feature_ind*n_classes + class_ind];
-        ++x_itr;
-      }
-      loss += family->Loss(inner_product + intercept[class_ind],
-                           y[sample_ind*n_classes + class_ind]);
-    }
-  }
-
-  return 2.0 * loss;
-}
-
 //' Deviance
 //'
 //' Computes the deviance of the model given by `weights` and `intercept`.
@@ -159,19 +125,19 @@ double Deviance(const T&                         x,
 //'
 //' @noRd
 //' @keywords internal
-void Rescale(std::vector<double>&       weights,
-             std::vector<double>&       intercept,
-             const std::vector<double>& x_center,
-             const std::vector<double>& x_scale,
-             const std::vector<double>& y_center,
-             const std::vector<double>& y_scale,
-             const std::size_t          n_features,
-             const std::size_t          n_classes,
-             const std::size_t          n_penalties,
-             const bool                 fit_intercept) {
+void Rescale(std::vector<double>                 weights,
+             std::vector< std::vector<double> >& weights_archive,
+             std::vector<double>                 intercept,
+             std::vector< std::vector<double> >& intercept_archive,
+             const std::vector<double>&          x_center,
+             const std::vector<double>&          x_scale,
+             const std::vector<double>&          y_center,
+             const std::vector<double>&          y_scale,
+             const std::size_t                   n_features,
+             const std::size_t                   n_classes,
+             const bool                          fit_intercept) {
 
   if (fit_intercept) {
-
     long double x_scale_prod = 0.0;
     for (std::size_t feature_ind = 0; feature_ind < n_features; ++feature_ind) {
       if (x_scale[feature_ind] != 0.0) {
@@ -190,6 +156,8 @@ void Rescale(std::vector<double>&       weights,
                              + y_center[class_ind]
                              - x_scale_prod;
   }
+  weights_archive.push_back(weights);
+  intercept_archive.push_back(intercept);
 }
 
 //' Compute Regularization Path
@@ -208,12 +176,12 @@ void RegularizationPath(std::vector<double>&       lambda,
                         std::vector<double>&       beta,
                         const std::vector<double>& y_scale) {
 
-  double alpha_ratio = (1.0 - elasticnet_mix)*2.0;
+  double alpha_ratio = (1.0 - elasticnet_mix);
   double beta_ratio = elasticnet_mix;
-  double scaling = 1.0 / (alpha_ratio + beta_ratio);
+  // double scaling = alpha_ratio + beta_ratio;
 
-  alpha_ratio *= scaling;
-  beta_ratio *= scaling;
+  // alpha_ratio /= scaling;
+  // beta_ratio /= scaling;
 
   if (lambda.empty()) {
     double lambda_max = LambdaMax(x, y, n_samples, beta_ratio);
@@ -224,10 +192,10 @@ void RegularizationPath(std::vector<double>&       lambda,
   // glmnet, so convert lambda values to match alpha and beta from scikit-learn.
   for (auto& lambda_val : lambda) {
     // Scaled L2 penalty
-    alpha.push_back(alpha_ratio*lambda_val);
+    alpha.push_back(alpha_ratio*lambda_val*0.5);
     // Scaled L1 penalty
     beta.push_back(beta_ratio*lambda_val);
-    lambda_val *= y_scale[0]*scaling;
+    lambda_val *= y_scale[0];
   }
 }
 
@@ -429,22 +397,20 @@ Rcpp::List SetupSgdnet(T&                   x,
                                n_classes,
                                family);
 
-    // Rescale weights and intercept back to original scale
+    deviance_ratio.push_back(1.0 - deviance/null_deviance_scaled);
+
+    // Rescale and store intercepts and weights for the current solution
     Rescale(weights,
+            weights_archive,
             intercept,
+            intercept_archive,
             x_center,
             x_scale,
             y_center,
             y_scale,
             n_features,
             n_classes,
-            n_penalties,
             fit_intercept);
-
-    // Store intercepts and weights for the current solution
-    weights_archive.push_back(weights);
-    intercept_archive.push_back(intercept);
-    deviance_ratio.push_back(1.0 - deviance/null_deviance_scaled);
 
     if (debug) {
       // Store losses

@@ -188,8 +188,7 @@ void EpochLoss(const T&                         x,
     l2_norm_squared += weight*weight;
   }
 
-  loss += 0.5*l2_norm_squared*alpha_scaled*n_samples
-    + l1_norm*beta_scaled*n_samples;
+  loss += 0.5*l2_norm_squared*alpha_scaled + l1_norm*beta_scaled;
 
   std::vector<std::size_t> nonzero_indices = Nonzeros(x.col(0));
 
@@ -205,7 +204,7 @@ void EpochLoss(const T&                         x,
         ++x_itr;
       }
       loss += family->Loss(inner_product + intercept[class_ind],
-                           y[sample_ind*n_classes + class_ind]);
+                           y[sample_ind*n_classes + class_ind])/n_samples;
     }
   }
   losses.push_back(loss);

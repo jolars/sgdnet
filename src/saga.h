@@ -214,9 +214,9 @@ void UpdateGradient(const T&                        x,
                     std::vector<double>&            sum_gradient,
                     const double                    step_size,
                     const double                    wscale,
-                    std::size_t                     n_seen,
-                    std::size_t                     n_classes,
-                    std::size_t                     sample_ind) {
+                    const std::size_t               n_seen,
+                    const std::size_t               n_classes,
+                    const std::size_t               sample_ind) {
   auto x_itr = x.begin();
 
   for (const auto& feature_ind : nonzero_indices) {
@@ -391,9 +391,8 @@ void Saga(const T&                         x,
                         sample_ind);
 
       // Update the gradient memory for this sample
-      for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
+      for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind)
         gradient_memory[sample_ind*n_classes + class_ind] = gradient[class_ind];
-      }
 
       // Update cumulative sums
       if (it_inner == 0) {
