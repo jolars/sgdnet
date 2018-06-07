@@ -24,9 +24,53 @@
 //' @param x a vector in the log domain
 //'
 //' @return `log(sum(exp(x)))` while avoiding over/underflow.
-inline double LogSumExp(const arma::vec& x) {
-  double x_max = x.max();
-  return std::log(arma::accu(arma::exp(x - x_max))) + x_max;
+inline double LogSumExp(const std::vector<double>& x) {
+  double x_max = *std::max_element(x.begin(), x.end());
+  double exp_sum = 0.0;
+
+  for (auto const& x_val : x)
+    exp_sum += std::exp(x_val - x_max);
+
+  return std::log(exp_sum) + x_max;
+}
+
+//' Log-spaced sequence
+//'
+//' @param from starting number
+//' @param to finishing number
+//' @param n number of elements
+//'
+//' @return a log-spaced sequence
+inline std::vector<double> LogSpace(const double      from,
+                                    const double      to,
+                                    const std::size_t n) {
+  double log_from = std::log(from);
+  double step = (std::log(to) - log_from)/(n - 1);
+
+  std::vector<double> out;
+  out.reserve(n);
+
+  for (std::size_t i = 0; i < n; ++i)
+    out.push_back(std::exp(log_from + i*step));
+
+  return out;
+}
+
+template <typename T>
+inline double Mean(const T& x, const std::size_t n) {
+  return std::accumulate(x.begin(), x.end(), 0.0)/n;
+}
+
+template <typename T>
+inline double StandardDeviation(const T& x, const std::size_t n) {
+  double x_mean = Mean(x, n);
+
+  double squared_deviance = 0.0;
+
+  for (const auto& x_val : x)
+    squared_deviance += (x_val - x_mean)*(x_val - x_mean)/n;
+
+  return std::sqrt(squared_deviance);
 }
 
 #endif // SGDNET_MATH_

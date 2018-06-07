@@ -192,33 +192,20 @@ sgdnet.default <- function(x,
   # Fit the model by calling the Rcpp routine.
   res <- SgdnetCpp(x, y, control)
 
-  # Setup return values
-  a0 <- drop(t(as.matrix(res$a0)))
-  beta <- res$beta
-  lambda <- drop(res$lambda)
+  lambda <- res$lambda
   n_penalties <- length(lambda)
-
-  path_names <- paste0("s", seq_along(lambda) - 1L)
-
-  beta <- lapply(seq(dim(beta)[2L]), function(x) {
-      Matrix::Matrix(as.vector(beta[, x, ]),
-                     nrow = n_features,
-                     ncol = n_penalties,
-                     dimnames = list(variable_names,
-                                     path_names),
-                     sparse = TRUE)
-    }
-  )
+  path_names <- paste0("s", seq_len(n_penalties) - 1L)
 
   if (family %in% c("gaussian", "binomial")) {
     # NOTE(jolars): I would rather not to this, i.e. have different outputs
     # depending on family, but this makes it equivalent to glmnet output
-    beta <- beta[[1L]]
+    a0 <- unlist(res$a0)
     names(a0) <- path_names
-  } else {
-    a0 <- t(a0)
-    rownames(a0) <- response_names
-    colnames(a0) <- path_names
+    beta <- Matrix::Matrix(unlist(res$beta),
+                           nrow = n_features,
+                           ncol = n_penalties,
+                           dimnames = list(variable_names, path_names),
+                           sparse = TRUE)
   }
 
   out <- structure(list(a0 = a0,
@@ -230,7 +217,8 @@ sgdnet.default <- function(x,
                         alpha = alpha,
                         classnames = class_names,
                         call = ocall,
-                        nobs = n_samples),
+                        nobs = n_samples,
+                        return_codes = res$return_codes),
                    class = c("sgdnet", family))
   if (debug)
     attr(out, "diagnostics") <- list(loss = res$losses)

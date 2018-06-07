@@ -7,13 +7,13 @@
 using namespace Rcpp;
 
 // SgdnetCpp
-Rcpp::List SgdnetCpp(SEXP x_in, arma::mat& y, const Rcpp::List& control);
+Rcpp::List SgdnetCpp(SEXP x_in, std::vector<double>& y, const Rcpp::List& control);
 RcppExport SEXP _sgdnet_SgdnetCpp(SEXP x_inSEXP, SEXP ySEXP, SEXP controlSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type x_in(x_inSEXP);
-    Rcpp::traits::input_parameter< arma::mat& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< std::vector<double>& >::type y(ySEXP);
     Rcpp::traits::input_parameter< const Rcpp::List& >::type control(controlSEXP);
     rcpp_result_gen = Rcpp::wrap(SgdnetCpp(x_in, y, control));
     return rcpp_result_gen;
