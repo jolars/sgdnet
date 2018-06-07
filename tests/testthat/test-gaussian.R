@@ -28,6 +28,8 @@ test_that("gaussian regression with sparse and dense features work", {
 })
 
 test_that("we can approximately reproduce the OLS solution", {
+  set.seed(1)
+
   airquality <- na.omit(airquality)
   x <- as.matrix(subset(airquality, select = c("Wind", "Temp")))
   y <- airquality$Ozone
