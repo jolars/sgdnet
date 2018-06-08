@@ -192,7 +192,7 @@ predict.sgdnet <- function(object,
 
   family <- extract_family(object)
 
-  if (missing(newx) && type %in% c("link"))
+  if (missing(newx) && type %in% c("link", "response", "class"))
     stop("new data must be provided for type = ", type)
 
   if (isTRUE(exact) && !is.null(s)) {
