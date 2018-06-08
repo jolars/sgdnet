@@ -25,10 +25,8 @@ test_that("basic model fitting with dense and sparse features", {
   expect_is(fit1, "binomial")
   expect_equivalent(coef(fit1), coef(fit2), tolerance = 0.01)
 
-  fit3 <- sgdnet(x, y, family = "gaussian", standardize = FALSE, alpha = 0,
-                 intercept = TRUE)
-  fit4 <- glmnet(x, y, family = "gaussian", standardize = FALSE, alpha = 0,
-                 intercept = TRUE)
+  fit3 <- sgdnet(as.matrix(x), y, family = "binomial", intercept = TRUE)
+  fit4 <- glmnet(as.matrix(x), y, family = "binomial", intercept = TRUE)
 
   expect_equal(coef(fit3), coef(fit4), tolerance = 0.01)
 })
