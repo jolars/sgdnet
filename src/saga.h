@@ -53,7 +53,6 @@
 #include "families.h"
 #include "constants.h"
 #include "prox.h"
-#include "saga_helpers.h"
 
 //' Perform Lagged Updates
 //'
