@@ -22,7 +22,7 @@ test_that("basic model fitting with dense and sparse features", {
                  intercept = TRUE)
 
   expect_is(fit1, "sgdnet")
-  expect_is(fit1, "binomial")
+  expect_is(fit1, "sgdnet_binomial")
   expect_equivalent(coef(fit1), coef(fit2), tolerance = 0.01)
 
   fit3 <- sgdnet(as.matrix(x), y, family = "binomial", intercept = TRUE)

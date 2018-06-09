@@ -231,7 +231,7 @@ sgdnet.default <- function(x,
                         classnames = class_names,
                         call = ocall,
                         nobs = n_samples),
-                   class = c("sgdnet", family))
+                   class = c(paste0("sgdnet_", family), "sgdnet"))
   if (debug)
     attr(out, "diagnostics") <- list(loss = res$losses)
   out

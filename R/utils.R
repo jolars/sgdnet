@@ -23,6 +23,6 @@
 #' @keywords internal
 extract_family <- function(x) {
   supported_families <- c("gaussian", "binomial")
-  family_index <- inherits(x, supported_families, TRUE) > 0
+  family_index <- inherits(x, paste0("sgdnet_", supported_families), TRUE) > 0
   supported_families[family_index]
 }
