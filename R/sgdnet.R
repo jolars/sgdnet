@@ -24,26 +24,26 @@
 #' The *gaussian* family solves the following objective:
 #'
 #' \deqn{
-#'   \frac{1}{2n} \sum_{i=1}^n (y_i - \beta_0 - x_i^\intercal \beta)^2
+#'   \frac{1}{2n} \sum_{i=1}^n (y_i - \beta_0 - x_i^\mathsf{T} \beta)^2
 #'   + \lambda \left( \frac{1 - \alpha}{2} ||\beta||_2^2
-#'                    + \alpha||\beta||_1 \right)
+#'                    + \alpha||\beta||_1 \right).
 #' }{
 #'   1/(2n) \sum (y - \beta_0 - x^T \beta)^2
-#'   + \lambda [(1 - \alpha)/2 ||\beta||_2^2 + \alpha||\beta||_1]
+#'   + \lambda [(1 - \alpha)/2 ||\beta||_2^2 + \alpha||\beta||_1].
 #' }
 #'
 #' The *binomial* family solves the following objective:
 #'
 #' \deqn{
-#'   -\frac1n \sum_{i=1}^n
-#'     \bigg[y_i (\beta_0 + x_i^\intercal \beta) - \log\Big(1 + e^{\beta_0 + x_i^\intercal \beta}\Big)\bigg]
+#'   -\frac{1}{n} \sum_{i=1}^n
+#'     \bigg[y_i (\beta_0 + x_i^\mathsf{T} \beta) - \log\Big(1 + e^{\beta_0 + x_i^\mathsf{T} \beta}\Big)\bigg]
 #'   + \lambda \left( \frac{1 - \alpha}{2} ||\beta||_2^2
 #'                    + \alpha||\beta||_1 \right),
 #' }{
 #'   -1/n \sum [y_i(\beta_0 + x^T \beta) - log(1 + exp(\beta_0 + x^T \beta)]
 #'   + \lambda [(1 - \alpha)/2 ||\beta||_2^2 + \alpha||\beta||_1],
 #' }
-#' where \eqn{y_i \in {0, 1}}{y ~ {0, 1}}.
+#' where \eqn{y_i \in \{0, 1\}}{y ~ {0, 1}}.
 #'
 #' @section Regularization Path:
 #' The default regularization path is a sequence of `nlambda`
