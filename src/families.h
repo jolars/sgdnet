@@ -96,6 +96,7 @@ public:
     }
   };
 
+  // Returns the fraction of deviance explained
   double Deviance(const arma::mat& prediction,
                   const arma::mat& y) {
     return 1.0 -
