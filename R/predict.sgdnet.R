@@ -239,7 +239,7 @@ predict.sgdnet <- function(object,
     link = linear_predictors,
     response = {
       if (family == "gaussian")
-        as.matrix(cbind(1, newx) %*% beta)
+        linear_predictors
       else if (family == "binomial")
         1 / (1 + exp(-linear_predictors))
     },
