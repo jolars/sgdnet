@@ -13,7 +13,8 @@
 }
 \value{
 The deviance of \code{object} at each value along the regularization path.
-For \code{family = "gaussian"} in \code{\link[=sgdnet]{sgdnet()}}, this is equivalent to \eqn{R^2}.
+For \code{family = "gaussian"} in \code{\link[=sgdnet]{sgdnet()}}, this is the residual sum of
+squares.
 }
 \description{
 Return the deviance for a sgdnet object.

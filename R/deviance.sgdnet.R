@@ -18,7 +18,8 @@
 #' @param ... ignored
 #'
 #' @return The deviance of `object` at each value along the regularization path.
-#'   For `family = "gaussian"` in [sgdnet()], this is equivalent to \eqn{R^2}.
+#'   For `family = "gaussian"` in [sgdnet()], this is the residual sum of
+#'   squares.
 #'
 #' @export
 #'
