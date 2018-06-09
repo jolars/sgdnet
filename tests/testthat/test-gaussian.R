@@ -24,9 +24,7 @@ test_that("gaussian regression with sparse and dense features work", {
   set.seed(seed)
   fit_dense <- sgdnet(as.matrix(x), y, alpha = 0, intercept = FALSE)
 
-  diff <- coef(fit_sparse)[-1]/coef(fit_dense)[-1]
-
-  expect_equal(diff, rep(1, length(diff)), tolerance = 0.001)
+  expect_equal(coef(fit_sparse), coef(fit_dense))
 })
 
 test_that("we can approximately reproduce the OLS solution", {
@@ -42,32 +40,26 @@ test_that("we can approximately reproduce the OLS solution", {
 })
 
 test_that("all weights are zero when lambda > lambda_max", {
-  # Code for this test has been borrowed from
-  # https://stats.stackexchange.com/questions/166630/glmnet-compute-maximal-lambda-value
-
-  # TODO(jolars): current this test is useless since the lasso implementation
-  #               is defunct
-
   set.seed(1)
 
-  n <- 500
-  p <- 3
-  b <- c(-5, 3, 2)
+  x <- iris[, 1:3]
+  y <- iris[, 4]
 
-  x <- scale(matrix(rnorm(p * n), nrow = n))
-  y <- rnorm(n, mean = x%*%b)
+  sd2 <- function(x) sqrt(sum((x - mean(x))^2)/length(x))
+  sy <- sd2(y)
+  xx <- scale(x, scale = apply(x, 2, sd2))
+  yy <- (y - mean(y))/sy
 
   alpha <- 1
 
-  lambda_max <- max(abs(t(y - mean(y)*(1 - mean(y))) %*% x)) / (alpha*n)
+  lambda_max <- max(abs(crossprod(yy, xx)) * sy)/NROW(x)
 
-  fit <- sgdnet(x, y, alpha = 1, lambda = lambda_max, maxit = 1000,
-                thresh = 0.0001)
+  fit <- sgdnet(x, y, maxit = 1000, thresh = 0.0001)
 
-  # fit <- sgdnet(x, y, alpha = 1, lambda = lambda_max *0.9, maxit = 1000,
-  #               thresh = 0.0001)
+  max(fit$lambda)
 
-  expect_equal(coef(fit)[-1], rep(0, length(coef(fit)) - 1))
+  expect_equal(max(fit$lambda), lambda_max)
+  expect_equivalent(as.matrix(fit$beta[, 1]), cbind(rep(0, 3)))
 })
 
 test_that("we can approximate the closed form ridge regression solution", {
@@ -92,4 +84,19 @@ test_that("we can approximate the closed form ridge regression solution", {
 
   expect_equivalent(beta_theoretical, coef(sgdnet_fit)[-1],
                     tolerance = 1e-3)
+})
+
+test_that("we generate the same lambda path as in glmnet", {
+  set.seed(1)
+
+  x <- with(trees, cbind(Girth, Height))
+  y <- trees$Volume
+
+  library(glmnet)
+  glmnet.control(fdev = 0) # make sure that the whole lambda path is returned
+
+  glmnetfit <- glmnet(x, y)
+  sgdnetfit <- sgdnet(x, y)
+
+  expect_equal(glmnetfit$lambda, sgdnetfit$lambda)
 })

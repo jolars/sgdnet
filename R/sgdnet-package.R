@@ -14,19 +14,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#' Permeability data
+#' @useDynLib sgdnet, .registration = TRUE
+#' @importFrom Rcpp sourceCpp
+NULL
+
+#' Penalized Generalized Linear Models with Stochastic Gradient Descent
 #'
-#' A pharmaceutical dataset of permeability values for 165 compounds
-#' for which molecular fingerprints were collected and represented
-#' as binary indices.
+#' @section Package options:
 #'
-#' @format A list with two items representing 165 observations from
-#'   1107 variables.
-#' \describe{
-#'   \item{x}{a sparse feature matrix with binary indicators for molecular
-#'            fingerprints labeled X1 to X1107}
-#'   \item{y}{a numeric vector of permeability values for 165 compounds}
+#' Parts of the [sgdnet] API can be interfaced with via
+#' \code{\link{options}} as follows:
+#'
+#' \itemize{
+#'   \item \code{sgdnet.debug}: set to `TRUE` to enable debugging features,
+#'                              which will be accessible via a `'diagnostics'`
+#'                              attribute to the `'sgdnet'` object
+#'                              that is returned by [sgdnet()].
 #' }
-#' @source [AppliedPredictiveModeling::permeability], which features a
-#'   thorough description on the type of data.
-"permeability"
+#' @name sgdnet-package
+#' @docType package
+NULL

@@ -23,10 +23,12 @@ Depends: R (>= 3.3.0)
 Imports: 
     Rcpp,
     Matrix,
-    methods
+    methods,
+    lattice
 Suggests: 
     covr,
-    testthat
+    testthat,
+    glmnet
 LinkingTo: 
     Rcpp (>= 0.12.16),
     RcppArmadillo (>= 0.8.500.0.0)

@@ -1,5 +1,23 @@
+// sgdnet: Penalized Generalized Linear Models with Stochastic Gradient Descent
+// Copyright (C) 2018  Johan Larsson
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 #ifndef SGDNET_PROX_
 #define SGDNET_PROX_
+
+#include <memory>
 
 namespace sgdnet {
 
@@ -13,6 +31,8 @@ namespace sgdnet {
 class Prox {
 public:
   virtual double Evaluate(const double x, const double shrinkage) = 0;
+
+  virtual ~Prox() {};
 };
 
 //' Soft thresholding operator for L1-regularization
@@ -28,6 +48,17 @@ public:
   double Evaluate(const double x, const double shrinkage) {
     return std::max(x - shrinkage, 0.0) - std::max(-x - shrinkage, 0.0);
   }
+
+  virtual ~SoftThreshold() {};
+};
+
+class ProxFactory {
+public:
+  static std::unique_ptr<Prox> NewProx(const std::string& prox_choice) {
+    if (prox_choice == "soft_threshold")
+      return std::unique_ptr<Prox>(new SoftThreshold());
+    return NULL;
+  };
 };
 
 } // namespace sgdnet

@@ -8,6 +8,17 @@ warnings_are_errors: true
 matrix:
   include:
     - os: linux
+      r: release
+      compiler: clang
+      after_success:
+        - Rscript -e 'covr::codecov()'
+
+    - os: linux
+      r: oldrel
+      compiler: gcc
+
+  allow_failures:
+    - os: linux
       r: devel
       compiler: gcc
       latex: false
@@ -20,17 +31,6 @@ matrix:
       env:
         - VALGRIND_OPTS='--leak-check=full --track-origins=yes'
 
-    - os: linux
-      r: release
-      compiler: clang
-      after_success:
-        - Rscript -e 'covr::codecov()'
-
-    - os: linux
-      r: oldrel
-      compiler: gcc
-
-  allow_failures:
     - os: osx
       r: release
       latex: false

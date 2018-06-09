@@ -13,7 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-//
+
 // This code is part translation from the Python package scikit-learn,
 // which comes with the following copyright notice:
 //
@@ -51,222 +51,218 @@
 
 #include <RcppArmadillo.h>
 #include "utils.h"
-#include "math.h"
-#include "objectives.h"
 #include "families.h"
-#include "constants.h"
 #include "prox.h"
+#include "saga.h"
+#include <memory>
 
-//' Perform Lagged Updates
+//' Rescale weights and intercept before returning these to user
 //'
-//' @param weights the weights matrix
-//' @param wscale the weights scale
-//' @param current_nonzero_indices a vector of indices for the nonzero elements
-//'   of the current data point
-//' @param n_samples the number of data points
-//' @param n_classes the number of classes for the outcome
-//' @param cumulative_sums storage for cumulative sums
-//' @param feature_history keeps track of the iteration at which each
-//'   feature was last updated
-//' @param nontrivial_prox nontrivial proximal operator?
-//' @param sum_gradient gradient sum storage
-//' @param reset TRUE if wscale is to be reset and weights rescaled
-//' @param it_inner the current iteration in the inner loop
+//' Currently no processing, and therefore no rescaling, is done
+//' when the intercept is fit. If x is sparse.
 //'
-//' @return Weights, cumulative_sums, and feature_history are updated.
+//' @param weights weights
+//' @param intercept intercept
+//' @param x_center the offset (mean) used to possibly have centered x
+//' @param x_scale the scaling that was applied to x
+//' @param y_center the offset (mean) that y was offset with
+//' @param n_features the number of features
+//' @param fit_intercept whether to fit the intercept
+//' @param is_sparse whether the features are sparse
+//'
+//' @return `weights` and `intercept` are rescaled.
 //'
 //' @noRd
 //' @keywords internal
-void LaggedUpdate(arma::mat&        weights,
-                  double            wscale,
-                  const arma::uvec& nonzero_indices,
-                  arma::uword       n_samples,
-                  arma::uword       n_classes,
-                  arma::mat&        cumulative_sums,
-                  arma::uvec&       feature_history,
-                  bool              nontrivial_prox,
-                  const arma::mat&  sum_gradient,
-                  bool              reset,
-                  arma::uword       it_inner,
-                  sgdnet::Prox     *prox) {
+void Rescale(arma::cube&         weights,
+             arma::mat&          intercept,
+             const arma::rowvec& x_center,
+             const arma::rowvec& x_scale,
+             const arma::rowvec& y_center,
+             const arma::rowvec& y_scale,
+             const arma::uword   n_features,
+             const arma::uword   fit_intercept) {
 
-  arma::uvec::const_iterator feature_itr = nonzero_indices.begin();
-  arma::uvec::const_iterator feature_end = nonzero_indices.end();
-
-  for (; feature_itr != feature_end; ++feature_itr) {
-
-    arma::uword feature_ind = (*feature_itr);
-
-    arma::rowvec cum_sum = cumulative_sums.row(it_inner - 1);
-
-    if (feature_history(feature_ind) != 0) {
-      cum_sum -= cumulative_sums.row(feature_history(feature_ind) - 1);
-    }
-
-    if (nontrivial_prox) {
-
-      for (arma::uword class_ind = 0; class_ind < n_classes; ++class_ind) {
-
-        if (std::abs(sum_gradient(feature_ind, class_ind)*cum_sum(0))
-            < cum_sum(1)) {
-
-          weights(feature_ind, class_ind) -=
-            cum_sum(0)*sum_gradient(feature_ind, class_ind);
-          weights(feature_ind, class_ind) =
-            prox->Evaluate(weights(feature_ind, class_ind), cum_sum(1));
-
-        } else {
-
-          arma::sword last_update_ind = feature_history(feature_ind) - 1;
-
-          if (last_update_ind == -1)
-            last_update_ind = it_inner - 1;
-
-          for (arma::uword lagged_ind = it_inner - 1;
-               lagged_ind > last_update_ind - 1;
-               --lagged_ind) {
-
-            // Grad and prox steps
-            arma::rowvec steps(cumulative_sums.n_cols);
-
-            if (lagged_ind > 0)
-              steps = cumulative_sums.row(lagged_ind)
-                      - cumulative_sums.row(lagged_ind - 1);
-            else
-              steps = cumulative_sums.row(lagged_ind);
-
-            weights(feature_ind, class_ind) -=
-              sum_gradient(feature_ind, class_ind)*steps(0);
-            weights(feature_ind, class_ind) =
-              prox->Evaluate(weights(feature_ind, class_ind), cum_sum(1));
-          }
-        }
+  if (fit_intercept) {
+    for (arma::uword i = 0; i < n_features; ++i) {
+      if (x_scale(i) != 0.0) {
+        for (arma::uword j = 0; j < y_scale.n_elem; ++j)
+          weights.tube(i, j) *= y_scale(j)/x_scale(i);
       }
-    } else { // Trivial prox
-      weights.row(feature_ind) -= cum_sum(0)*sum_gradient.row(feature_ind);
     }
-    if (!reset) {
-      feature_history(feature_ind) = it_inner;
+
+    for (arma::uword i = 0; i < weights.n_slices; ++i) {
+      intercept.row(i) =
+        intercept.row(i)*y_scale + y_center - x_center*weights.slice(i);
     }
-  } // for each feature
-
-  if (reset) {
-    weights *= wscale;
-
-    if (!(weights.is_finite()))
-      Rcpp::stop("non-finite weights.");
-
-    feature_history.fill(it_inner % n_samples);
-    cumulative_sums.row(it_inner - 1).zeros();
   }
 }
 
-//' Predict Sample
+//' Compute Regularization Path
 //'
-//' @param x sample
-//' @param weights weights
-//' @param wscale scale for weights
-//' @param intercept intercept
+//' This function computes the regularization path as in glmnet so that
+//' the first solution is the null solution (if elasticnet_mix != 0).
+template <typename T>
+void RegularizationPath(arma::vec&          lambda,
+                        const arma::uword   n_lambda,
+                        const double        lambda_min_ratio,
+                        const double        elasticnet_mix,
+                        const T&            x,
+                        const arma::mat&    y,
+                        const arma::uword   n_samples,
+                        arma::vec&          alpha,
+                        arma::vec&          beta) {
+
+  if (lambda.is_empty()) {
+
+    double lambda_max = arma::abs(y.t() * x).max() / n_samples;
+    // Cap elasticnet_mix (alpha in glmnet) to 0.001
+    lambda_max /= std::max(elasticnet_mix, 0.001);
+
+    lambda = arma::exp(arma::linspace<arma::vec>(
+      std::log(lambda_max), std::log(lambda_max*lambda_min_ratio), n_lambda));
+  }
+
+  // The algorithm uses a different penalty construction than
+  // glmnet, so convert lambda values to match alpha and beta from scikit-learn.
+
+  // Scaled L2 penalty
+  alpha = lambda*(1 - elasticnet_mix)/2;
+  // Scaled L1 penalty
+  beta = lambda*elasticnet_mix;
+}
+
+//' Adapative transposing of feature matrix
 //'
-//' @return The prediction at the current sample
+//' For sparse matrices, armadillo does not (yet?) have a inplace
+//' transpose method, so we overload for sparse and dense matrices,
+//' transposing inplace when x is dense.
+//'
+//' @param x a sparse or dense matrix
+//'
+//' @return x transposed.
+//'
+//' @keywords internal
+//' @noRd
+void AdaptiveTranspose(arma::sp_mat& x) {
+  x = x.t();
+}
+
+void AdaptiveTranspose(arma::mat& x) {
+  arma::inplace_trans(x);
+}
+
+
+//' Setup sgdnet Model Options
+//'
+//' Collect parameters from `control` and setup storage for coefficients,
+//' intercepts, gradients, and more so that we can iterate along the
+//' regularization path using warm starts for successive iterations.
+//'
+//' @param x features
+//' @param y response
+//' @param is_sparse whether x is sparse or not
+//' @param control a list of control parameters
+//'
+//' @return See [SgdnetCpp].
 //'
 //' @noRd
 //' @keywords internal
 template <typename T>
-arma::rowvec PredictSample(const T&            x,
-                           const arma::mat&    weights,
-                           const double        wscale,
-                           const arma::rowvec& intercept) {
+Rcpp::List SetupSgdnet(T&                x,
+                       arma::mat         y,
+                       bool              is_sparse,
+                       const Rcpp::List& control) {
 
-  return x.t()*(wscale*weights) + intercept;
-}
+  std::string  family_choice    = Rcpp::as<std::string>(control["family"]);
+  bool         fit_intercept    = Rcpp::as<bool>(control["intercept"]);
+  double       elasticnet_mix   = Rcpp::as<double>(control["elasticnet_mix"]);
+  arma::vec    lambda           = Rcpp::as<arma::vec>(control["lambda"]);
+  arma::uword  n_lambda         = Rcpp::as<arma::uword>(control["n_lambda"]);
+  double       lambda_min_ratio = Rcpp::as<double>(control["lambda_min_ratio"]);
+  bool         normalize        = Rcpp::as<bool>(control["normalize"]);
+  arma::uword  max_iter         = Rcpp::as<arma::uword>(control["max_iter"]);
+  double       tol              = Rcpp::as<double>(control["tol"]);
+  bool         debug            = Rcpp::as<bool>(control["debug"]);
 
-//' SAGA algorithm
-//'
-//' @param x feature matrix
-//' @param y response matrix
-//' @param family response type
-//' @param fit_intercept whether the intercept should be fit
-//' @param intercept_decay intercept updates are scaled by
-//'   this decay factor to avoid intercept oscillation when features are
-//'   sparse
-//' @param alpha l2-regularization penalty
-//' @param beta l1-regularization penalty
-//' @param normalize whether to normalize x
-//' @param max_iter maximum number of iterations
-//' @param debug if `TRUE`, we are debugging and should return loss
-//' @param is_sparse is x sparse?
-//'
-//' @return See [FitModel()].
-//'
-//' @noRd
-//' @keywords internal, programming
-template <typename T>
-Rcpp::List SagaSolver(T              x,
-                      arma::mat&     y,
-                      sgdnet::Family family,
-                      bool           fit_intercept,
-                      double         intercept_decay,
-                      double         alpha,
-                      double         beta,
-                      bool           normalize,
-                      arma::uword    max_iter,
-                      double         tol,
-                      bool           debug,
-                      bool           is_sparse) {
+  arma::uword n_samples   = x.n_rows;
+  arma::uword n_features  = x.n_cols;
+  arma::uword n_targets   = y.n_cols;
 
-  arma::uword n_samples  = x.n_cols;
-  arma::uword n_features = x.n_rows;
-  arma::uword n_targets  = y.n_cols;
+  // Preprocess features
+  arma::rowvec x_center(n_features);
+  arma::rowvec x_scale(n_features);
 
-  double alpha_scaled = alpha/n_samples; // l2 penalty
-  double beta_scaled  = beta/n_samples;  // l1 penalty
+  PreprocessFeatures(x,
+                     normalize,
+                     fit_intercept,
+                     x_center,
+                     x_scale,
+                     is_sparse,
+                     n_features);
 
-  // Preprocess data
-  arma::vec x_center(n_features);
-  arma::vec x_scale(n_features);
-  arma::rowvec y_center(y.n_cols);
-
-  Preprocess(x,
-             y,
-             normalize,
-             fit_intercept,
-             x_center,
-             x_scale,
-             y_center,
-             is_sparse);
+  double intercept_decay = is_sparse ? 0.01 : 1.0;
 
   // Setup family-specific options
-  arma::uword n_classes;
-  sgdnet::Objective *obj = NULL;
+  sgdnet::FamilyFactory family_factory;
+  std::unique_ptr<sgdnet::Family> family =
+    family_factory.NewFamily(family_choice);
 
-  switch(family) {
-    case sgdnet::GAUSSIAN: {
-      n_classes = 1;
-      obj = new sgdnet::Gaussian();
-      break;
-    }
-  }
+  arma::uword n_classes = family->NClasses(y);
+
+  // Preprocess response
+  arma::rowvec y_center(n_targets);
+  arma::rowvec y_scale(n_targets);
+
+  // Compute the lambda sequence
+  arma::vec alpha;
+  arma::vec beta;
+
+  family->PreprocessResponse(y, y_center, y_scale, fit_intercept);
+
+  RegularizationPath(lambda,
+                     n_lambda,
+                     lambda_min_ratio,
+                     elasticnet_mix,
+                     x,
+                     y,
+                     n_samples,
+                     alpha,
+                     beta);
+
+  // FIXME(jolars): This needs to be handled appropriately when we extend to
+  // multivariate regression.
+  lambda *= y_scale(0);
+
+  arma::uword n_penalties = lambda.n_elem;
+
+  // Transpose x for more efficient access of samples
+  AdaptiveTranspose(x);
+
+  // Maximum of sums of squares over samples
+  double max_squared_sum = ColNormsMax(x);
+
+  arma::vec step_size = family->StepSize(max_squared_sum,
+                                         alpha,
+                                         fit_intercept,
+                                         n_samples);
+
+  // Check if we need the nontrivial prox
+  // TODO(jolars): allow more proximal operators
+  sgdnet::ProxFactory prox_factory;
+  std::string prox_choice = "soft_threshold";
+  std::unique_ptr<sgdnet::Prox> prox = prox_factory.NewProx(prox_choice);
 
   // Setup intercept vector
   arma::rowvec intercept(n_classes, arma::fill::zeros);
+  arma::mat intercept_archive(n_penalties, n_classes);
 
-  // Setup weights matrix
+  // Setup weights matrix and weights archive
   arma::mat weights(n_features, n_classes, arma::fill::zeros);
-
-  // Store previous weights for computing stopping criteria
-  arma::mat previous_weights(weights);
+  arma::cube weights_archive(n_features, n_classes, n_penalties);
 
   // Sum of gradients for weights
   arma::mat sum_gradient(weights);
-
-  // Gradient correction matrix
-  arma::mat gradient_correction(arma::size(weights));
-
-  // Intercept correction vector
-  arma::rowvec intercept_correction;
-  if (fit_intercept)
-    intercept_correction.set_size(n_classes);
 
   // Sum of gradients for intercept
   arma::rowvec intercept_sum_gradient(n_classes, arma::fill::zeros);
@@ -278,289 +274,115 @@ Rcpp::List SagaSolver(T              x,
   arma::uvec seen(n_samples, arma::fill::zeros);
   arma::uword n_seen = 0;
 
-  // Maximum of sums of squares over rows (samples)
-  double max_squared_sum = ColNormsMax(x);
+  // Keep keep track of successes for each penalty
+  std::vector<int> return_codes;
+  return_codes.reserve(n_penalties);
+  arma::uword return_code;
 
-  // Automatically compute step size given the data and response type
-  double step_size = GetStepSize(max_squared_sum,
-                                 alpha_scaled,
-                                 family,
-                                 fit_intercept,
-                                 n_samples);
-
-  // Keep track of when each feature was last updated
-  arma::uvec feature_history(n_features, arma::fill::zeros);
-
-  // Setup a matrix of losses to return upon exit
+  // Setup a field of losses to return upon exit
+  arma::field<arma::vec> losses_archive(n_penalties);
   std::vector<double> losses;
 
-  // Scale of weights
-  double wscale = 1.0;
+  // Keep track of number of iteratios per penalty
+  arma::uword n_iter = 0;
 
-  // Check if we need the nontrivial prox
-  bool nontrivial_prox = beta > 0.0;
-  sgdnet::Prox *prox = NULL;
+  // Fit the path of penalty values
+  for (arma::uword penalty_ind = 0; penalty_ind < n_penalties; ++penalty_ind) {
+    Saga(x,
+         y,
+         weights,
+         fit_intercept,
+         intercept,
+         intercept_decay,
+         intercept_sum_gradient,
+         family,
+         prox,
+         step_size(penalty_ind),
+         alpha(penalty_ind),
+         beta(penalty_ind),
+         sum_gradient,
+         gradient_memory,
+         seen,
+         n_seen,
+         n_samples,
+         n_features,
+         n_classes,
+         is_sparse,
+         max_iter,
+         tol,
+         n_iter,
+         return_code,
+         losses,
+         debug);
 
-  prox = new sgdnet::SoftThreshold();
+    // Store intercepts and weights for the current solution
+    weights_archive.slice(penalty_ind) = weights;
+    intercept_archive.row(penalty_ind) = intercept;
+    return_codes.push_back(return_code);
 
-  // Store a matrix of cumulative sums, prox sums in second column
-  arma::mat cumulative_sums(n_samples, 1 + nontrivial_prox, arma::fill::zeros);
-
-  // Precomputated stepsize
-  double wscale_update = 1.0 - step_size*alpha_scaled;
-
-  // Keep a vector of the full range of indicies for each row for when
-  // we update the full range of weights
-  arma::uvec full_range_indices = arma::regspace<arma::uvec>(0, n_features - 1);
-  arma::uvec nonzero_indices;
-  if (!is_sparse)
-    nonzero_indices = full_range_indices;
-
-  // Scalars for computing stopping criteria
-  double max_change = 0.0;
-  double max_weight = 0.0;
-
-  // Vector to store prediction
-  arma::rowvec prediction(n_classes);
-
-  // Vector to store gradient
-  arma::rowvec gradient(n_classes);
-
-  // Outer loop
-  arma::uword it_outer = 0;
-  for (; it_outer < max_iter; ++it_outer) {
-
-    // Inner loop
-    for (arma::uword it_inner = 0; it_inner < n_samples; ++it_inner) {
-
-      // Extract a random sample
-      arma::uword sample_ind = std::floor(R::runif(0.0, n_samples));
-
-      // Update the number of samples seen and the seen array
-      if (!seen(sample_ind)) {
-        n_seen++;
-        seen(sample_ind) = true;
-      }
-
-      if (is_sparse)
-        nonzero_indices = Nonzeros(x.col(sample_ind));
-
-      if (it_inner > 0)
-        LaggedUpdate(weights,
-                     wscale,
-                     nonzero_indices,
-                     n_samples,
-                     n_classes,
-                     cumulative_sums,
-                     feature_history,
-                     nontrivial_prox,
-                     sum_gradient,
-                     false,
-                     it_inner,
-                     prox);
-
-      prediction = PredictSample(x.col(sample_ind),
-                                 weights,
-                                 wscale,
-                                 intercept);
-
-      gradient = obj->Gradient(prediction, y.row(sample_ind));
-
-      // L2-regularization by rescaling the weights
-      wscale *= wscale_update;
-
-      // Update the sum of gradients
-      gradient_correction =
-        x.col(sample_ind)*(gradient - gradient_memory.row(sample_ind));
-
-      weights -= (gradient_correction*step_size*(1.0 - 1.0/n_seen)/wscale);
-      sum_gradient += gradient_correction;
-
-      if (fit_intercept) {
-        intercept_correction = gradient.t() - gradient_memory.row(sample_ind);
-        intercept_sum_gradient += intercept_correction;
-        intercept_correction *= step_size*(1.0 - 1.0/n_seen);
-        intercept -= step_size*intercept_sum_gradient/n_seen*intercept_decay
-                     + intercept_correction;
-
-        if (!intercept.is_finite())
-          Rcpp::stop("non-finite intercepts.");
-      }
-
-      // Update the gradient memory for this sample
-      gradient_memory.row(sample_ind) = gradient;
-
-      // Update cumulative sums
-      if (it_inner == 0) {
-        cumulative_sums(0, 0) = step_size/(wscale*n_seen);
-        if (nontrivial_prox)
-          cumulative_sums(0, 1) = step_size*beta/wscale;
-      } else {
-        cumulative_sums(it_inner, 0) =
-          cumulative_sums(it_inner - 1, 0) + (step_size/(wscale*n_seen));
-        if (nontrivial_prox)
-          cumulative_sums(it_inner, 1) =
-            cumulative_sums(it_inner - 1, 1) + (step_size*beta/wscale);
-      }
-
-      // if wscale is too small, reset the scale
-      if (wscale < sgdnet::SMALL) {
-        LaggedUpdate(weights,
-                     wscale,
-                     full_range_indices,
-                     n_samples,
-                     n_classes,
-                     cumulative_sums,
-                     feature_history,
-                     nontrivial_prox,
-                     sum_gradient,
-                     true,
-                     it_inner + 1,
-                     prox);
-        wscale = 1.0;
-      }
-    } // inner loop
-
-    // scale the weights for every epoch and reset the JIT update system
-    LaggedUpdate(weights,
-                 wscale,
-                 full_range_indices,
-                 n_samples,
-                 n_classes,
-                 cumulative_sums,
-                 feature_history,
-                 nontrivial_prox,
-                 sum_gradient,
-                 true,
-                 n_samples,
-                 prox);
-
-    wscale = 1.0;
-
-    // compute loss for the current solution if debugging
     if (debug) {
-      arma::mat pred = x.t()*weights + arma::repmat(intercept, n_samples, 1);
-      double loss = obj->Loss(pred, y)
-        + alpha_scaled*std::pow(arma::norm(weights), 2);
-      losses.push_back(loss);
+      // Store losses
+      losses_archive(penalty_ind) = arma::conv_to<arma::vec>::from(losses);
+      // Reset loss
+      losses.clear();
     }
-
-    // check termination conditions
-    max_weight = arma::abs(weights).max();
-    max_change = arma::abs(weights - previous_weights).max();
-    previous_weights = weights;
-
-    if ((max_weight != 0.0 && max_change/max_weight <= tol)
-        || (max_weight == 0.0 && max_change == 0.0)) {
-      break;
-    }
-  } // outer loop
+  }
 
   // Rescale intercept and weights back to original scale
-  if (fit_intercept) {
-    for (arma::uword k = 0; k < n_features; ++k) {
-      if (x_scale(k) != 0)
-        weights.row(k) /= x_scale(k);
-    }
+  Rescale(weights_archive,
+          intercept_archive,
+          x_center,
+          x_scale,
+          y_center,
+          y_scale,
+          n_features,
+          fit_intercept);
 
-    if (is_sparse) {
-      intercept += y_center;
-    } else {
-      intercept = y_center - x_center.t()*weights;
-    }
-  }
-
-  arma::uword return_code;
-  if (it_outer == max_iter) {
-    // Iteration limit reached
-    return_code = 1;
-  } else {
-    // Successful convergence
-    return_code = 0;
-  }
-
-  return Rcpp::List::create(Rcpp::Named("a0") = Rcpp::wrap(intercept),
-                            Rcpp::Named("beta") = Rcpp::wrap(weights),
-                            Rcpp::Named("losses") = Rcpp::wrap(losses),
-                            Rcpp::Named("nseen") = n_seen,
-                            Rcpp::Named("npasses") = it_outer,
-                            Rcpp::Named("return_code") = return_code);
+  return Rcpp::List::create(
+    Rcpp::Named("a0") = Rcpp::wrap(intercept_archive),
+    Rcpp::Named("beta") = Rcpp::wrap(weights_archive),
+    Rcpp::Named("losses") = Rcpp::wrap(losses_archive),
+    Rcpp::Named("npasses") = n_iter,
+    Rcpp::Named("lambda") = Rcpp::wrap(lambda),
+    Rcpp::Named("return_codes") = Rcpp::wrap(return_codes)
+  );
 }
 
 //' Fit a Model with sgdnet
 //'
-//' @param x feature matrix
+//' This main use of this function is calling the templated SetupSgdnet()
+//' so that the dense and sparse implementations are compiled and
+//' called appropriately. The control parameters in `control` are just
+//' passed along.
+//'
+//' @param x_in feature matrix
 //' @param y response matrix
-//' @param family_in the response type
-//' @param is_sparse is x sparse?
-//' @param alpha l2-regularization penalty
-//' @param beta l1-regularization penalty
-//' @param normalize should x be normalized before fitting the model?
-//' @param max_iter the maximum number of iterations
-//' @param tol tolerance for convergence. The algorithm terminates when
-//'   max(change in weights)/max(weights) < tol.
+//' @param control a list of control parameters
 //'
 //' @return A list of
-//'   * ao: the intercept
-//'   * beta: the weights
-//'   * losses: the loss at each outer iteration
-//'   * nseen: the number of samples seen
-//'   * npasses: the number of effective passes (epochs)
-//'   * return_code: the convergence result. 0 mean that the algorithm converged,
-//'     1 means that `max_iter` was reached before the algorithm converged.
+//'   * ao: the intercept,
+//'   * beta: the weights,
+//'   * losses: the loss at each outer iteration per fit,
+//'   * npasses: the number of effective passes (epochs) accumulated over,
+//'     all lambda values, and
+//'   * return_codes: the convergence result. 0 mean that the algorithm
+//'     converged, 1 means that `max_iter` was reached before the algorithm
+//'     converged.
 //'
 //' @keywords internal
 // [[Rcpp::export]]
-Rcpp::List FitModel(SEXP                x_in,
-                    arma::mat&          y,
-                    const std::string&  family_in,
-                    bool                fit_intercept,
-                    bool                is_sparse,
-                    double              alpha,
-                    double              beta,
-                    bool                normalize,
-                    arma::uword         max_iter,
-                    double              tol,
-                    bool                debug) {
+Rcpp::List SgdnetCpp(SEXP              x_in,
+                     arma::mat&        y,
+                     const Rcpp::List& control) {
 
-  // sgdnet::Family family = static_cast<sgdnet::Family>(family_in);
-  sgdnet::Family family;
-  if (family_in == "gaussian") {
-    family = sgdnet::GAUSSIAN;
-  } else {
-    Rcpp::stop("invalid family.");
-  }
+  bool is_sparse = Rcpp::as<bool>(control["is_sparse"]);
 
   if (is_sparse) {
-    arma::sp_mat x = arma::trans(Rcpp::as<arma::sp_mat>(x_in));
-
-    return SagaSolver(x,
-                      y,
-                      family,
-                      fit_intercept,
-                      0.01,
-                      alpha,
-                      beta,
-                      normalize,
-                      max_iter,
-                      tol,
-                      debug,
-                      is_sparse);
+    arma::sp_mat x = Rcpp::as<arma::sp_mat>(x_in);
+    return SetupSgdnet(x, y, is_sparse, control);
   } else {
     arma::mat x = Rcpp::as<arma::mat>(x_in);
-    arma::inplace_trans(x);
-
-    return SagaSolver(x,
-                      y,
-                      family,
-                      fit_intercept,
-                      1.0,
-                      alpha,
-                      beta,
-                      normalize,
-                      max_iter,
-                      tol,
-                      debug,
-                      is_sparse);
+    return SetupSgdnet(x, y, is_sparse, control);
   }
 }
+

@@ -5,22 +5,29 @@
 \alias{sgdnet.default}
 \title{Fit a Generalized Linear Model with Elastic Net Regularization}
 \usage{
-sgdnet(x, y, ...)
+sgdnet(x, ...)
 
 \method{sgdnet}{default}(x, y, family = c("gaussian"), alpha = 1,
-  lambda = 1/NROW(x), maxit = 1000, standardize = TRUE,
-  intercept = TRUE, thresh = 0.001, ...)
+  nlambda = 100, lambda.min.ratio = if (NROW(x) < NCOL(x)) 0.01 else 1e-04,
+  lambda = NULL, maxit = 1000, standardize = TRUE, intercept = TRUE,
+  thresh = 0.001, ...)
 }
 \arguments{
 \item{x}{input matrix}
 
-\item{y}{response variable}
-
 \item{...}{ignored}
+
+\item{y}{response variable}
 
 \item{family}{reponse type}
 
 \item{alpha}{elastic net mixing parameter}
+
+\item{nlambda}{number of penalties in the regualrization path}
+
+\item{lambda.min.ratio}{the ratio between \code{lambda_max} (the smallest
+penalty at which the solution is completely sparse) and the smallest
+lambda value on the path. See section \strong{Regularization Path} for details.}
 
 \item{lambda}{regularization strength}
 
@@ -34,7 +41,7 @@ sgdnet(x, y, ...)
 \item{thresh}{tolerance level for termination of the algorithm. The
 algorithm terminates when
 \deqn{
-    \frac{\mathrm{change~in~weights}}{\mathrm{weights}} < \mathrm{thresh}.
+    \frac{|\beta^{(t)} - \beta^{(t-1)}|{\infty}}{|\beta^{(t)}|{\infty}} < \mathrm{thresh}
   }{
     max(change in weights)/max(weights) < thresh.
   }}
@@ -45,7 +52,26 @@ An object of class \code{'sgdnet'}.
 \description{
 Fit a Generalized Linear Model with Elastic Net Regularization
 }
+\section{Regularization Path}{
+
+The default regularization path is a sequence of \code{nlambda}
+log-spaced elements
+from \eqn{\lambda_{\mathrm{max}}}{lambda_max} to
+\eqn{\lambda_{\mathrm{max}} \times \mathtt{lambda.min.ratio}}{
+     lambda_max*lambda.min.ratio},
+For the gaussian family, for instance,
+\eqn{\lambda_{\mathrm{max}}}{lambda_max} is
+the largest absolute inner product of the feature vectors and the response
+vector,
+\deqn{\max_i \frac{1}{n}|\langle\mathbf{x}_i, y\rangle|.}{
+      max |<x, y>|/n.}
+}
+
 \examples{
 # Gaussian regression with sparse features
 fit <- sgdnet(permeability$x, permeability$y, alpha = 0)
+}
+\seealso{
+\code{\link[=predict.sgdnet]{predict.sgdnet()}}, \code{\link[=plot.sgdnet]{plot.sgdnet()}}, \code{\link[=coef.sgdnet]{coef.sgdnet()}},
+\code{\link[=sgdnet-package]{sgdnet-package()}}
 }
