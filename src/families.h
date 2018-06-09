@@ -43,6 +43,9 @@ public:
                                   arma::rowvec& y_center,
                                   arma::rowvec& y_scale,
                                   const bool    fit_intercept) = 0;
+
+  virtual double Deviance(const arma::mat& y,
+                          const arma::mat& prediction) = 0;
 };
 
 class Gaussian : public Family {
@@ -93,6 +96,12 @@ public:
     }
   };
 
+  // Returns the fraction of deviance explained
+  double Deviance(const arma::mat& prediction,
+                  const arma::mat& y) {
+    return 1.0 -
+      arma::accu(arma::square(prediction - y))/arma::accu(arma::square(y));
+  }
 };
 
 class FamilyFactory {

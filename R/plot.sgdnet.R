@@ -72,7 +72,7 @@ plot.sgdnet <- function(x, xvar = c("norm", "lambda", "dev"), ...) {
            }
          },
          dev = {
-           plot_args$xlab <- "Deviance"
+           plot_args$xlab <- "Fraction of deviance explained"
            plot_data$xval <- x$dev.ratio
          })
 
