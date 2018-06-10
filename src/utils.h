@@ -152,7 +152,7 @@ inline double LambdaMax(const T&                   x,
 //'
 //' @param prediction current prediction (will be modified)
 //' @param x current sample
-//' @param nonzero_indices indices of nonzero elements in current sample
+//' @param nonzero_ptr pointer to indices of nonzero elements in current sample
 //' @param weights weights
 //' @param wscale scale for weights
 //' @param intercept intercept
@@ -164,7 +164,7 @@ inline double LambdaMax(const T&                   x,
 template <typename T>
 void PredictSample(std::vector<double>&            prediction,
                    const T&                        x,
-                   const std::vector<std::size_t>& nonzero_indices,
+                   std::vector<std::size_t>       *nonzero_ptr,
                    const std::vector<double>&      weights,
                    const double                    wscale,
                    const std::vector<double>&      intercept,
@@ -173,7 +173,7 @@ void PredictSample(std::vector<double>&            prediction,
   for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
     double inner_product = 0.0;
     auto x_itr = x.begin();
-    for (const auto& feature_ind : nonzero_indices) {
+    for (auto&& feature_ind : *nonzero_ptr) {
       inner_product += weights[feature_ind*n_classes + class_ind] * (*x_itr);
       ++x_itr;
     }
@@ -233,7 +233,7 @@ void EpochLoss(const T&                         x,
     for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
       double inner_product = 0.0;
       auto x_itr = x.begin_col(sample_ind);
-      for (const auto& feature_ind : nonzero_indices) {
+      for (auto& feature_ind : nonzero_indices) {
         inner_product += (*x_itr)*weights[feature_ind*n_classes + class_ind];
         ++x_itr;
       }

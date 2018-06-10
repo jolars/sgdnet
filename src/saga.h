@@ -58,24 +58,27 @@
 //'
 //' @param weights the weights matrix
 //' @param wscale the weights scale
-//' @param current_nonzero_indices a vector of indices for the nonzero elements
-//'   of the current data point
+//' @param nonzero_ptr a pointer to a vector of indices for the nonzero elements
+//'   of the current sample
 //' @param n_samples the number of data points
 //' @param n_classes the number of classes for the outcome
 //' @param cumulative_sums storage for cumulative sums
+//' @param cumulative_sums_prox storage for cumulative sums for the proximal
+//'   operator
 //' @param feature_history keeps track of the iteration at which each
 //'   feature was last updated
 //' @param nontrivial_prox nontrivial proximal operator?
 //' @param sum_gradient gradient sum storage
 //' @param reset TRUE if wscale is to be reset and weights rescaled
 //' @param it_inner the current iteration in the inner loop
+//' @param prox a proximal operator
 //'
 //' @return Weights, cumulative_sums, and feature_history are updated.
 //'
 //' @noRd
 void LaggedUpdate(std::vector<double>&            weights,
                   double                          wscale,
-                  const std::vector<std::size_t>& nonzero_indices,
+                  std::vector<std::size_t>       *nonzero_ptr,
                   const std::size_t               n_samples,
                   const std::size_t               n_classes,
                   std::vector<double>&            cumulative_sums,
@@ -87,7 +90,7 @@ void LaggedUpdate(std::vector<double>&            weights,
                   const std::size_t               it_inner,
                   std::unique_ptr<sgdnet::Prox>&  prox) {
 
-  for (const auto& feature_ind : nonzero_indices) {
+  for (auto&& feature_ind : *nonzero_ptr) {
 
     double cum_sum = cumulative_sums[it_inner - 1];
 
@@ -208,7 +211,7 @@ void UpdateIntercept(const std::vector<double>& gradient,
 //' coefficients
 //'
 //' @param x the current sample
-//' @param nonzero_indices vector of indices of nonzero elements in the
+//' @param nonzero_ptr vector of indices of nonzero elements in the
 //'   current sample
 //' @param weights coefficients
 //' @param gradient gradient for current sample
@@ -225,7 +228,7 @@ void UpdateIntercept(const std::vector<double>& gradient,
 //' @noRd
 template <typename T>
 void UpdateWeights(const T&                        x,
-                   const std::vector<std::size_t>& nonzero_indices,
+                   std::vector<std::size_t>       *nonzero_ptr,
                    std::vector<double>&            weights,
                    const std::vector<double>&      gradient,
                    const std::vector<double>&      gradient_memory,
@@ -237,7 +240,7 @@ void UpdateWeights(const T&                        x,
                    const std::size_t               sample_ind) {
   auto x_itr = x.begin();
 
-  for (const auto& feature_ind : nonzero_indices) {
+  for (auto&& feature_ind : *nonzero_ptr) {
     for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
       double gradient_correction =
         (*x_itr)*(gradient[class_ind]
@@ -287,32 +290,33 @@ void UpdateWeights(const T&                        x,
 //'
 //' @noRd
 template <typename T>
-void Saga(const T&                         x,
-          const std::vector<double>&       y,
-          std::vector<double>&             weights,
-          const bool                       fit_intercept,
-          std::vector<double>&             intercept,
-          const double                     intercept_decay,
-          std::vector<double>&             intercept_sum_gradient,
-          std::unique_ptr<sgdnet::Family>& family,
-          std::unique_ptr<sgdnet::Prox>&   prox,
-          const double                     step_size,
-          const double                     alpha_scaled,
-          const double                     beta_scaled,
-          std::vector<double>&             sum_gradient,
-          std::vector<double>&             gradient_memory,
-          std::vector<bool>&               seen,
-          std::size_t&                     n_seen,
-          const std::size_t                n_samples,
-          const std::size_t                n_features,
-          const std::size_t                n_classes,
-          const bool                       is_sparse,
-          const std::size_t                max_iter,
-          const double                     tol,
-          std::size_t&                     n_iter,
-          std::vector<unsigned int>&       return_codes,
-          std::vector<double>&             losses,
-          const bool                       debug) {
+void Saga(const T&                                x,
+          const std::vector<double>&              y,
+          std::vector<double>&                    weights,
+          const bool                              fit_intercept,
+          std::vector<double>&                    intercept,
+          const double                            intercept_decay,
+          std::vector<double>&                    intercept_sum_gradient,
+          std::unique_ptr<sgdnet::Family>&        family,
+          std::unique_ptr<sgdnet::Prox>&          prox,
+          const double                            step_size,
+          const double                            alpha_scaled,
+          const double                            beta_scaled,
+          std::vector<std::vector<std::size_t> >& nonzero_indices,
+          std::vector<double>&                    sum_gradient,
+          std::vector<double>&                    gradient_memory,
+          std::vector<bool>&                      seen,
+          std::size_t&                            n_seen,
+          const std::size_t                       n_samples,
+          const std::size_t                       n_features,
+          const std::size_t                       n_classes,
+          const bool                              is_sparse,
+          const std::size_t                       max_iter,
+          const double                            tol,
+          std::size_t&                            n_iter,
+          std::vector<unsigned int>&              return_codes,
+          std::vector<double>&                    losses,
+          const bool                              debug) {
 
   // Are we dealing with a nontrivial prox?
   bool nontrivial_prox = beta_scaled > 0.0;
@@ -337,9 +341,11 @@ void Saga(const T&                         x,
   // we update the full range of weights
   std::vector<std::size_t> full_range_indices(n_features);
   std::iota(full_range_indices.begin(), full_range_indices.end(), 0);
-  std::vector<std::size_t> nonzero_indices;
+
+  std::vector<std::size_t> *nonzero_ptr;
+
   if (!is_sparse)
-    nonzero_indices = full_range_indices;
+    nonzero_ptr = &full_range_indices;
 
   // Vector to store prediction
   std::vector<double> prediction(n_classes);
@@ -363,15 +369,17 @@ void Saga(const T&                         x,
       if (!seen[sample_ind]) {
         n_seen++;
         seen[sample_ind] = true;
+        if (is_sparse)
+          nonzero_indices[sample_ind] = Nonzeros(x.col(sample_ind));
       }
 
       if (is_sparse)
-        nonzero_indices = Nonzeros(x.col(sample_ind));
+        nonzero_ptr = &nonzero_indices[sample_ind];
 
       if (it_inner > 0)
         LaggedUpdate(weights,
                      wscale,
-                     nonzero_indices,
+                     nonzero_ptr,
                      n_samples,
                      n_classes,
                      cumulative_sums,
@@ -385,7 +393,7 @@ void Saga(const T&                         x,
 
       PredictSample(prediction,
                     x.col(sample_ind),
-                    nonzero_indices,
+                    nonzero_ptr,
                     weights,
                     wscale,
                     intercept,
@@ -401,7 +409,7 @@ void Saga(const T&                         x,
       wscale *= wscale_update;
 
       UpdateWeights(x.col(sample_ind),
-                    nonzero_indices,
+                    nonzero_ptr,
                     weights,
                     gradient,
                     gradient_memory,
@@ -444,7 +452,7 @@ void Saga(const T&                         x,
       if (wscale < sgdnet::SMALL) {
         LaggedUpdate(weights,
                      wscale,
-                     full_range_indices,
+                     &full_range_indices,
                      n_samples,
                      n_classes,
                      cumulative_sums,
@@ -463,7 +471,7 @@ void Saga(const T&                         x,
     // scale the weights for every epoch and reset the JIT update system
     LaggedUpdate(weights,
                  wscale,
-                 full_range_indices,
+                 &full_range_indices,
                  n_samples,
                  n_classes,
                  cumulative_sums,

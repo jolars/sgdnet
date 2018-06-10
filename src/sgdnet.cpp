@@ -378,6 +378,9 @@ Rcpp::List SetupSgdnet(T&                   x,
   double null_deviance_scaled = family->NullDeviance(y);
   std::vector<double> deviance_ratio;
 
+  // Store the nonzero indices of each sample
+  std::vector< std::vector<std::size_t> > nonzero_indices_storage(n_samples);
+
   // Fit the path of penalty values
   for (std::size_t penalty_ind = 0; penalty_ind < n_penalties; ++penalty_ind) {
     Saga(x,
@@ -392,6 +395,7 @@ Rcpp::List SetupSgdnet(T&                   x,
          step_size[penalty_ind],
          alpha[penalty_ind],
          beta[penalty_ind],
+         nonzero_indices_storage,
          sum_gradient,
          gradient_memory,
          seen,
