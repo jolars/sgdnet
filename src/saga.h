@@ -166,42 +166,8 @@ void LaggedUpdate(std::vector<double>&            weights,
 
   if (reset) {
     cumulative_sums[it_inner - 1] = 0.0;
-    cumulative_sums_prox[it_inner - 1] = 0.0;
-  }
-}
-
-//' Update the intercept
-//'
-//' @param gradient gradient of current sample
-//' @param gradient_memory memory of previously computed gradients
-//' @param intercept_sum_gradient sum of intercept gradients
-//' @param intercept_correction the correction to be applied to the gradient
-//' @param intercept the intercept
-//' @param intercept_decay modifier to shrink the learning rate for the
-//'   intercept
-//'
-//' @return `intercept` and `intercept_sum_gradient` are updated
-//' @noRd
-void UpdateIntercept(const std::vector<double>& gradient,
-                     const std::vector<double>& gradient_memory,
-                     std::vector<double>&       intercept_sum_gradient,
-                     std::vector<double>&       intercept,
-                     const double               intercept_decay,
-                     const double               step_size,
-                     const std::size_t          n_seen,
-                     const std::size_t          n_classes,
-                     const std::size_t          sample_ind) {
-
-  for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
-    double gradient_correction =
-      gradient[class_ind] - gradient_memory[sample_ind*n_classes + class_ind];
-    intercept_sum_gradient[class_ind] += gradient_correction;
-    gradient_correction *= step_size*(1.0 - 1.0/n_seen);
-    intercept[class_ind] -=
-      step_size*intercept_sum_gradient[class_ind]/n_seen*intercept_decay
-      + gradient_correction;
-    if (!std::isfinite(intercept[class_ind]))
-      Rcpp::stop("non-finite intercepts.");
+    if (nontrivial_prox)
+      cumulative_sums_prox[it_inner - 1] = 0.0;
   }
 }
 
@@ -230,24 +196,37 @@ template <typename T>
 void UpdateWeights(const T&                        x,
                    std::vector<std::size_t>       *nonzero_ptr,
                    std::vector<double>&            weights,
+                   std::vector<double>&            intercept,
                    const std::vector<double>&      gradient,
                    const std::vector<double>&      gradient_memory,
                    std::vector<double>&            sum_gradient,
+                   std::vector<double>&            intercept_sum_gradient,
                    const double                    step_size,
                    const double                    wscale,
+                   const double                    intercept_decay,
                    const std::size_t               n_seen,
                    const std::size_t               n_classes,
-                   const std::size_t               sample_ind) {
+                   const std::size_t               sample_ind,
+                   const bool                      fit_intercept) {
   auto x_itr = x.begin();
 
   for (auto&& feature_ind : *nonzero_ptr) {
     for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
+      std::size_t s_idx = sample_ind*n_classes + class_ind;
+      std::size_t f_idx = feature_ind*n_classes + class_ind;
+
       double gradient_correction =
-        (*x_itr)*(gradient[class_ind]
-                    - gradient_memory[sample_ind*n_classes + class_ind]);
-      weights[feature_ind*n_classes + class_ind] -=
-        gradient_correction*step_size*(1.0 - 1.0/n_seen)/wscale;
-      sum_gradient[feature_ind*n_classes + class_ind] += gradient_correction;
+        (*x_itr)*(gradient[class_ind] - gradient_memory[s_idx]);
+      weights[f_idx] -= gradient_correction*step_size*(1.0 - 1.0/n_seen)/wscale;
+      sum_gradient[f_idx] += gradient_correction;
+
+      if (fit_intercept) {
+        gradient_correction = gradient[class_ind] - gradient_memory[s_idx];
+        intercept_sum_gradient[class_ind] += gradient_correction;
+        intercept[class_ind] -=
+          step_size*intercept_sum_gradient[class_ind]/n_seen*intercept_decay
+          + gradient_correction*step_size*(1.0 - 1.0/n_seen);
+      }
     }
     ++x_itr;
   }
@@ -411,25 +390,18 @@ void Saga(const T&                                x,
       UpdateWeights(x.col(sample_ind),
                     nonzero_ptr,
                     weights,
+                    intercept,
                     gradient,
                     gradient_memory,
                     sum_gradient,
+                    intercept_sum_gradient,
                     step_size,
                     wscale,
+                    intercept_decay,
                     n_seen,
                     n_classes,
-                    sample_ind);
-
-      if (fit_intercept)
-        UpdateIntercept(gradient,
-                        gradient_memory,
-                        intercept_sum_gradient,
-                        intercept,
-                        intercept_decay,
-                        step_size,
-                        n_seen,
-                        n_classes,
-                        sample_ind);
+                    sample_ind,
+                    fit_intercept);
 
       // Update the gradient memory for this sample
       for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind)
