@@ -106,14 +106,13 @@ void LaggedUpdate(std::vector<double>&            weights,
         cum_sum_prox -= cumulative_sums_prox[last_update_ind];
 
       for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
+        std::size_t f_idx = feature_ind*n_classes + class_ind;
 
-        if (std::abs(sum_gradient[feature_ind*n_classes + class_ind]*cum_sum)
-              < cum_sum_prox) {
+        if (std::abs(sum_gradient[f_idx]*cum_sum) < cum_sum_prox) {
 
-          weights[feature_ind*n_classes + class_ind] -=
-            cum_sum*sum_gradient[feature_ind*n_classes + class_ind];
-          weights[feature_ind*n_classes + class_ind] =
-            prox->Evaluate(weights[feature_ind*n_classes + class_ind],
+          //weights[f_idx] -= cum_sum*sum_gradient[f_idx];
+          weights[f_idx] =
+            prox->Evaluate(weights[f_idx] - cum_sum*sum_gradient[f_idx],
                            cum_sum_prox);
 
         } else {
@@ -139,25 +138,23 @@ void LaggedUpdate(std::vector<double>&            weights,
               prox_step = cumulative_sums_prox[lagged_ind];
             }
 
-            weights[feature_ind*n_classes + class_ind] -=
-              sum_gradient[feature_ind*n_classes + class_ind]*grad_step;
-            weights[feature_ind*n_classes + class_ind] =
-              prox->Evaluate(weights[feature_ind*n_classes + class_ind],
+            weights[f_idx] =
+              prox->Evaluate(weights[f_idx] - sum_gradient[f_idx]*grad_step,
                              prox_step);
           }
         }
         if (reset) {
-          weights[feature_ind*n_classes + class_ind] *= wscale;
-          if (!std::isfinite(weights[feature_ind*n_classes + class_ind]))
+          weights[f_idx] *= wscale;
+          if (!std::isfinite(weights[f_idx]))
             Rcpp::stop("non-finite weights.");
         }
       } // for class_ind (nontrivial prox)
     } else { // Trivial prox
       for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
-        weights[feature_ind*n_classes + class_ind] -=
-          cum_sum*sum_gradient[feature_ind*n_classes + class_ind];
+        std::size_t f_idx = feature_ind*n_classes + class_ind;
+        weights[f_idx] -= cum_sum*sum_gradient[f_idx];
         if (reset)
-          weights[feature_ind*n_classes + class_ind] *= wscale;
+          weights[f_idx] *= wscale;
       }
     }
 
