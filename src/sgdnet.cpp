@@ -47,7 +47,7 @@
 // OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 // DAMAGE.
 
-// [[Rcpp::depends(RcppArmadillo)]]
+//#define ARMA_NO_DEBUG // for final release
 
 #include <RcppArmadillo.h>
 #include "utils.h"
