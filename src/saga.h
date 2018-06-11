@@ -208,7 +208,7 @@ void UpdateWeights(const T&                        x,
                    const std::size_t               n_classes,
                    const std::size_t               sample_ind,
                    const bool                      fit_intercept) {
-  auto x_itr = x.begin();
+  auto x_itr = x.begin_col(sample_ind);
 
   for (auto&& feature_ind : *nonzero_ptr) {
     for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
@@ -371,12 +371,13 @@ void Saga(const T&                                x,
                      prox);
 
       PredictSample(prediction,
-                    x.col(sample_ind),
+                    x,
                     nonzero_ptr,
                     weights,
                     wscale,
                     intercept,
-                    n_classes);
+                    n_classes,
+                    sample_ind);
 
       for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
         gradient[class_ind] =
@@ -387,7 +388,7 @@ void Saga(const T&                                x,
       // L2-regularization by rescaling the weights
       wscale *= wscale_update;
 
-      UpdateWeights(x.col(sample_ind),
+      UpdateWeights(x,
                     nonzero_ptr,
                     weights,
                     intercept,

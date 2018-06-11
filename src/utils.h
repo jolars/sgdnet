@@ -168,11 +168,12 @@ void PredictSample(std::vector<double>&            prediction,
                    const std::vector<double>&      weights,
                    const double                    wscale,
                    const std::vector<double>&      intercept,
-                   const std::size_t               n_classes) {
+                   const std::size_t               n_classes,
+                   const std::size_t               sample_ind) {
 
   for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
     double inner_product = 0.0;
-    auto x_itr = x.begin();
+    auto x_itr = x.begin_col(sample_ind);
     for (auto&& feature_ind : *nonzero_ptr) {
       inner_product += weights[feature_ind*n_classes + class_ind] * (*x_itr);
       ++x_itr;
