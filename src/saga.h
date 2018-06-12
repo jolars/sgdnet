@@ -77,33 +77,33 @@
 //'
 //' @noRd
 void LaggedUpdate(std::vector<double>&            weights,
-                  double                          wscale,
+                  const double                    wscale,
                   std::vector<std::size_t>       *nonzero_ptr,
                   const std::size_t               n_samples,
                   const std::size_t               n_classes,
                   std::vector<double>&            cumulative_sums,
-                  std::vector<double>&            cumulative_sums_prox,
-                  std::vector<std::size_t>&       feature_history,
+                  std::vector<int>&               feature_history,
                   const bool                      nontrivial_prox,
                   const std::vector<double>&      sum_gradient,
                   const bool                      reset,
-                  const std::size_t               it_inner,
+                  const int                       it_inner,
                   std::unique_ptr<sgdnet::Prox>&  prox) {
+  int prox_ind = static_cast<int>(nontrivial_prox) + 1;
 
   for (auto&& feature_ind : *nonzero_ptr) {
 
-    double cum_sum = cumulative_sums[it_inner - 1];
+    double cum_sum = cumulative_sums[it_inner*prox_ind - prox_ind];
 
     int last_update_ind = feature_history[feature_ind] - 1;
 
     if (feature_history[feature_ind] != 0)
-      cum_sum -= cumulative_sums[last_update_ind];
+      cum_sum -= cumulative_sums[last_update_ind*prox_ind];
 
     if (nontrivial_prox) {
-      double cum_sum_prox = cumulative_sums_prox[it_inner - 1];
+      double cum_sum_prox = cumulative_sums[it_inner*prox_ind - prox_ind + 1];
 
       if (feature_history[feature_ind] != 0)
-        cum_sum_prox -= cumulative_sums_prox[last_update_ind];
+        cum_sum_prox -= cumulative_sums[last_update_ind*prox_ind + 1];
 
       for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
         std::size_t f_idx = feature_ind*n_classes + class_ind;
@@ -120,7 +120,7 @@ void LaggedUpdate(std::vector<double>&            weights,
           if (last_update_ind == -1)
             last_update_ind = it_inner - 1;
 
-          for (std::size_t lagged_ind = it_inner - 1;
+          for (int lagged_ind = it_inner - 1;
                lagged_ind > last_update_ind - 1;
                --lagged_ind) {
 
@@ -129,13 +129,13 @@ void LaggedUpdate(std::vector<double>&            weights,
             double prox_step;
 
             if (lagged_ind > 0) {
-              grad_step = cumulative_sums[lagged_ind]
-                          - cumulative_sums[lagged_ind - 1];
-              prox_step = cumulative_sums_prox[lagged_ind]
-                          - cumulative_sums_prox[lagged_ind - 1];
+              grad_step = cumulative_sums[lagged_ind*prox_ind]
+                          - cumulative_sums[lagged_ind*prox_ind - prox_ind];
+              prox_step = cumulative_sums[lagged_ind*prox_ind + 1]
+                          - cumulative_sums[lagged_ind*prox_ind - prox_ind + 1];
             } else {
-              grad_step = cumulative_sums[lagged_ind];
-              prox_step = cumulative_sums_prox[lagged_ind];
+              grad_step = cumulative_sums[lagged_ind*prox_ind];
+              prox_step = cumulative_sums[lagged_ind*prox_ind + 1];
             }
 
             weights[f_idx] =
@@ -143,28 +143,30 @@ void LaggedUpdate(std::vector<double>&            weights,
                              prox_step);
           }
         }
-        if (reset) {
-          weights[f_idx] *= wscale;
-          if (!std::isfinite(weights[f_idx]))
-            Rcpp::stop("non-finite weights.");
-        }
       } // for class_ind (nontrivial prox)
     } else { // Trivial prox
       for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
         std::size_t f_idx = feature_ind*n_classes + class_ind;
         weights[f_idx] -= cum_sum*sum_gradient[f_idx];
-        if (reset)
-          weights[f_idx] *= wscale;
       }
     }
 
-    feature_history[feature_ind] = reset ? it_inner % n_samples : it_inner;
+    if (!reset)
+      feature_history[feature_ind] = reset ? it_inner % n_samples : it_inner;
   } // for each feature
 
   if (reset) {
-    cumulative_sums[it_inner - 1] = 0.0;
+    cumulative_sums[it_inner*prox_ind - prox_ind] = 0.0;
     if (nontrivial_prox)
-      cumulative_sums_prox[it_inner - 1] = 0.0;
+      cumulative_sums[it_inner*prox_ind - prox_ind + 1] = 0.0;
+
+    std::for_each(weights.begin(),
+                  weights.end(),
+                  [&](double& weight) { weight *= wscale; });
+
+    std::fill(feature_history.begin(),
+              feature_history.end(),
+              it_inner % n_samples);
   }
 }
 
@@ -296,9 +298,10 @@ void Saga(const T&                                x,
 
   // Are we dealing with a nontrivial prox?
   bool nontrivial_prox = beta_scaled > 0.0;
+  int prox_ind = static_cast<int>(nontrivial_prox) + 1;
 
   // Keep track of when each feature was last updated
-  std::vector<std::size_t> feature_history(n_features, 0);
+  std::vector<int> feature_history(n_features);
 
   // Store previous weights for computing stopping criteria
   std::vector<double> previous_weights(weights);
@@ -307,8 +310,7 @@ void Saga(const T&                                x,
   double wscale = 1.0;
 
   // Store a matrix of cumulative sums, prox sums in second column
-  std::vector<double> cumulative_sums(n_samples);
-  std::vector<double> cumulative_sums_prox(n_samples);
+  std::vector<double> cumulative_sums(n_samples*prox_ind);
 
   // Precomputated stepsize
   double wscale_update = 1.0 - step_size*alpha_scaled;
@@ -359,7 +361,6 @@ void Saga(const T&                                x,
                      n_samples,
                      n_classes,
                      cumulative_sums,
-                     cumulative_sums_prox,
                      feature_history,
                      nontrivial_prox,
                      sum_gradient,
@@ -409,13 +410,15 @@ void Saga(const T&                                x,
       if (it_inner == 0) {
         cumulative_sums[0] = step_size/(wscale*n_seen);
         if (nontrivial_prox)
-          cumulative_sums_prox[0] = step_size*beta_scaled/wscale;
+          cumulative_sums[1] = step_size*beta_scaled/wscale;
       } else {
-        cumulative_sums[it_inner] =
-          cumulative_sums[it_inner - 1] + step_size/(wscale*n_seen);
+        cumulative_sums[it_inner*prox_ind] =
+          cumulative_sums[it_inner*prox_ind - prox_ind]
+          + step_size/(wscale*n_seen);
         if (nontrivial_prox)
-          cumulative_sums_prox[it_inner] =
-            cumulative_sums_prox[it_inner - 1] + step_size*beta_scaled/wscale;
+          cumulative_sums[it_inner*prox_ind + 1] =
+            cumulative_sums[it_inner*prox_ind - prox_ind + 1]
+            + step_size*beta_scaled/wscale;
       }
 
       // if wscale is too small, reset the scale
@@ -426,7 +429,6 @@ void Saga(const T&                                x,
                      n_samples,
                      n_classes,
                      cumulative_sums,
-                     cumulative_sums_prox,
                      feature_history,
                      nontrivial_prox,
                      sum_gradient,
@@ -445,7 +447,6 @@ void Saga(const T&                                x,
                  n_samples,
                  n_classes,
                  cumulative_sums,
-                 cumulative_sums_prox,
                  feature_history,
                  nontrivial_prox,
                  sum_gradient,
