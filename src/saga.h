@@ -471,21 +471,22 @@ void Saga(const T&                                x,
                 losses);
 
     // check termination conditions
-    double max_weight = 0.0;
     double max_change = 0.0;
+    double max_weight = 0.0;
 
-    auto previous_weight_itr = previous_weights.begin();
+    for (std::size_t i = 0; i < weights.size(); ++i) {
+      double abs_weight = std::abs(weights[i]);
+      if (abs_weight > max_weight)
+        max_weight = abs_weight;
 
-    for (const auto& weight : weights) {
-      max_weight = std::max(max_weight, std::abs(weight));
-      max_change = std::max(max_change,
-                            std::abs(weight - (*previous_weight_itr)));
-      *previous_weight_itr = weight;
-      ++previous_weight_itr;
+      double change = std::abs(weights[i] - previous_weights[i]);
+      if (change > max_change)
+        max_change = change;
+      previous_weights[i] = weights[i];
     }
 
     if ((max_weight != 0.0 && max_change/max_weight <= tol)
-          || (max_weight == 0.0 && max_change == 0.0)) {
+        || (max_weight == 0.0 && max_change == 0.0)) {
       break;
     }
   } // outer loop
