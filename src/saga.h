@@ -214,17 +214,18 @@ void UpdateWeights(const T&                        x,
       std::size_t s_idx = sample_ind*n_classes + class_ind;
       std::size_t f_idx = feature_ind*n_classes + class_ind;
 
-      double gradient_correction =
-        (*x_itr)*(gradient[class_ind] - gradient_memory[s_idx]);
-      weights[f_idx] -= gradient_correction*step_size*(1.0 - 1.0/n_seen)/wscale;
+      double gradient_diff = gradient[class_ind] - gradient_memory[s_idx];
+      double step = step_size*(1.0 - 1.0/n_seen);
+      double gradient_correction = (*x_itr)*gradient_diff;
+
+      weights[f_idx] -= gradient_correction*step/wscale;
       sum_gradient[f_idx] += gradient_correction;
 
       if (fit_intercept) {
-        gradient_correction = gradient[class_ind] - gradient_memory[s_idx];
-        intercept_sum_gradient[class_ind] += gradient_correction;
+        intercept_sum_gradient[class_ind] += gradient_diff;
         intercept[class_ind] -=
           step_size*intercept_sum_gradient[class_ind]/n_seen*intercept_decay
-          + gradient_correction*step_size*(1.0 - 1.0/n_seen);
+          + gradient_diff*step;
       }
     }
     ++x_itr;
