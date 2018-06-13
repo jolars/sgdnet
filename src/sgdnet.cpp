@@ -56,7 +56,6 @@
 #include "saga.h"
 #include "math.h"
 #include <memory>
-//#include <gperftools/profiler.h>
 
 //' Deviance
 //'
@@ -483,8 +482,6 @@ Rcpp::List SgdnetCpp(SEXP                 x_in,
                      std::vector<double>& y,
                      const Rcpp::List&    control) {
 
-  // ProfilerStart("/tmp/sgdnet.prof");
-
   bool is_sparse = Rcpp::as<bool>(control["is_sparse"]);
 
   if (is_sparse) {
@@ -494,6 +491,5 @@ Rcpp::List SgdnetCpp(SEXP                 x_in,
     arma::mat x = Rcpp::as<arma::mat>(x_in);
     return SetupSgdnet(x, y, is_sparse, control);
   }
-  // ProfilerStop();
 }
 
