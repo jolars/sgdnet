@@ -207,13 +207,18 @@ void RegularizationPath(std::vector<double>&       lambda,
     lambda = LogSpace(lambda_max, lambda_max*lambda_min_ratio, n_lambda);
   }
 
+  std::size_t n_penalties = lambda.size();
+
+  alpha.reserve(n_penalties);
+  beta.reserve(n_penalties);
+
   // The algorithm uses a different penalty construction than
   // glmnet, so convert lambda values to match alpha and beta from scikit-learn.
   for (auto& lambda_val : lambda) {
     // Scaled L2 penalty
-    alpha.push_back(alpha_ratio*lambda_val);
+    alpha.emplace_back(alpha_ratio*lambda_val);
     // Scaled L1 penalty
-    beta.push_back(beta_ratio*lambda_val);
+    beta.emplace_back(beta_ratio*lambda_val);
     lambda_val *= y_scale[0]/scaling;
   }
 }
