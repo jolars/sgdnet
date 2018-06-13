@@ -27,7 +27,7 @@
 //'
 //' @return The maximum rowise sum of x.
 template <typename T>
-double ColNormsMax(const T& x) {
+inline double ColNormsMax(const T& x) {
   return arma::sum(arma::square(x), 0).max();
 }
 
