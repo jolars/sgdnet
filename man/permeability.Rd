@@ -3,7 +3,7 @@
 \docType{data}
 \name{permeability}
 \alias{permeability}
-\title{Permeability data}
+\title{Permeability}
 \format{A list with two items representing 165 observations from
 1107 variables.
 \describe{

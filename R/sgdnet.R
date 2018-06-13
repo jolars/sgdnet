@@ -16,6 +16,35 @@
 
 #' Fit a Generalized Linear Model with Elastic Net Regularization
 #'
+#' @section Model families:
+#' Two model families are currently supported: gaussian univariate
+#' regression and binomial logistic regression, the choice of which is made
+#' using the `family` argument.
+#'
+#' The *gaussian* family solves the following objective:
+#'
+#' \deqn{
+#'   \frac{1}{2n} \sum_{i=1}^n (y_i - \beta_0 - x_i^\mathsf{T} \beta)^2
+#'   + \lambda \left( \frac{1 - \alpha}{2} ||\beta||_2^2
+#'                    + \alpha||\beta||_1 \right).
+#' }{
+#'   1/(2n) \sum (y - \beta_0 - x^T \beta)^2
+#'   + \lambda [(1 - \alpha)/2 ||\beta||_2^2 + \alpha||\beta||_1].
+#' }
+#'
+#' The *binomial* family solves the following objective:
+#'
+#' \deqn{
+#'   -\frac{1}{n} \sum_{i=1}^n
+#'     \bigg[y_i (\beta_0 + x_i^\mathsf{T} \beta) - \log\Big(1 + e^{\beta_0 + x_i^\mathsf{T} \beta}\Big)\bigg]
+#'   + \lambda \left( \frac{1 - \alpha}{2} ||\beta||_2^2
+#'                    + \alpha||\beta||_1 \right),
+#' }{
+#'   -1/n \sum [y_i(\beta_0 + x^T \beta) - log(1 + exp(\beta_0 + x^T \beta)]
+#'   + \lambda [(1 - \alpha)/2 ||\beta||_2^2 + \alpha||\beta||_1],
+#' }
+#' where \eqn{y_i \in \{0, 1\}}{y ~ {0, 1}}.
+#'
 #' @section Regularization Path:
 #' The default regularization path is a sequence of `nlambda`
 #' log-spaced elements
@@ -31,7 +60,8 @@
 #'
 #' @param x input matrix
 #' @param y response variable
-#' @param family reponse type
+#' @param family reponse type, one of `'gaussian'` and `'binomial'`. See
+#'   **Supported families** for details.
 #' @param alpha elastic net mixing parameter
 #' @param nlambda number of penalties in the regualrization path
 #' @param lambda.min.ratio the ratio between `lambda_max` (the smallest
@@ -45,7 +75,8 @@
 #' @param thresh tolerance level for termination of the algorithm. The
 #'   algorithm terminates when
 #'   \deqn{
-#'     \frac{|\beta^{(t)} - \beta^{(t-1)}|{\infty}}{|\beta^{(t)}|{\infty}} < \mathrm{thresh}
+#'     \frac{|\beta^{(t)}
+#'     - \beta^{(t-1)}|{\infty}}{|\beta^{(t)}|{\infty}} < \mathrm{thresh}
 #'   }{
 #'     max(change in weights)/max(weights) < thresh.
 #'   }
@@ -67,7 +98,7 @@ sgdnet <- function(x, ...) UseMethod("sgdnet")
 #' @rdname sgdnet
 sgdnet.default <- function(x,
                            y,
-                           family = c("gaussian"),
+                           family = c("gaussian", "binomial"),
                            alpha = 1,
                            nlambda = 100,
                            lambda.min.ratio =
@@ -96,13 +127,12 @@ sgdnet.default <- function(x,
   # make new.
   response_names <- colnames(y)
   variable_names <- colnames(x)
+  class_names    <- NULL
 
   if (is.null(variable_names))
     variable_names <- paste0("V", seq_len(NCOL(x)))
   if (is.null(variable_names))
     response_names <- paste0("y", seq_len(NCOL(y)))
-
-  y <- as.matrix(y)
 
   # Collect sgdnet-specific options for debugging and more
   debug <- getOption("sgdnet.debug")
@@ -127,9 +157,26 @@ sgdnet.default <- function(x,
   switch(family,
          gaussian = {
            stopifnot(is.numeric(y),
-                     identical(NCOL(y), 1L))
+                     NCOL(y) == 1)
+           },
+         binomial = {
+           stopifnot(length(unique(y)) == 2)
+           y_table <- table(y)
+           min_class <- min(y_table)
+
+           if (min_class <= 1)
+             stop("one class only has ", min_class, " observations.")
+
+           class_names <- names(y_table)
+
+           # Transform response to {0, 1}, which is used internally
+           y <- as.double(y)
+           y[y == min(y)] <- 0
+           y[y == max(y)] <- 1
            }
          )
+
+  y <- as.matrix(y)
 
   control <- list(family = family,
                   intercept = intercept,
@@ -164,7 +211,7 @@ sgdnet.default <- function(x,
     }
   )
 
-  if (family %in% c("gaussian", "binomial", "poisson", "cox")) {
+  if (family %in% c("gaussian", "binomial")) {
     # NOTE(jolars): I would rather not to this, i.e. have different outputs
     # depending on family, but this makes it equivalent to glmnet output
     beta <- beta[[1L]]
@@ -182,9 +229,10 @@ sgdnet.default <- function(x,
                         nulldev = res$nulldev,
                         npasses = res$npasses,
                         alpha = alpha,
+                        classnames = class_names,
                         call = ocall,
                         nobs = n_samples),
-                   class = c("sgdnet", family))
+                   class = c(paste0("sgdnet_", family), "sgdnet"))
   if (debug)
     attr(out, "diagnostics") <- list(loss = res$losses)
   out

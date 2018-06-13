@@ -181,7 +181,8 @@ predict.sgdnet <- function(object,
                            type = c("link",
                                     "response",
                                     "coefficients",
-                                    "nonzero"),
+                                    "nonzero",
+                                    "class"),
                            exact = FALSE,
                            ...) {
 
@@ -189,8 +190,10 @@ predict.sgdnet <- function(object,
 
   type <- match.arg(type)
 
-  if (missing(newx) && type %in% c("link"))
-    stop(paste("new data must be provided for type =", type))
+  family <- extract_family(object)
+
+  if (missing(newx) && type %in% c("link", "response", "class"))
+    stop("new data must be provided for type = ", type)
 
   if (isTRUE(exact) && !is.null(s)) {
     lambda <- object$lambda
@@ -222,28 +225,34 @@ predict.sgdnet <- function(object,
     dimnames(beta) = list(vnames, paste(seq(along = s)))
   }
 
+  if (type %in% c("link", "response", "class")) {
+    if (inherits(newx, "sparseMatrix"))
+      newx <- methods::as(newx, "dgCMatrix")
+    else
+      newx <- as.matrix(newx)
+
+    linear_predictors <- as.matrix(cbind(1, newx) %*% beta)
+  }
+
   switch(
     type,
-    link = {
-      if (inherits(newx, "sparseMatrix"))
-        newx <- methods::as(newx, "dgCMatrix")
-      else
-        newx <- as.matrix(newx)
-
-      if (inherits(object, "gaussian"))
-        as.matrix(cbind(1, newx) %*% beta)
-    },
+    link = linear_predictors,
     response = {
-      if (inherits(newx, "sparseMatrix"))
-        newx <- methods::as(newx, "dgCMatrix")
-      else
-        newx <- as.matrix(newx)
-
-      if (inherits(object, "gaussian"))
-        as.matrix(cbind(1, newx) %*% beta)
+      if (family == "gaussian")
+        linear_predictors
+      else if (family == "binomial")
+        1 / (1 + exp(-linear_predictors))
     },
     coefficients = beta,
-    nonzero = nonzero_coefs(beta[-1, , drop = FALSE], bystep = TRUE)
+    nonzero = nonzero_coefs(beta[-1, , drop = FALSE], bystep = TRUE),
+    class = {
+      cnum <- ifelse(linear_predictors > 0, 2, 1)
+      clet <- object$classnames[cnum]
+
+      if (is.matrix(cnum))
+        clet <- array(clet, dim(cnum), dimnames(cnum))
+      clet
+    }
   )
 }
 

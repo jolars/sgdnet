@@ -93,7 +93,7 @@ void Rescale(arma::cube&         weights,
 
     for (arma::uword i = 0; i < weights.n_slices; ++i) {
       intercept.row(i) =
-        intercept.row(i)*y_scale + y_center - x_center*weights.slice(i);
+        intercept.row(i)%y_scale + y_center - x_center*weights.slice(i);
     }
   }
 }
@@ -103,15 +103,15 @@ void Rescale(arma::cube&         weights,
 //' This function computes the regularization path as in glmnet so that
 //' the first solution is the null solution (if elasticnet_mix != 0).
 template <typename T>
-void RegularizationPath(arma::vec&          lambda,
-                        const arma::uword   n_lambda,
-                        const double        lambda_min_ratio,
-                        const double        elasticnet_mix,
-                        const T&            x,
-                        const arma::mat&    y,
-                        const arma::uword   n_samples,
-                        arma::vec&          alpha,
-                        arma::vec&          beta) {
+void RegularizationPath(arma::vec&        lambda,
+                        const arma::uword n_lambda,
+                        const double      lambda_min_ratio,
+                        const double      elasticnet_mix,
+                        const T&          x,
+                        const arma::mat&  y,
+                        const arma::uword n_samples,
+                        arma::vec&        alpha,
+                        arma::vec&        beta) {
 
   if (lambda.is_empty()) {
 
@@ -208,7 +208,7 @@ Rcpp::List SetupSgdnet(T&                x,
   std::unique_ptr<sgdnet::Family> family =
     family_factory.NewFamily(family_choice);
 
-  arma::uword n_classes = family->NClasses(y);
+  arma::uword n_classes = family->GetNClasses();
 
   // Preprocess response
   arma::rowvec y_center(n_targets);
@@ -217,6 +217,9 @@ Rcpp::List SetupSgdnet(T&                x,
   // Compute the lambda sequence
   arma::vec alpha;
   arma::vec beta;
+
+  // "Fit" the intercept-only model and compute its deviance = the null deviance
+  double null_deviance = family->NullDeviance(y);
 
   family->PreprocessResponse(y, y_center, y_scale, fit_intercept);
 
@@ -280,20 +283,20 @@ Rcpp::List SetupSgdnet(T&                x,
   arma::uword return_code;
 
   // Setup a field of losses to return upon exit
-  arma::field<arma::vec> losses_archive(n_penalties);
+  std::vector< std::vector<double> > losses_archive;
+  losses_archive.reserve(n_penalties);
   std::vector<double> losses;
-  losses.reserve(n_penalties);
-
-  // Setup a vector to compute deviance at each iteration
-  std::vector<double> deviance_ratio;
-  deviance_ratio.reserve(n_penalties);
-  arma::mat prediction(n_samples, n_classes);
-
-  double null_deviance =
-    arma::accu(arma::sum(arma::square(y)) % arma::square(y_scale));
 
   // Keep track of number of iteratios per penalty
   arma::uword n_iter = 0;
+
+  // Null deviance on scaled y for computing deviance ratio
+  double null_deviance_scaled = family->NullDeviance(y);
+  std::vector<double> deviance_ratio;
+  deviance_ratio.reserve(n_penalties);
+
+  // Column vector for intercept
+  arma::vec intercept_feature(n_samples, arma::fill::ones);
 
   // Fit the path of penalty values
   for (arma::uword penalty_ind = 0; penalty_ind < n_penalties; ++penalty_ind) {
@@ -325,17 +328,19 @@ Rcpp::List SetupSgdnet(T&                x,
          debug);
 
     // Compute deviance
-    prediction = x.t() * weights;
-    deviance_ratio.push_back(family->Deviance(prediction, y));
+    double deviance =
+      2.0*family->Loss(x.t()*weights
+                       + arma::repmat(intercept, n_samples, n_classes), y);
 
     // Store intercepts and weights for the current solution
     weights_archive.slice(penalty_ind) = weights;
     intercept_archive.row(penalty_ind) = intercept;
     return_codes.push_back(return_code);
+    deviance_ratio.push_back(1.0 - deviance/null_deviance_scaled);
 
     if (debug) {
       // Store losses
-      losses_archive(penalty_ind) = arma::conv_to<arma::vec>::from(losses);
+      losses_archive.push_back(losses);
       // Reset loss
       losses.clear();
     }
