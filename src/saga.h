@@ -87,12 +87,13 @@ void LaggedUpdate(std::vector<double>&            weights,
                   const std::vector<double>&      sum_gradient,
                   const bool                      reset,
                   const int                       it_inner,
-                  std::unique_ptr<sgdnet::Prox>&  prox) {
-  int prox_ind = static_cast<int>(nontrivial_prox) + 1;
+                  std::unique_ptr<sgdnet::Prox>&  prox,
+                  const int                       prox_ind) {
 
   for (auto&& feature_ind : *nonzero_ptr) {
 
     double cum_sum = cumulative_sums[it_inner*prox_ind - prox_ind];
+
 
     int last_update_ind = feature_history[feature_ind] - 1;
 
@@ -108,11 +109,12 @@ void LaggedUpdate(std::vector<double>&            weights,
       for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
         std::size_t f_idx = feature_ind*n_classes + class_ind;
 
-        if (std::abs(sum_gradient[f_idx]*cum_sum) < cum_sum_prox) {
+        double sum_gradient_idx = sum_gradient[f_idx];
 
-          //weights[f_idx] -= cum_sum*sum_gradient[f_idx];
+        if (std::abs(sum_gradient_idx*cum_sum) < cum_sum_prox) {
+
           weights[f_idx] =
-            prox->Evaluate(weights[f_idx] - cum_sum*sum_gradient[f_idx],
+            prox->Evaluate(weights[f_idx] - cum_sum*sum_gradient_idx,
                            cum_sum_prox);
 
         } else {
@@ -125,21 +127,18 @@ void LaggedUpdate(std::vector<double>&            weights,
                --lagged_ind) {
 
             // Grad and prox steps
-            double grad_step;
-            double prox_step;
+            int lagged_idx = lagged_ind*prox_ind;
+
+            double grad_step = cumulative_sums[lagged_idx];
+            double prox_step = cumulative_sums[lagged_idx + 1];
 
             if (lagged_ind > 0) {
-              grad_step = cumulative_sums[lagged_ind*prox_ind]
-                          - cumulative_sums[lagged_ind*prox_ind - prox_ind];
-              prox_step = cumulative_sums[lagged_ind*prox_ind + 1]
-                          - cumulative_sums[lagged_ind*prox_ind - prox_ind + 1];
-            } else {
-              grad_step = cumulative_sums[lagged_ind*prox_ind];
-              prox_step = cumulative_sums[lagged_ind*prox_ind + 1];
+              grad_step -= cumulative_sums[lagged_idx - prox_ind];
+              prox_step -= cumulative_sums[lagged_idx - prox_ind + 1];
             }
 
             weights[f_idx] =
-              prox->Evaluate(weights[f_idx] - sum_gradient[f_idx]*grad_step,
+              prox->Evaluate(weights[f_idx] - grad_step*sum_gradient_idx,
                              prox_step);
           }
         }
@@ -152,7 +151,7 @@ void LaggedUpdate(std::vector<double>&            weights,
     }
 
     if (!reset)
-      feature_history[feature_ind] = reset ? it_inner % n_samples : it_inner;
+      feature_history[feature_ind] = it_inner;
   } // for each feature
 
   if (reset) {
@@ -298,8 +297,8 @@ void Saga(const T&                                x,
           const bool                              debug) {
 
   // Are we dealing with a nontrivial prox?
-  bool nontrivial_prox = beta_scaled > 0.0;
-  int prox_ind = static_cast<int>(nontrivial_prox) + 1;
+  const bool nontrivial_prox = beta_scaled > 0.0;
+  const int prox_ind = static_cast<int>(nontrivial_prox) + 1;
 
   // Keep track of when each feature was last updated
   std::vector<int> feature_history(n_features);
@@ -367,7 +366,8 @@ void Saga(const T&                                x,
                      sum_gradient,
                      false,
                      it_inner,
-                     prox);
+                     prox,
+                     prox_ind);
 
       PredictSample(prediction,
                     x,
@@ -435,7 +435,8 @@ void Saga(const T&                                x,
                      sum_gradient,
                      true,
                      it_inner + 1,
-                     prox);
+                     prox,
+                     prox_ind);
         wscale = 1.0;
       }
 
@@ -453,7 +454,8 @@ void Saga(const T&                                x,
                  sum_gradient,
                  true,
                  n_samples,
-                 prox);
+                 prox,
+                 prox_ind);
 
     wscale = 1.0;
 
