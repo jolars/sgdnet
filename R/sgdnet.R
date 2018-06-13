@@ -24,25 +24,26 @@
 #' The *gaussian* family solves the following objective:
 #'
 #' \deqn{
-#'   \frac{1}{2n} \sum_{i=1}^n (y_i -\beta_0 - x_i^\intercal \beta)^2
+#'   \frac{1}{2n} \sum_{i=1}^n (y_i - \beta_0 - x_i^\mathsf{T} \beta)^2
 #'   + \lambda \left( \frac{1 - \alpha}{2} ||\beta||_2^2
-#'                    + \alpha||\beta||_1 \right)
+#'                    + \alpha||\beta||_1 \right).
 #' }{
-#'   1/(2n) \sum (y -\beta_0 - x^T \beta)^2
-#'   + \lambda [(1 - \alpha)/2 ||\beta||_2^2 + \alpha||\beta||_1]
+#'   1/(2n) \sum (y - \beta_0 - x^T \beta)^2
+#'   + \lambda [(1 - \alpha)/2 ||\beta||_2^2 + \alpha||\beta||_1].
 #' }
 #'
 #' The *binomial* family solves the following objective:
 #'
 #' \deqn{
-#'   -\frac1n \sum_{i=1}^n \log\Big(1 + e^{-y_i x_i^\intercal \beta + \beta_0}\Big)
+#'   -\frac{1}{n} \sum_{i=1}^n
+#'     \bigg[y_i (\beta_0 + x_i^\mathsf{T} \beta) - \log\Big(1 + e^{\beta_0 + x_i^\mathsf{T} \beta}\Big)\bigg]
 #'   + \lambda \left( \frac{1 - \alpha}{2} ||\beta||_2^2
 #'                    + \alpha||\beta||_1 \right),
 #' }{
-#'   -1/n \sum log[1 + exp(-y x^T \beta + \beta_0)]
+#'   -1/n \sum [y_i(\beta_0 + x^T \beta) - log(1 + exp(\beta_0 + x^T \beta)]
 #'   + \lambda [(1 - \alpha)/2 ||\beta||_2^2 + \alpha||\beta||_1],
 #' }
-#' where \eqn{y_i \in {-1, 1}}{y ~ {-1, 1}}.
+#' where \eqn{y_i \in \{0, 1\}}{y ~ {0, 1}}.
 #'
 #' @section Regularization Path:
 #' The default regularization path is a sequence of `nlambda`
@@ -217,9 +218,8 @@ sgdnet.default <- function(x,
                         alpha = alpha,
                         classnames = class_names,
                         call = ocall,
-                        nobs = n_samples,
-                        return_codes = res$return_codes),
-                   class = c("sgdnet", family))
+                        nobs = n_samples),
+                   class = c(paste0("sgdnet_", family), "sgdnet"))
   if (debug)
     attr(out, "diagnostics") <- list(loss = res$losses)
   out

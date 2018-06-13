@@ -192,7 +192,7 @@ predict.sgdnet <- function(object,
 
   family <- extract_family(object)
 
-  if (missing(newx) && type %in% c("link"))
+  if (missing(newx) && type %in% c("link", "response", "class"))
     stop("new data must be provided for type = ", type)
 
   if (isTRUE(exact) && !is.null(s)) {
@@ -231,22 +231,22 @@ predict.sgdnet <- function(object,
     else
       newx <- as.matrix(newx)
 
-    linear_prediction <- as.matrix(cbind(1, newx) %*% beta)
+    linear_predictors <- as.matrix(cbind(1, newx) %*% beta)
   }
 
   switch(
     type,
-    link = linear_prediction,
+    link = linear_predictors,
     response = {
       if (family == "gaussian")
-        as.matrix(cbind(1, newx) %*% beta)
+        linear_predictors
       else if (family == "binomial")
-        1 / (1 + exp(-linear_prediction))
+        1 / (1 + exp(-linear_predictors))
     },
     coefficients = beta,
     nonzero = nonzero_coefs(beta[-1, , drop = FALSE], bystep = TRUE),
     class = {
-      cnum <- ifelse(linear_prediction > 0, 2, 1)
+      cnum <- ifelse(linear_predictors > 0, 2, 1)
       clet <- object$classnames[cnum]
 
       if (is.matrix(cnum))
