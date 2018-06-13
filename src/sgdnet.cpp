@@ -159,8 +159,8 @@ void Rescale(std::vector<double>                 weights,
                              + y_center[class_ind]
                              - x_scale_prod;
   }
-  weights_archive.push_back(weights);
-  intercept_archive.push_back(intercept);
+  weights_archive.push_back(std::move(weights));
+  intercept_archive.push_back(std::move(intercept));
 }
 
 //' Compute Regularization Path
@@ -376,6 +376,7 @@ Rcpp::List SetupSgdnet(T&                   x,
   // Null deviance on scaled y for computing deviance ratio
   double null_deviance_scaled = family->NullDeviance(y);
   std::vector<double> deviance_ratio;
+  deviance_ratio.reserve(n_penalties);
 
   // Store the nonzero indices of each sample
   std::vector< std::vector<std::size_t> > nonzero_indices_storage(n_samples);
