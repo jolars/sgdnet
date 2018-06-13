@@ -230,11 +230,11 @@ void RegularizationPath(std::vector<double>&       lambda,
 //'
 //' @keywords internal
 //' @noRd
-void AdaptiveTranspose(arma::sp_mat& x) {
+inline void AdaptiveTranspose(arma::sp_mat& x) {
   x = x.t();
 }
 
-void AdaptiveTranspose(arma::mat& x) {
+inline void AdaptiveTranspose(arma::mat& x) {
   arma::inplace_trans(x);
 }
 
