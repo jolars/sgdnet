@@ -31,6 +31,17 @@ inline double ColNormsMax(const T& x) {
   return arma::sum(arma::square(x), 0).max();
 }
 
+template <typename T>
+inline std::vector<double> SampleSquaredNorms(const T& x) {
+  std::vector<double> row_norms;
+  row_norms.reserve(x.n_cols);
+
+  for (auto i = 0; i < x.n_cols; ++i)
+    row_norms.push_back(arma::accu(arma::square(x.col(i))));
+
+  return row_norms;
+}
+
 //' Return index of nonzero elements
 //'
 //' The function is overloaded to work with both dense and sparse matrices.
@@ -41,12 +52,12 @@ inline double ColNormsMax(const T& x) {
 //' @return Index of iterator in current row or column.
 //'
 //' @keywords internal
-std::vector<std::size_t> Nonzeros(const arma::SpSubview<double> x) {
+std::vector<int> Nonzeros(const arma::SpSubview<double> x) {
 
   arma::SpSubview<double>::const_iterator x_itr = x.begin();
   arma::SpSubview<double>::const_iterator x_end = x.end();
 
-  std::vector<std::size_t> out;
+  std::vector<int> out;
 
   for(; x_itr != x_end; ++x_itr)
     out.push_back(x_itr.row());
@@ -58,8 +69,8 @@ std::vector<std::size_t> Nonzeros(const arma::SpSubview<double> x) {
 // should never get called.
 // TODO: consider using a conditional for sparse matrices to avoid
 //       entering this function.
-std::vector<std::size_t> Nonzeros(const arma::subview<double> x) {
-  std::vector<std::size_t> out(x.n_elem);
+std::vector<int> Nonzeros(const arma::subview<double> x) {
+  std::vector<int> out(x.n_elem);
   std::iota(out.begin(), out.end(), 0);
   return out;
 }
@@ -84,15 +95,15 @@ void PreprocessFeatures(T&                   x,
                         std::vector<double>& x_center,
                         std::vector<double>& x_scale,
                         const bool           is_sparse,
-                        const std::size_t    n_features,
-                        const std::size_t    n_samples) {
+                        const int    n_features,
+                        const int    n_samples) {
 
   // TODO: what is the reason for not scaling and centering when the intercept
   //       is not fit?
 
   if (fit_intercept) {
     // Center feature matrix with mean
-    for (std::size_t feature_ind = 0; feature_ind < n_features; ++feature_ind) {
+    for (int feature_ind = 0; feature_ind < n_features; ++feature_ind) {
 
       double x_col_mu = Mean(x.col(feature_ind), n_samples);
 
@@ -139,7 +150,7 @@ void PreprocessFeatures(T&                   x,
 template <typename T>
 inline double LambdaMax(const T&                   x,
                         const std::vector<double>& y,
-                        const std::size_t          n_samples,
+                        const int          n_samples,
                         const double               elasticnet_mix) {
   arma::rowvec yt(y);
 
@@ -164,14 +175,14 @@ inline double LambdaMax(const T&                   x,
 template <typename T>
 void PredictSample(std::vector<double>&            prediction,
                    const T&                        x,
-                   std::vector<std::size_t>       *nonzero_ptr,
+                   std::vector<int>       *nonzero_ptr,
                    const std::vector<double>&      weights,
                    const double                    wscale,
                    const std::vector<double>&      intercept,
-                   const std::size_t               n_classes,
-                   const std::size_t               sample_ind) {
+                   const int               n_classes,
+                   const int               sample_ind) {
 
-  for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
+  for (int class_ind = 0; class_ind < n_classes; ++class_ind) {
     double inner_product = 0.0;
     auto x_itr = x.begin_col(sample_ind);
     for (auto&& feature_ind : *nonzero_ptr) {
@@ -209,8 +220,8 @@ void EpochLoss(const T&                         x,
                std::unique_ptr<sgdnet::Family>& family,
                const double                     alpha_scaled,
                const double                     beta_scaled,
-               const std::size_t                n_samples,
-               const std::size_t                n_classes,
+               const int                n_samples,
+               const int                n_classes,
                const bool                       is_sparse,
                std::vector<double>&             losses) {
 
@@ -225,13 +236,13 @@ void EpochLoss(const T&                         x,
 
   loss += 0.5*l2_norm_squared*alpha_scaled + l1_norm*beta_scaled;
 
-  std::vector<std::size_t> nonzero_indices = Nonzeros(x.col(0));
+  std::vector<int> nonzero_indices = Nonzeros(x.col(0));
 
-  for (std::size_t sample_ind = 0; sample_ind < n_samples; ++sample_ind) {
+  for (int sample_ind = 0; sample_ind < n_samples; ++sample_ind) {
     if (is_sparse && sample_ind > 0)
       nonzero_indices = Nonzeros(x.col(sample_ind));
 
-    for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
+    for (int class_ind = 0; class_ind < n_classes; ++class_ind) {
       double inner_product = 0.0;
       auto x_itr = x.begin_col(sample_ind);
       for (auto& feature_ind : nonzero_indices) {

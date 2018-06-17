@@ -43,14 +43,14 @@ inline double LogSumExp(const std::vector<double>& x) {
 //' @return a log-spaced sequence
 inline std::vector<double> LogSpace(const double      from,
                                     const double      to,
-                                    const std::size_t n) {
+                                    const int n) {
   double log_from = std::log(from);
   double step = (std::log(to) - log_from)/(n - 1);
 
   std::vector<double> out;
   out.reserve(n);
 
-  for (std::size_t i = 0; i < n; ++i)
+  for (int i = 0; i < n; ++i)
     out.push_back(std::exp(log_from + i*step));
 
   return out;
@@ -65,7 +65,7 @@ inline std::vector<double> LogSpace(const double      from,
 //'
 //' @noRd
 template <typename T>
-inline double Mean(const T& x, const std::size_t n) {
+inline double Mean(const T& x, const int n) {
   return std::accumulate(x.begin(), x.end(), 0.0)/n;
 }
 
@@ -78,7 +78,7 @@ inline double Mean(const T& x, const std::size_t n) {
 //'
 //' @noRd
 template <typename T>
-inline double StandardDeviation(const T& x, const std::size_t n) {
+inline double StandardDeviation(const T& x, const int n) {
   double x_mean = Mean(x, n);
 
   double squared_deviance = 0.0;

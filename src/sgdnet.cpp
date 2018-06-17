@@ -80,20 +80,20 @@ double Deviance(const T&                         x,
                 const std::vector<double>&       weights,
                 const std::vector<double>&       intercept,
                 const bool                       is_sparse,
-                const std::size_t                n_samples,
-                const std::size_t                n_features,
-                const std::size_t                n_classes,
+                const int                        n_samples,
+                const int                        n_features,
+                const int                        n_classes,
                 std::unique_ptr<sgdnet::Family>& family) {
 
   double loss = 0.0;
 
-  std::vector<std::size_t> nonzero_indices = Nonzeros(x.col(0));
+  std::vector<int> nonzero_indices = Nonzeros(x.col(0));
 
-  for (std::size_t sample_ind = 0; sample_ind < n_samples; ++sample_ind) {
+  for (int sample_ind = 0; sample_ind < n_samples; ++sample_ind) {
     if (is_sparse && sample_ind > 0)
       nonzero_indices = Nonzeros(x.col(sample_ind));
 
-    for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
+    for (int class_ind = 0; class_ind < n_classes; ++class_ind) {
       auto x_itr = x.begin_col(sample_ind);
       double inner_product = 0.0;
       for (const auto& feature_ind : nonzero_indices) {
@@ -136,15 +136,15 @@ void Rescale(std::vector<double>                 weights,
              const std::vector<double>&          x_scale,
              const std::vector<double>&          y_center,
              const std::vector<double>&          y_scale,
-             const std::size_t                   n_features,
-             const std::size_t                   n_classes,
+             const int                   n_features,
+             const int                   n_classes,
              const bool                          fit_intercept) {
 
   if (fit_intercept) {
     long double x_scale_prod = 0.0;
-    for (std::size_t feature_ind = 0; feature_ind < n_features; ++feature_ind) {
+    for (int feature_ind = 0; feature_ind < n_features; ++feature_ind) {
       if (x_scale[feature_ind] != 0.0) {
-        for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
+        for (int class_ind = 0; class_ind < n_classes; ++class_ind) {
           weights[feature_ind*n_classes + class_ind] *=
             y_scale[class_ind]/x_scale[feature_ind];
           x_scale_prod +=
@@ -153,7 +153,7 @@ void Rescale(std::vector<double>                 weights,
       }
     }
 
-    for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind)
+    for (int class_ind = 0; class_ind < n_classes; ++class_ind)
       intercept[class_ind] = intercept[class_ind]
                              * y_scale[class_ind]
                              + y_center[class_ind]
@@ -185,12 +185,12 @@ void Rescale(std::vector<double>                 weights,
 //' @noRd
 template <typename T>
 void RegularizationPath(std::vector<double>&       lambda,
-                        const std::size_t          n_lambda,
+                        const int          n_lambda,
                         const double               lambda_min_ratio,
                         const double               elasticnet_mix,
                         const T&                   x,
                         const std::vector<double>& y,
-                        const std::size_t          n_samples,
+                        const int          n_samples,
                         std::vector<double>&       alpha,
                         std::vector<double>&       beta,
                         const std::vector<double>& y_scale) {
@@ -207,7 +207,7 @@ void RegularizationPath(std::vector<double>&       lambda,
     lambda = LogSpace(lambda_max, lambda_max*lambda_min_ratio, n_lambda);
   }
 
-  std::size_t n_penalties = lambda.size();
+  int n_penalties = lambda.size();
 
   alpha.reserve(n_penalties);
   beta.reserve(n_penalties);
@@ -268,15 +268,15 @@ Rcpp::List SetupSgdnet(T&                   x,
   const bool          fit_intercept    = Rcpp::as<bool>(control["intercept"]);
   const double        elasticnet_mix   = Rcpp::as<double>(control["elasticnet_mix"]);
   std::vector<double> lambda           = Rcpp::as< std::vector<double> >(control["lambda"]);
-  const std::size_t   n_lambda         = Rcpp::as<std::size_t>(control["n_lambda"]);
+  const int   n_lambda         = Rcpp::as<int>(control["n_lambda"]);
   const double        lambda_min_ratio = Rcpp::as<double>(control["lambda_min_ratio"]);
   const bool          normalize        = Rcpp::as<bool>(control["normalize"]);
-  std::size_t         max_iter         = Rcpp::as<std::size_t>(control["max_iter"]);
+  int         max_iter         = Rcpp::as<int>(control["max_iter"]);
   const double        tol              = Rcpp::as<double>(control["tol"]);
   const bool          debug            = Rcpp::as<bool>(control["debug"]);
 
-  std::size_t n_samples  = x.n_rows;
-  std::size_t n_features = x.n_cols;
+  int n_samples  = x.n_rows;
+  int n_features = x.n_cols;
 
   // Preprocess features
   std::vector<double> x_center;
@@ -303,7 +303,7 @@ Rcpp::List SetupSgdnet(T&                   x,
   std::unique_ptr<sgdnet::Family> family =
     family_factory.NewFamily(family_choice);
 
-  std::size_t n_classes = family->GetNClasses();
+  int n_classes = family->GetNClasses();
 
   // "Fit" the intercept-only model and compute its deviance = the null deviance
   double null_deviance = family->NullDeviance(y);
@@ -331,10 +331,13 @@ Rcpp::List SetupSgdnet(T&                   x,
                      beta,
                      y_scale);
 
-  std::size_t n_penalties = lambda.size();
+  int n_penalties = lambda.size();
 
   // Maximum of sums of squares over samples
-  double max_squared_sum = ColNormsMax(x);
+  std::vector<double> norm_square = SampleSquaredNorms(x);
+
+  double max_squared_sum = *std::max_element(norm_square.begin(),
+                                             norm_square.end());
 
   std::vector<double> step_size = family->StepSize(max_squared_sum,
                                                    alpha,
@@ -348,25 +351,23 @@ Rcpp::List SetupSgdnet(T&                   x,
   std::unique_ptr<sgdnet::Prox> prox = prox_factory.NewProx(prox_choice);
 
   // Setup intercept vector
-  std::vector<double> intercept(n_classes, 0.0);
+  std::vector<double> intercept(n_classes);
   std::vector< std::vector<double> > intercept_archive(n_penalties);
 
   // Setup weights matrix and weights archive
-  std::vector<double> weights(n_features*n_classes, 0.0);
+  std::vector<double> weights(n_features*n_classes);
   std::vector< std::vector<double> > weights_archive;
 
   // Sum of gradients for weights
   std::vector<double> sum_gradient(n_features*n_classes);
 
-  // Sum of gradients for intercept
-  std::vector<double> intercept_sum_gradient(n_classes, 0.0);
-
   // Gradient memory
   std::vector<double> gradient_memory(n_samples*n_classes);
 
-  // Keep track of the number of as well as which samples are seen
-  std::vector<bool> seen(n_samples, false);
-  std::size_t n_seen = 0;
+  // Sum of gradients for intercept
+  //std::vector<double> intercept_sum_gradient(n_classes, 0.0);
+
+  // Gradient memory
 
   // Keep keep track of successes for each penalty
   std::vector<unsigned int> return_codes;
@@ -376,7 +377,7 @@ Rcpp::List SetupSgdnet(T&                   x,
   std::vector<double> losses;
 
   // Keep track of number of iteratios per penalty
-  std::size_t n_iter = 0;
+  int n_iter = 0;
 
   // Null deviance on scaled y for computing deviance ratio
   double null_deviance_scaled = family->NullDeviance(y);
@@ -384,30 +385,24 @@ Rcpp::List SetupSgdnet(T&                   x,
   deviance_ratio.reserve(n_penalties);
 
   // Store the nonzero indices of each sample
-  std::vector< std::vector<std::size_t> > nonzero_indices_storage(n_samples);
+  std::vector< std::vector<int> > nonzero_indices_storage(n_samples);
 
   // Fit the path of penalty values
-  for (std::size_t penalty_ind = 0; penalty_ind < n_penalties; ++penalty_ind) {
+  for (int penalty_ind = 0; penalty_ind < n_penalties; ++penalty_ind) {
     Saga(x,
          y,
          weights,
-         fit_intercept,
-         intercept,
-         intercept_decay,
-         intercept_sum_gradient,
          family,
          prox,
+         norm_square,
          step_size[penalty_ind],
          alpha[penalty_ind],
          beta[penalty_ind],
          nonzero_indices_storage,
          sum_gradient,
          gradient_memory,
-         seen,
-         n_seen,
          n_samples,
          n_features,
-         n_classes,
          is_sparse,
          max_iter,
          tol,
