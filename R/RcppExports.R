@@ -35,7 +35,7 @@ NULL
 #'   * losses: the loss at each outer iteration per fit,
 #'   * npasses: the number of effective passes (epochs) accumulated over,
 #'     all lambda values, and
-#'   * return_codes: the convergence result. 0 mean that the algorithm
+#'   * return_codes: the convergence result. 0 means that the algorithm
 #'     converged, 1 means that `max_iter` was reached before the algorithm
 #'     converged.
 NULL
