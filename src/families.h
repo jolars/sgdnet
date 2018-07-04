@@ -19,6 +19,7 @@
 
 #include <RcppArmadillo.h>
 #include <memory>
+#include "math.h"
 
 namespace sgdnet {
 
@@ -26,35 +27,39 @@ class Family {
 public:
   virtual ~Family() {};
 
-  virtual double Loss(const arma::mat& prediction,
-                      const arma::mat& y) = 0;
+  virtual double Loss(const double prediction, const double y) = 0;
 
-  virtual arma::rowvec Gradient(const arma::rowvec& prediction,
-                                const arma::rowvec& y) = 0;
+  virtual double Gradient(const double prediction, const double y) = 0;
 
-  virtual void PreprocessResponse(arma::mat&    y,
-                                  arma::rowvec& y_center,
-                                  arma::rowvec& y_scale,
-                                  const bool    fit_intercept) = 0;
+  virtual void PreprocessResponse(std::vector<double>& y,
+                                  std::vector<double>& y_center,
+                                  std::vector<double>& y_scale,
+                                  const bool           fit_intercept) = 0;
 
-  virtual double NullDeviance(const arma::mat& y) = 0;
+  virtual double NullDeviance(const std::vector<double>& y) = 0;
 
-  arma::vec StepSize(const double       max_squared_sum,
-                     const arma::vec&   alpha_scaled,
-                     const bool         fit_intercept,
-                     const arma::uword  n_samples) {
+  std::vector<double> StepSize(const double               max_squared_sum,
+                               const std::vector<double>& alpha_scaled,
+                               const bool                 fit_intercept,
+                               const std::size_t          n_samples) {
     // Lipschitz constant approximation
-    arma::vec L = L_scaling*(max_squared_sum + fit_intercept) + alpha_scaled;
-    arma::vec mu_n = 2.0*n_samples*alpha_scaled;
-    return 1.0 / (2.0*L + arma::min(L, mu_n));
+    std::vector<double> step_sizes;
+    step_sizes.reserve(alpha_scaled.size());
+
+    for (auto alpha_val : alpha_scaled) {
+      double L = L_scaling*(max_squared_sum + fit_intercept) + alpha_val;
+      double mu_n = 2.0*n_samples*alpha_val;
+      step_sizes.push_back(1.0 / (2.0*L + std::min(L, mu_n)));
+    }
+    return step_sizes;
   };
 
-  arma::uword GetNClasses() {
+  std::size_t GetNClasses() {
     return n_classes;
   }
 
 protected:
-  arma::uword n_classes;
+  std::size_t n_classes;
   double L_scaling;
 };
 
@@ -67,40 +72,45 @@ public:
 
   virtual ~Gaussian() {};
 
-  double Loss(const arma::mat& prediction,
-              const arma::mat& y) {
-    return 0.5*arma::accu(arma::square(prediction - y));
+  double Loss(const double prediction, const double y) {
+    return 0.5*(prediction - y)*(prediction - y);
   };
 
-  arma::rowvec Gradient(const arma::rowvec& prediction,
-                        const arma::rowvec& y) {
+  double Gradient(const double prediction, const double y) {
     return prediction - y;
   };
 
-  void PreprocessResponse(arma::mat&    y,
-                          arma::rowvec& y_center,
-                          arma::rowvec& y_scale,
-                          const bool    fit_intercept) {
-
+  void PreprocessResponse(std::vector<double>& y,
+                          std::vector<double>& y_center,
+                          std::vector<double>& y_scale,
+                          const bool           fit_intercept) {
     if (fit_intercept) {
-      y_center = arma::mean(y);
-      y_scale  = arma::sqrt(arma::var(y, 1));
+      double y_mu = Mean(y, y.size());
+      double y_sd = StandardDeviation(y, y.size());
 
-      for (arma::uword i = 0; i < y.n_cols; ++i) {
-        y.col(i) -= y_center(i);
-        if (y_scale(i) != 0)
-          y.col(i) /= y_scale(i);
+      y_center.push_back(y_mu);
+      y_scale.push_back(y_sd);
+
+      for (auto& y_val : y) {
+        y_val -= y_mu;
+
+        if (y_sd != 0)
+          y_val /= y_sd;
       }
     } else {
-      y_center.zeros();
-      y_scale.ones();
+      y_center.push_back(0.0);
+      y_scale.push_back(1.0);
     }
   };
 
-  double NullDeviance(const arma::mat& y) {
-    arma::vec prediction(y.n_rows);
-    prediction.fill(arma::accu(y)/y.n_rows);
-    return 2.0 * Loss(prediction, y);
+  double NullDeviance(const std::vector<double>& y) {
+    double y_mu = Mean(y, y.size());
+    double loss = 0.0;
+
+    for (const auto& y_val : y)
+      loss += Loss(y_mu, y_val);
+
+    return 2.0 * loss;
   }
 };
 
@@ -113,32 +123,31 @@ public:
 
   virtual ~Binomial() {};
 
-  double Loss(const arma::mat& prediction,
-              const arma::mat& y) {
-    return -arma::accu(y%prediction
-                       - arma::trunc_log(1.0 + arma::trunc_exp(prediction)));
+  double Loss(const double prediction, const double y) {
+    return std::log(1.0 + std::exp(prediction)) - y*prediction;
   };
 
-  arma::rowvec Gradient(const arma::rowvec& prediction,
-                        const arma::rowvec& y) {
-    return 1.0 - y - 1.0/(1.0 + arma::trunc_exp(prediction));
+  double Gradient(const double prediction, const double y) {
+    return 1.0 - y - 1.0/(1.0 + std::exp(prediction));
   };
 
-  void PreprocessResponse(arma::mat&    y,
-                          arma::rowvec& y_center,
-                          arma::rowvec& y_scale,
-                          const bool    fit_intercept) {
-    y_center.zeros();
-    y_scale.ones();
+  void PreprocessResponse(std::vector<double>& y,
+                          std::vector<double>& y_center,
+                          std::vector<double>& y_scale,
+                          const bool           fit_intercept) {
+    y_center.push_back(0.0);
+    y_scale.push_back(1.0);
   };
 
-  double NullDeviance(const arma::mat& y) {
-    // Fit an intercept-only model
-    double y_mean = arma::accu(y)/y.n_rows;
-    arma::vec prediction(y.n_rows);
-    prediction.fill(std::log(y_mean/(1.0 - y_mean)));
+  double NullDeviance(const std::vector<double>& y) {
+    double y_mu = Mean(y, y.size());
+    double y_mu_log = std::log(y_mu / (1.0 - y_mu));
+    double loss = 0.0;
 
-    return 2.0 * Loss(prediction, y);
+    for (auto const& y_val : y)
+      loss += Loss(y_mu_log, y_val);
+
+    return 2.0 * loss;
   }
 };
 

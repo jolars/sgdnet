@@ -63,11 +63,8 @@ test_that("regularization path is correctly computed", {
 test_that("non-penalized logistic regression has similar results as glm()", {
   set.seed(1)
 
-  sd2 <- function(x) sqrt(sum((x - mean(x))^2)/length(x))
-
   x <- as.matrix(with(Puromycin, cbind(conc, rate)))
   y <- Puromycin$state
-  xs <- scale(x, scale = apply(x, 2, sd2))
 
   sgdfit <- sgdnet(x, y, family = "binomial", lambda = 0, thresh = 1e-9)
   glmfit <- glm(y ~ x, family = "binomial")

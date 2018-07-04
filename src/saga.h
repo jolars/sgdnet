@@ -58,271 +58,306 @@
 //'
 //' @param weights the weights matrix
 //' @param wscale the weights scale
-//' @param current_nonzero_indices a vector of indices for the nonzero elements
-//'   of the current data point
+//' @param nonzero_ptr a pointer to a vector of indices for the nonzero elements
+//'   of the current sample
 //' @param n_samples the number of data points
 //' @param n_classes the number of classes for the outcome
 //' @param cumulative_sums storage for cumulative sums
+//' @param cumulative_sums_prox storage for cumulative sums for the proximal
+//'   operator
 //' @param feature_history keeps track of the iteration at which each
 //'   feature was last updated
 //' @param nontrivial_prox nontrivial proximal operator?
 //' @param sum_gradient gradient sum storage
 //' @param reset TRUE if wscale is to be reset and weights rescaled
 //' @param it_inner the current iteration in the inner loop
+//' @param prox a proximal operator
 //'
 //' @return Weights, cumulative_sums, and feature_history are updated.
 //'
 //' @noRd
-//' @keywords internal
-void LaggedUpdate(arma::mat&                     weights,
-                  double                         wscale,
-                  const arma::uvec&              nonzero_indices,
-                  arma::uword                    n_samples,
-                  arma::uword                    n_classes,
-                  arma::mat&                     cumulative_sums,
-                  arma::uvec&                    feature_history,
-                  bool                           nontrivial_prox,
-                  const arma::mat&               sum_gradient,
-                  bool                           reset,
-                  arma::uword                    it_inner,
-                  std::unique_ptr<sgdnet::Prox>& prox) {
+void LaggedUpdate(std::vector<double>&            weights,
+                  const double                    wscale,
+                  std::vector<std::size_t>       *nonzero_ptr,
+                  const std::size_t               n_samples,
+                  const std::size_t               n_classes,
+                  std::vector<double>&            cumulative_sums,
+                  std::vector<int>&               feature_history,
+                  const bool                      nontrivial_prox,
+                  const std::vector<double>&      sum_gradient,
+                  const bool                      reset,
+                  const int                       it_inner,
+                  std::unique_ptr<sgdnet::Prox>&  prox,
+                  const int                       prox_ind) {
 
-  arma::uvec::const_iterator feature_itr = nonzero_indices.begin();
-  arma::uvec::const_iterator feature_end = nonzero_indices.end();
+  for (auto&& feature_ind : *nonzero_ptr) {
 
-  for (; feature_itr != feature_end; ++feature_itr) {
+    double cum_sum = cumulative_sums[it_inner*prox_ind - prox_ind];
 
-    arma::uword feature_ind = (*feature_itr);
 
-    arma::rowvec cum_sum = cumulative_sums.row(it_inner - 1);
+    int last_update_ind = feature_history[feature_ind] - 1;
 
-    if (feature_history(feature_ind) != 0) {
-      cum_sum -= cumulative_sums.row(feature_history(feature_ind) - 1);
-    }
+    if (feature_history[feature_ind] != 0)
+      cum_sum -= cumulative_sums[last_update_ind*prox_ind];
 
     if (nontrivial_prox) {
+      double cum_sum_prox = cumulative_sums[it_inner*prox_ind - prox_ind + 1];
 
-      for (arma::uword class_ind = 0; class_ind < n_classes; ++class_ind) {
+      if (feature_history[feature_ind] != 0)
+        cum_sum_prox -= cumulative_sums[last_update_ind*prox_ind + 1];
 
-        if (std::abs(sum_gradient(feature_ind, class_ind)*cum_sum(0))
-              < cum_sum(1)) {
+      for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
+        std::size_t f_idx = feature_ind*n_classes + class_ind;
 
-          weights(feature_ind, class_ind) -=
-            cum_sum(0)*sum_gradient(feature_ind, class_ind);
-          weights(feature_ind, class_ind) =
-            prox->Evaluate(weights(feature_ind, class_ind), cum_sum(1));
+        double sum_gradient_idx = sum_gradient[f_idx];
+
+        if (std::abs(sum_gradient_idx*cum_sum) < cum_sum_prox) {
+
+          weights[f_idx] =
+            prox->Evaluate(weights[f_idx] - cum_sum*sum_gradient_idx,
+                           cum_sum_prox);
 
         } else {
-
-          arma::sword last_update_ind = feature_history(feature_ind) - 1;
 
           if (last_update_ind == -1)
             last_update_ind = it_inner - 1;
 
-          for (arma::uword lagged_ind = it_inner - 1;
+          for (int lagged_ind = it_inner - 1;
                lagged_ind > last_update_ind - 1;
                --lagged_ind) {
 
             // Grad and prox steps
-            arma::rowvec::fixed<2> steps;
+            int lagged_idx = lagged_ind*prox_ind;
 
-            if (lagged_ind > 0)
-              steps = cumulative_sums.row(lagged_ind)
-              - cumulative_sums.row(lagged_ind - 1);
-            else
-              steps = cumulative_sums.row(lagged_ind);
+            double grad_step = cumulative_sums[lagged_idx];
+            double prox_step = cumulative_sums[lagged_idx + 1];
 
-            weights(feature_ind, class_ind) -=
-              sum_gradient(feature_ind, class_ind)*steps(0);
-            weights(feature_ind, class_ind) =
-              prox->Evaluate(weights(feature_ind, class_ind), steps(1));
+            if (lagged_ind > 0) {
+              grad_step -= cumulative_sums[lagged_idx - prox_ind];
+              prox_step -= cumulative_sums[lagged_idx - prox_ind + 1];
+            }
+
+            weights[f_idx] =
+              prox->Evaluate(weights[f_idx] - grad_step*sum_gradient_idx,
+                             prox_step);
           }
         }
-      }
+      } // for class_ind (nontrivial prox)
     } else { // Trivial prox
-      weights.row(feature_ind) -= cum_sum(0)*sum_gradient.row(feature_ind);
+      for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
+        std::size_t f_idx = feature_ind*n_classes + class_ind;
+        weights[f_idx] -= cum_sum*sum_gradient[f_idx];
+      }
     }
-    if (!reset) {
-      feature_history(feature_ind) = it_inner;
-    }
+
+    if (!reset)
+      feature_history[feature_ind] = it_inner;
   } // for each feature
 
   if (reset) {
-    weights *= wscale;
+    cumulative_sums[it_inner*prox_ind - prox_ind] = 0.0;
+    if (nontrivial_prox)
+      cumulative_sums[it_inner*prox_ind - prox_ind + 1] = 0.0;
 
-    if (!(weights.is_finite()))
-      Rcpp::stop("non-finite weights.");
+    std::for_each(weights.begin(),
+                  weights.end(),
+                  [&](double& weight) { weight *= wscale; });
 
-    feature_history.fill(it_inner % n_samples);
-    cumulative_sums.row(it_inner - 1).zeros();
+    std::fill(feature_history.begin(),
+              feature_history.end(),
+              it_inner % n_samples);
   }
 }
 
-//' Predict Sample
+//' Update the gradient
 //'
-//' @param x sample
-//' @param weights weights
+//' Update the gradient and store it in `gradient_memory` and update
+//' coefficients
+//'
+//' @param x the current sample
+//' @param nonzero_ptr vector of indices of nonzero elements in the
+//'   current sample
+//' @param weights coefficients
+//' @param gradient gradient for current sample
+//' @param gradient_memory memory of gradients for each sample
+//' @param sum_gradient gradient sum
+//' @param step_size step size
 //' @param wscale scale for weights
-//' @param intercept intercept
+//' @param n_seen number of samples seen so far
+//' @param n_classes pseudo-number of classes
+//' @param sample_ind index of current sample
 //'
-//' @return The prediction at the current sample
+//' @return Updates weights and sum_gradient.
 //'
 //' @noRd
-//' @keywords internal
 template <typename T>
-arma::rowvec PredictSample(const T&            x,
-                           const arma::mat&    weights,
-                           const double        wscale,
-                           const arma::rowvec& intercept) {
+void UpdateWeights(const T&                        x,
+                   std::vector<std::size_t>       *nonzero_ptr,
+                   std::vector<double>&            weights,
+                   std::vector<double>&            intercept,
+                   const std::vector<double>&      gradient,
+                   const std::vector<double>&      gradient_memory,
+                   std::vector<double>&            sum_gradient,
+                   std::vector<double>&            intercept_sum_gradient,
+                   const double                    step_size,
+                   const double                    wscale,
+                   const double                    intercept_decay,
+                   const std::size_t               n_seen,
+                   const std::size_t               n_classes,
+                   const std::size_t               sample_ind,
+                   const bool                      fit_intercept) {
+  auto x_itr = x.begin_col(sample_ind);
 
-  return x.t()*(wscale*weights) + intercept;
-}
+  for (auto&& feature_ind : *nonzero_ptr) {
+    for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
+      std::size_t s_idx = sample_ind*n_classes + class_ind;
+      std::size_t f_idx = feature_ind*n_classes + class_ind;
 
-//' Update the intercept
-//'
-//' @param gradient gradient of current sample
-//' @param gradient_memory memory of previously computed gradients
-//' @param intercept_sum_gradient sum of intercept gradients
-//' @param intercept_correction the correction to be applied to the gradient
-//' @param intercept the intercept
-//' @param intercept_decay modifier to shrink the learning rate for the
-//'   intercept
-//'
-//' @return `intercept` and `intercept_sum_gradient` are updated
-//' @noRd
-//' @keywords internal
-void UpdateIntercept(const arma::rowvec& gradient,
-                     const arma::rowvec& gradient_memory,
-                     arma::rowvec&       intercept_sum_gradient,
-                     arma::rowvec&       intercept_correction,
-                     arma::rowvec&       intercept,
-                     const double        intercept_decay,
-                     const double        step_size,
-                     const arma::uword   n_seen) {
-  intercept_correction = gradient - gradient_memory;
-  intercept_sum_gradient += intercept_correction;
-  intercept_correction *= step_size*(1.0 - 1.0/n_seen);
-  intercept -= step_size*intercept_sum_gradient/n_seen*intercept_decay
-    + intercept_correction;
-  if (!intercept.is_finite())
-    Rcpp::stop("non-finite intercepts.");
+      double gradient_diff = gradient[class_ind] - gradient_memory[s_idx];
+      double step = step_size*(1.0 - 1.0/n_seen);
+      double gradient_correction = (*x_itr)*gradient_diff;
+
+      weights[f_idx] -= gradient_correction*step/wscale;
+      sum_gradient[f_idx] += gradient_correction;
+
+      if (fit_intercept) {
+        intercept_sum_gradient[class_ind] += gradient_diff;
+        intercept[class_ind] -=
+          step_size*intercept_sum_gradient[class_ind]/n_seen*intercept_decay
+          + gradient_diff*step;
+      }
+    }
+    ++x_itr;
+  }
 }
 
 //' SAGA algorithm
 //'
 //' @param x feature matrix
 //' @param y response matrix
+//' @param weights coefficients
+//' @param fit_intercept whether to fit the intercept
+//' @param intercept intercept
+//' @param intercept_decay weight of intercept update, which is different
+//'   for the sparse implementation
+//' @param intercept_sum_gradient gradient sum for the intercept
 //' @param family response type
-//' @param fit_intercept whether the intercept should be fit
-//' @param intercept_decay intercept updates are scaled by
-//'   this decay factor to avoid intercept oscillation when features are
-//'   sparse
-//' @param alpha l2-regularization penalty
-//' @param beta l1-regularization penalty
-//' @param normalize whether to normalize x
+//' @param prox proximal operator
+//' @param step_size step size
+//' @param alpha_scaled scaled l2-penalty weight
+//' @param beta_scaled scaled l1-penalty weight
+//' @param sum_gradient gradient sum for the weights
+//' @param gradient_memory storage for gradients for each sample
+//' @param seen vector of indices for whether the sample has been seen
+//'   previously
+//' @param n_seen number of previously seen samples
+//' @param n_samples number of samples
+//' @param n_features number of features (variables)
+//' @param n_classes pseudo-number of classes
+//' @param is_sparse whether x is sparse
 //' @param max_iter maximum number of iterations
-//' @param debug if `TRUE`, we are debugging and should return loss
-//' @param is_sparse is x sparse?
+//' @param tol treshold for convergence (stops if max weight/max change
+//'   in weights < tol)
+//' @param n_iter number of accumulated effective passes
+//' @param return_codes vector of return codes for each fit
+//' @param losses vector of losses for each fit and pass
+//' @param debug whether diagnostic information should be computed
 //'
 //' @return Updates weights, intercept, sum_gradient, intercept_sum_gradient,
 //'   gradient_memory.
 //'
 //' @noRd
-//' @keywords internal, programming
 template <typename T>
-void Saga(const T&                          x,
-          const arma::mat&                  y,
-          arma::mat&                        weights,
-          const bool                        fit_intercept,
-          arma::rowvec&                     intercept,
-          const double                      intercept_decay,
-          arma::rowvec&                     intercept_sum_gradient,
-          std::unique_ptr<sgdnet::Family>&  family,
-          std::unique_ptr<sgdnet::Prox>&    prox,
-          const double                      step_size,
-          const double                      alpha_scaled,
-          const double                      beta_scaled,
-          arma::mat&                        sum_gradient,
-          arma::mat&                        gradient_memory,
-          arma::uvec&                       seen,
-          arma::uword&                      n_seen,
-          const arma::uword                 n_samples,
-          const arma::uword                 n_features,
-          const arma::uword                 n_classes,
-          const bool                        is_sparse,
-          const arma::uword                 max_iter,
-          const double                      tol,
-          arma::uword&                      n_iter,
-          arma::uword&                      return_code,
-          std::vector<double>&              losses,
-          const bool                        debug) {
+void Saga(const T&                                x,
+          const std::vector<double>&              y,
+          std::vector<double>&                    weights,
+          const bool                              fit_intercept,
+          std::vector<double>&                    intercept,
+          const double                            intercept_decay,
+          std::vector<double>&                    intercept_sum_gradient,
+          std::unique_ptr<sgdnet::Family>&        family,
+          std::unique_ptr<sgdnet::Prox>&          prox,
+          const double                            step_size,
+          const double                            alpha_scaled,
+          const double                            beta_scaled,
+          std::vector<std::vector<std::size_t> >& nonzero_indices,
+          std::vector<double>&                    sum_gradient,
+          std::vector<double>&                    gradient_memory,
+          std::vector<bool>&                      seen,
+          std::size_t&                            n_seen,
+          const std::size_t                       n_samples,
+          const std::size_t                       n_features,
+          const std::size_t                       n_classes,
+          const bool                              is_sparse,
+          const std::size_t                       max_iter,
+          const double                            tol,
+          std::size_t&                            n_iter,
+          std::vector<unsigned int>&              return_codes,
+          std::vector<double>&                    losses,
+          const bool                              debug) {
 
   // Are we dealing with a nontrivial prox?
-  bool nontrivial_prox = beta_scaled > 0.0;
+  const bool nontrivial_prox = beta_scaled > 0.0;
+  const int prox_ind = static_cast<int>(nontrivial_prox) + 1;
 
   // Keep track of when each feature was last updated
-  arma::uvec feature_history(n_features, arma::fill::zeros);
-
-  // Gradient correction matrix
-  arma::mat gradient_correction(arma::size(weights));
-
-  // Intercept correction vector
-  arma::rowvec intercept_correction;
-  if (fit_intercept)
-    intercept_correction.set_size(n_classes);
+  std::vector<int> feature_history(n_features);
 
   // Store previous weights for computing stopping criteria
-  arma::mat previous_weights(weights);
+  std::vector<double> previous_weights(weights);
 
   // Scale of weights
   double wscale = 1.0;
 
   // Store a matrix of cumulative sums, prox sums in second column
-  arma::mat cumulative_sums(n_samples, 1 + nontrivial_prox, arma::fill::zeros);
+  std::vector<double> cumulative_sums(n_samples*prox_ind);
 
   // Precomputated stepsize
   double wscale_update = 1.0 - step_size*alpha_scaled;
 
   // Keep a vector of the full range of indicies for each row for when
   // we update the full range of weights
-  arma::uvec full_range_indices = arma::regspace<arma::uvec>(0, n_features - 1);
-  arma::uvec nonzero_indices;
-  if (!is_sparse)
-    nonzero_indices = full_range_indices;
+  std::vector<std::size_t> full_range_indices(n_features);
+  std::iota(full_range_indices.begin(), full_range_indices.end(), 0);
 
-  // Scalars for computing stopping criteria
-  double max_change = 0.0;
-  double max_weight = 0.0;
+  std::vector<std::size_t> *nonzero_ptr;
+
+  if (!is_sparse)
+    nonzero_ptr = &full_range_indices;
 
   // Vector to store prediction
-  arma::rowvec prediction(n_classes);
+  std::vector<double> prediction(n_classes);
+  prediction.reserve(n_classes);
 
   // Vector to store gradient
-  arma::rowvec gradient(n_classes);
+  std::vector<double> gradient;
+  gradient.reserve(n_classes);
 
   // Outer loop
-  arma::uword it_outer = 0;
+  std::size_t it_outer = 0;
   for (; it_outer < max_iter; ++it_outer) {
 
     // Inner loop
-    for (arma::uword it_inner = 0; it_inner < n_samples; ++it_inner) {
+    for (std::size_t it_inner = 0; it_inner < n_samples; ++it_inner) {
 
       // Extract a random sample
-      arma::uword sample_ind = std::floor(R::runif(0.0, n_samples));
+      std::size_t sample_ind = std::floor(R::runif(0.0, n_samples));
 
       // Update the number of samples seen and the seen array
-      if (!seen(sample_ind)) {
+      if (!seen[sample_ind]) {
         n_seen++;
-        seen(sample_ind) = true;
+        seen[sample_ind] = true;
+        if (is_sparse)
+          nonzero_indices[sample_ind] = Nonzeros(x.col(sample_ind));
       }
 
       if (is_sparse)
-        nonzero_indices = Nonzeros(x.col(sample_ind));
+        nonzero_ptr = &nonzero_indices[sample_ind];
 
       if (it_inner > 0)
         LaggedUpdate(weights,
                      wscale,
-                     nonzero_indices,
+                     nonzero_ptr,
                      n_samples,
                      n_classes,
                      cumulative_sums,
@@ -331,57 +366,67 @@ void Saga(const T&                          x,
                      sum_gradient,
                      false,
                      it_inner,
-                     prox);
+                     prox,
+                     prox_ind);
 
-      prediction = PredictSample(x.col(sample_ind),
-                                 weights,
-                                 wscale,
-                                 intercept);
+      PredictSample(prediction,
+                    x,
+                    nonzero_ptr,
+                    weights,
+                    wscale,
+                    intercept,
+                    n_classes,
+                    sample_ind);
 
-      gradient = family->Gradient(prediction, y.row(sample_ind));
+      for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
+        gradient[class_ind] =
+          family->Gradient(prediction[class_ind],
+                           y[sample_ind*n_classes + class_ind]);
+      }
 
       // L2-regularization by rescaling the weights
       wscale *= wscale_update;
 
-      // Update the sum of gradients
-      gradient_correction =
-        x.col(sample_ind)*(gradient - gradient_memory.row(sample_ind));
-
-      weights -= (gradient_correction*step_size*(1.0 - 1.0/n_seen)/wscale);
-      sum_gradient += gradient_correction;
-
-      if (fit_intercept) {
-        UpdateIntercept(gradient,
-                        gradient_memory.row(sample_ind),
-                        intercept_sum_gradient,
-                        intercept_correction,
-                        intercept,
-                        intercept_decay,
-                        step_size,
-                        n_seen);
-      }
+      UpdateWeights(x,
+                    nonzero_ptr,
+                    weights,
+                    intercept,
+                    gradient,
+                    gradient_memory,
+                    sum_gradient,
+                    intercept_sum_gradient,
+                    step_size,
+                    wscale,
+                    intercept_decay,
+                    n_seen,
+                    n_classes,
+                    sample_ind,
+                    fit_intercept);
 
       // Update the gradient memory for this sample
-      gradient_memory.row(sample_ind) = gradient;
+      for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind)
+        gradient_memory[sample_ind*n_classes + class_ind] = gradient[class_ind];
 
       // Update cumulative sums
       if (it_inner == 0) {
-        cumulative_sums(0, 0) = step_size/(wscale*n_seen);
+        cumulative_sums[0] = step_size/(wscale*n_seen);
         if (nontrivial_prox)
-          cumulative_sums(0, 1) = step_size*beta_scaled/wscale;
+          cumulative_sums[1] = step_size*beta_scaled/wscale;
       } else {
-        cumulative_sums(it_inner, 0) =
-          cumulative_sums(it_inner - 1, 0) + step_size/(wscale*n_seen);
+        cumulative_sums[it_inner*prox_ind] =
+          cumulative_sums[it_inner*prox_ind - prox_ind]
+          + step_size/(wscale*n_seen);
         if (nontrivial_prox)
-          cumulative_sums(it_inner, 1) =
-            cumulative_sums(it_inner - 1, 1) + step_size*beta_scaled/wscale;
+          cumulative_sums[it_inner*prox_ind + 1] =
+            cumulative_sums[it_inner*prox_ind - prox_ind + 1]
+            + step_size*beta_scaled/wscale;
       }
 
       // if wscale is too small, reset the scale
       if (wscale < sgdnet::SMALL) {
         LaggedUpdate(weights,
                      wscale,
-                     full_range_indices,
+                     &full_range_indices,
                      n_samples,
                      n_classes,
                      cumulative_sums,
@@ -390,7 +435,8 @@ void Saga(const T&                          x,
                      sum_gradient,
                      true,
                      it_inner + 1,
-                     prox);
+                     prox,
+                     prox_ind);
         wscale = 1.0;
       }
 
@@ -399,7 +445,7 @@ void Saga(const T&                          x,
     // scale the weights for every epoch and reset the JIT update system
     LaggedUpdate(weights,
                  wscale,
-                 full_range_indices,
+                 &full_range_indices,
                  n_samples,
                  n_classes,
                  cumulative_sums,
@@ -408,28 +454,42 @@ void Saga(const T&                          x,
                  sum_gradient,
                  true,
                  n_samples,
-                 prox);
+                 prox,
+                 prox_ind);
 
     wscale = 1.0;
 
     // compute loss for the current solution if debugging
-    if (debug) {
-      double loss =
-        family->Loss(x.t()*weights
-                     + arma::repmat(intercept, n_samples, n_classes), y)
-                    /n_samples
-                    + alpha_scaled*arma::accu(arma::square(weights))
-                    + beta_scaled*arma::accu(arma::abs(weights));
-      losses.push_back(loss);
-    }
+    if (debug)
+      EpochLoss(x,
+                y,
+                weights,
+                intercept,
+                family,
+                alpha_scaled,
+                beta_scaled,
+                n_samples,
+                n_classes,
+                is_sparse,
+                losses);
 
     // check termination conditions
-    max_weight = arma::abs(weights).max();
-    max_change = arma::abs(weights - previous_weights).max();
-    previous_weights = weights;
+    double max_change = 0.0;
+    double max_weight = 0.0;
+
+    for (std::size_t i = 0; i < weights.size(); ++i) {
+      double abs_weight = std::abs(weights[i]);
+      if (abs_weight > max_weight)
+        max_weight = abs_weight;
+
+      double change = std::abs(weights[i] - previous_weights[i]);
+      if (change > max_change)
+        max_change = change;
+      previous_weights[i] = weights[i];
+    }
 
     if ((max_weight != 0.0 && max_change/max_weight <= tol)
-          || (max_weight == 0.0 && max_change == 0.0)) {
+        || (max_weight == 0.0 && max_change == 0.0)) {
       break;
     }
   } // outer loop
@@ -440,9 +500,9 @@ void Saga(const T&                          x,
 
   if (it_outer == max_iter) {
     // Iteration limit reached
-    return_code = 1;
+    return_codes.push_back(1);
   } else {
     // Successful convergence
-    return_code = 0;
+    return_codes.push_back(0);
   }
 }
