@@ -17,7 +17,6 @@
 #ifndef SGDNET_FAMILIES_
 #define SGDNET_FAMILIES_
 
-#include <RcppArmadillo.h>
 #include <memory>
 #include "math.h"
 
@@ -25,7 +24,7 @@ namespace sgdnet {
 
 class Family {
 public:
-  virtual ~Family() {};
+  virtual double Link(const double y) = 0;
 
   virtual double Loss(const double prediction, const double y) = 0;
 
@@ -33,8 +32,7 @@ public:
 
   virtual void PreprocessResponse(std::vector<double>& y,
                                   std::vector<double>& y_center,
-                                  std::vector<double>& y_scale,
-                                  const bool           fit_intercept) = 0;
+                                  std::vector<double>& y_scale) = 0;
 
   virtual double NullDeviance(const std::vector<double>& y) = 0;
 
@@ -47,68 +45,65 @@ public:
     step_sizes.reserve(alpha_scaled.size());
 
     for (auto alpha_val : alpha_scaled) {
-      double L = L_scaling*(max_squared_sum + fit_intercept) + alpha_val;
+      double L =
+        L_scaling_*(max_squared_sum + static_cast<double>(fit_intercept))
+        + alpha_val;
       double mu_n = 2.0*n_samples*alpha_val;
       step_sizes.push_back(1.0 / (2.0*L + std::min(L, mu_n)));
     }
     return step_sizes;
-  };
-
-  std::size_t GetNClasses() {
-    return n_classes;
   }
 
+  unsigned n_classes() { return n_classes_; }
+  double lambda_scaling() { return lambda_scaling_; }
+
 protected:
-  std::size_t n_classes;
-  double L_scaling;
+  unsigned n_classes_;
+  double L_scaling_;
+  double lambda_scaling_;
 };
 
 class Gaussian : public Family {
 public:
   Gaussian() {
-    n_classes = 1;
-    L_scaling = 1.0;
-  };
+    n_classes_ = 1;
+    L_scaling_ = 1.0;
+    lambda_scaling_ = 1.0;
+  }
 
-  virtual ~Gaussian() {};
+  double Link(const double y) { return y; }
 
   double Loss(const double prediction, const double y) {
     return 0.5*(prediction - y)*(prediction - y);
-  };
+  }
 
   double Gradient(const double prediction, const double y) {
     return prediction - y;
-  };
+  }
 
   void PreprocessResponse(std::vector<double>& y,
                           std::vector<double>& y_center,
-                          std::vector<double>& y_scale,
-                          const bool           fit_intercept) {
-    if (fit_intercept) {
-      double y_mu = Mean(y, y.size());
-      double y_sd = StandardDeviation(y, y.size());
+                          std::vector<double>& y_scale) {
+    double y_mu = Mean(y);
+    double y_sd = StandardDeviation(y);
 
-      y_center.push_back(y_mu);
-      y_scale.push_back(y_sd);
+    if (y_sd == 0.0) y_sd = 1.0;
 
-      for (auto& y_val : y) {
-        y_val -= y_mu;
+    y_center[0] = y_mu;
+    y_scale[0] = y_sd;
 
-        if (y_sd != 0)
-          y_val /= y_sd;
-      }
-    } else {
-      y_center.push_back(0.0);
-      y_scale.push_back(1.0);
+    for (auto& y_val : y) {
+      y_val -= y_mu;
+      y_val /= y_sd;
     }
-  };
+  }
 
   double NullDeviance(const std::vector<double>& y) {
-    double y_mu = Mean(y, y.size());
-    double loss = 0.0;
+    double y_mu = Mean(y);
 
-    for (const auto& y_val : y)
-      loss += Loss(y_mu, y_val);
+    double loss = 0.0;
+    for (const auto y_i : y)
+      loss += Loss(y_mu, y_i);
 
     return 2.0 * loss;
   }
@@ -117,49 +112,52 @@ public:
 class Binomial : public Family {
 public:
   Binomial() {
-    n_classes = 1;
-    L_scaling = 0.25;
-  };
+    n_classes_ = 1;
+    L_scaling_ = 0.25;
+    lambda_scaling_ = 0.5;
+  }
 
-  virtual ~Binomial() {};
+  double Link(const double y) {
+    return std::log(y / (1.0 - y));
+  }
 
   double Loss(const double prediction, const double y) {
-    return std::log(1.0 + std::exp(prediction)) - y*prediction;
-  };
+    double z = prediction * y;
+
+    if (z > 18.0)
+      return std::exp(-z);
+    if (z < -18.0)
+      return -z;
+
+    return std::log(1.0 + std::exp(-z));
+  }
 
   double Gradient(const double prediction, const double y) {
-    return 1.0 - y - 1.0/(1.0 + std::exp(prediction));
-  };
+    double z = prediction * y;
+
+    if (z > 18.0)
+      return std::exp(-z) * -y;
+    if (z < -18.0)
+      return -y;
+
+    return -y / (std::exp(z) + 1.0);
+  }
 
   void PreprocessResponse(std::vector<double>& y,
                           std::vector<double>& y_center,
-                          std::vector<double>& y_scale,
-                          const bool           fit_intercept) {
-    y_center.push_back(0.0);
-    y_scale.push_back(1.0);
-  };
+                          std::vector<double>& y_scale) {
+    // No preprocessing for the response in the binomial case
+  }
 
   double NullDeviance(const std::vector<double>& y) {
-    double y_mu = Mean(y, y.size());
-    double y_mu_log = std::log(y_mu / (1.0 - y_mu));
-    double loss = 0.0;
+    double y_mu = Mean(y)/2.0 + 0.5;
 
-    for (auto const& y_val : y)
-      loss += Loss(y_mu_log, y_val);
+    double loss = 0.0;
+    for (const auto y_i : y)
+      loss += Loss(Link(y_mu), Link(y_i));
 
     return 2.0 * loss;
   }
-};
-
-class FamilyFactory {
-public:
-  static std::unique_ptr<Family> NewFamily(const std::string& family_choice) {
-    if (family_choice == "gaussian")
-      return std::unique_ptr<Family>(new Gaussian());
-    else if (family_choice == "binomial")
-      return std::unique_ptr<Family>(new Binomial());
-    return NULL;
-  };
 };
 
 } // namespace sgdnet

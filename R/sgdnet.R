@@ -158,7 +158,7 @@ sgdnet.default <- function(x,
          gaussian = {
            stopifnot(is.numeric(y),
                      NCOL(y) == 1)
-           },
+         },
          binomial = {
            stopifnot(length(unique(y)) == 2)
            y_table <- table(y)
@@ -171,9 +171,9 @@ sgdnet.default <- function(x,
 
            # Transform response to {0, 1}, which is used internally
            y <- as.double(y)
-           y[y == min(y)] <- 0
+           y[y == min(y)] <- -1
            y[y == max(y)] <- 1
-           }
+         }
          )
 
   y <- as.matrix(y)
@@ -191,7 +191,11 @@ sgdnet.default <- function(x,
                   debug = debug)
 
   # Fit the model by calling the Rcpp routine.
-  res <- SgdnetCpp(x, y, control)
+  if (is_sparse) {
+    res <- SgdnetSparse(x, y, control)
+  } else {
+    res <- SgdnetDense(x, y, control)
+  }
 
   lambda <- res$lambda
   n_penalties <- length(lambda)

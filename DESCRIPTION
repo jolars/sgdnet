@@ -28,8 +28,11 @@ Imports:
 Suggests: 
     covr,
     testthat,
-    glmnet
+    glmnet,
+    knitr,
+    rmarkdown,
+    latticeExtra
 LinkingTo: 
     Rcpp (>= 0.12.16),
-    RcppArmadillo (>= 0.8.500.0.0)
-
+    RcppEigen (>= 0.3.3.4.0)
+VignetteBuilder: knitr
