@@ -54,7 +54,6 @@
 #include "constants.h"
 #include "prox.h"
 
-
 //' Lagged updates for L2-regularized regression
 //'
 //' @param k current iteration

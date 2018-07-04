@@ -36,6 +36,25 @@ public:
 
   virtual double NullDeviance(const std::vector<double>& y) = 0;
 
+  virtual void Prox(const double prediction,
+                    const double y,
+                    const double gamma_scaled,
+                    double& xp,
+                    double& sg) = 0;
+
+  double ProxNewtonStep(double y,
+                        double x2,
+                        double gamma_scaled,
+                        double ry) {
+    double expy = std::exp(y*ry);
+    double sigma = -ry/(1 + expy);
+    double gamma_scaled_sigma = gamma_scaled*sigma;
+    double numerator = gamma_scaled_sigma  + (y-x2);
+    double denominator = 1 - ry*gamma_scaled_sigma- gamma_scaled_sigma*sigma;
+
+    return(numerator/denominator);
+  }
+
   std::vector<double> StepSize(const double               max_squared_sum,
                                const std::vector<double>& alpha_scaled,
                                const bool                 fit_intercept,
@@ -107,6 +126,13 @@ public:
 
     return 2.0 * loss;
   }
+
+  void Prox(const double prediction,
+            const double y,
+            const double gamma_scaled,
+            double& xp,
+            double& sg) {
+  }
 };
 
 class Binomial : public Family {
@@ -157,6 +183,18 @@ public:
       loss += Loss(Link(y_mu), Link(y_i));
 
     return 2.0 * loss;
+  }
+
+  void Prox(const double prediction,
+            const double y,
+            const double gamma_scaled,
+            double& xp,
+            double& sg) {
+
+    for (int i = 0; i < 12; ++i)
+      xp -= ProxNewtonStep(xp, prediction, gamma_scaled, y);
+
+    sg = (prediction - xp)/gamma_scaled;
   }
 };
 
