@@ -20,11 +20,13 @@ test_that("gaussian regression with sparse and dense features work", {
   seed <- sample.int(100, 1)
 
   set.seed(seed)
-  fit_sparse <- sgdnet(x, y, alpha = 0, intercept = FALSE)
+  fit_sparse <- sgdnet(x, y, alpha = 0, intercept = FALSE, standardize = FALSE)
   set.seed(seed)
-  fit_dense <- sgdnet(as.matrix(x), y, alpha = 0, intercept = FALSE)
+  fit_dense <- sgdnet(as.matrix(x), y, alpha = 0, intercept = FALSE,
+                      standardize = FALSE)
+  gfit <- sgdnet(x, y, alpha = 0, intercept = FALSE, standardize = FALSE)
 
-  expect_equal(coef(fit_sparse), coef(fit_dense))
+  expect_equal(coef(fit_sparse), coef(fit_dense), tolerance = 1e-3)
 })
 
 test_that("we can approximately reproduce the OLS solution", {
