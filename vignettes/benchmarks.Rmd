@@ -50,7 +50,7 @@ library(sgdnet)
 p_binomial <- lattice::xyplot(loss ~ time | dataset + penalty,
                               benchmarks_binomial,
                               type = "l",
-                              xlab = "Time (normalized)",
+                              xlab = "Time (seconds)",
                               ylab = "Objective loss",
                               groups = package,
                               scales = list(relation = "free"),
