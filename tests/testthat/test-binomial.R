@@ -4,31 +4,31 @@ test_that("basic model fitting with dense and sparse features", {
   library(glmnet)
   glmnet.control(fdev = 0)
 
-  set.seed(1)
+  set.seed(2)
 
   n <- 1000
   d <- 3
 
-  sd2 <- function(x) sqrt(sum((x - mean(x))^2)/length(x))
-
   # Sparse features
-  x <- Matrix::rsparsematrix(n, d, density = 0.5)
-  x <- Matrix::Matrix(apply(x, 2, function(x) x/sd2(x)), sparse = TRUE)
+  x <- Matrix::rsparsematrix(n, d, density = 0.2)
   y <- rbinom(n, 1, 0.5)
 
-  fit1 <- sgdnet(x, y, family = "binomial", standardize = FALSE,
-                 intercept = TRUE)
-  fit2 <- glmnet(x, y, family = "binomial", standardize = FALSE,
-                 intercept = TRUE)
-
-  expect_is(fit1, "sgdnet")
-  expect_is(fit1, "sgdnet_binomial")
-  expect_equivalent(coef(fit1), coef(fit2), tolerance = 0.01)
-
-  fit3 <- sgdnet(as.matrix(x), y, family = "binomial", intercept = TRUE)
-  fit4 <- glmnet(as.matrix(x), y, family = "binomial", intercept = TRUE)
-
-  expect_equal(coef(fit3), coef(fit4), tolerance = 0.01)
+  for (alpha in c(0, 0.5, 1)) {
+    sfit_sparse <- sgdnet(x, y, alpha = alpha,
+                          family = "binomial",
+                          standardize = FALSE,
+                          intercept = FALSE)
+    sfit_dense <- sgdnet(as.matrix(x), y, alpha = alpha,
+                         family = "binomial",
+                         standardize = FALSE,
+                         intercept = FALSE)
+    gfit <- glmnet(x, y, alpha = alpha,
+                   family = "binomial",
+                   standardize = FALSE,
+                   intercept = FALSE)
+    expect_equal(coef(sfit_sparse), coef(sfit_dense), tol = 0.01)
+    expect_equal(coef(sfit_sparse), coef(gfit), tol = 0.01)
+  }
 })
 
 test_that("regularization path is correctly computed", {
@@ -69,5 +69,5 @@ test_that("non-penalized logistic regression has similar results as glm()", {
   sgdfit <- sgdnet(x, y, family = "binomial", lambda = 0, thresh = 1e-9)
   glmfit <- glm(y ~ x, family = "binomial")
 
-  expect_equivalent(as.vector(coef(sgdfit)), coef(glmfit))
+  expect_equivalent(as.vector(coef(sgdfit)), coef(glmfit), tolerance = 1e-5)
 })
