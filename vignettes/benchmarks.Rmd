@@ -14,16 +14,21 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+
+library(lattice)
+library(latticeExtra)
+
+lattice.options(default.theme = list(fontsize = list(points = 4, text = 8)))
 ```
 
 This vignette contains benchmarks of **sgdnet** against other similar
 packages. The data has been precomputed from scripts that are
 available at <https://github.com/jolars/sgdnet/data-raw/>.
 
-The benchmarks were produces by running the packages over a range
-of tolerance thresholds and recording the run times.
+The benchmarks were produced by fitting models over a range
+of tolerance thresholds and recording the run times for each run.
 
-# Binomial family
+## Binomial family
 
 In this section, we are going to look at the following datasets:
 
@@ -40,20 +45,16 @@ Table: Benchmarking datasets for the binomial model.
 All of these have been collected from the
 [libsvm binary dataset collection](https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary.html).
 
-
-```{r, fig.cap = "Benchmarking results for binomial responses."}
-library(lattice)
-library(latticeExtra)
-library(directlabels)
-p_binomial <- lattice::xyplot(mean_loss ~ time | dataset + penalty,
-                              data_benchmarks_binomial,
+```{r, echo = FALSE, fig.cap = "Benchmarking results for binomial responses.", fig.width = 7, fig.height = 5}
+library(sgdnet)
+p_binomial <- lattice::xyplot(loss ~ time | dataset + penalty,
+                              benchmarks_binomial,
                               type = "l",
                               xlab = "Time (normalized)",
                               ylab = "Objective loss",
                               groups = package,
-                              scales = list(y = list(relation = "free")),
+                              scales = list(relation = "free"),
                               auto.key = list(lines = TRUE, points = FALSE))
-p <- useOuterStrips(p_binomial)
-direct.label(p, "angled.boxes")
+latticeExtra::useOuterStrips(p_binomial)
 ```
 

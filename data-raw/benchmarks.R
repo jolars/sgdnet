@@ -104,25 +104,7 @@ for (i in seq_along(datasets)) {
 }
 
 library(tidyverse)
-data_binomial <- data_binomial[order(data_binomial$time), ]
+benchmarks_binomial <- data_binomial[order(data_binomial$time), ]
 
-data_benchmarks_binomial <- data_binomial %>%
-  group_by(dataset, penalty, package) %>%
-  mutate(max_time = max(time),
-         min_time = min(time)) %>%
-  ungroup() %>%
-  group_by(dataset, penalty) %>%
-  filter(time < min(max_time),
-         time > max(min_time)) %>%
-  mutate(time = (time - min(time))/(max(time) - min(time))) %>%
-  mutate(time = cut(time, 20)) %>%
-  ungroup() %>%
-  group_by(dataset,
-           penalty,
-           package,
-           time) %>%
-  summarise(mean_loss = median(loss)) %>%
-  mutate(time = as.numeric(time))
-
-usethis::use_data(data_benchmarks_binomial, internal = TRUE)
+usethis::use_data(benchmarks_binomial, overwrite = TRUE)
 
