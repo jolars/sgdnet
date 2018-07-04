@@ -43,13 +43,17 @@ plot.sgdnet <- function(x, xvar = c("norm", "lambda", "dev"), ...) {
 
   plot_data <- utils::stack(as.data.frame(beta))
 
+  n_vars = length(unique(plot_data$ind))
+
   plot_args <- list(
     x = quote(values ~ xval),
     groups = quote(ind),
     data = quote(plot_data),
     type = "l",
     ylab = expression(beta),
-    auto.key = list(space = "right", lines = TRUE, points = FALSE),
+    auto.key = if (n_vars <= 10)
+      list(space = "right", lines = TRUE, points = FALSE)
+    else FALSE,
     abline = within(lattice::trellis.par.get("reference.line"), {h = 0})
   )
 
