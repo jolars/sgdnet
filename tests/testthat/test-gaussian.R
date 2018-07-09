@@ -27,6 +27,7 @@ test_that("gaussian regression with sparse and dense features work", {
   gfit <- sgdnet(x, y, alpha = 0, intercept = FALSE, standardize = FALSE)
 
   expect_equal(coef(fit_sparse), coef(fit_dense), tolerance = 1e-3)
+  expect_equal(coef(gfit), coef(fit_sparse), tolerance = 1e-3)
 })
 
 test_that("we can approximately reproduce the OLS solution", {
