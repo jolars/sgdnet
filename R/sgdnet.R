@@ -169,7 +169,7 @@ sgdnet.default <- function(x,
 
            class_names <- names(y_table)
 
-           # Transform response to {0, 1}, which is used internally
+           # Transform response to {-1, 1}, which is used internally
            y <- as.double(y)
            y[y == min(y)] <- -1
            y[y == max(y)] <- 1
