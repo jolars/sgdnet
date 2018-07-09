@@ -137,8 +137,13 @@ sgdnet.default <- function(x,
   # Collect sgdnet-specific options for debugging and more
   debug <- getOption("sgdnet.debug")
 
-  if (is.null(lambda))
+  if (is.null(lambda) || isFALSE(lambda))
     lambda <- double(0L)
+  else
+    nlambda <- length(lambda)
+
+  if (nlambda == 0)
+    stop("lambda path cannot be of zero length.")
 
   stopifnot(identical(NROW(y), NROW(x)),
             !any(is.na(y)),

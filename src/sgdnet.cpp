@@ -140,8 +140,6 @@ Rcpp::List SetupSgdnet(T&                   x,
                      y_scale,
                      family);
 
-  unsigned n_lambda = lambda.size();
-
   // Maximum of sums of squares over samples
   double max_squared_sum = ColNormsMax(x);
 
