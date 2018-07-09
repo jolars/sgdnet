@@ -137,7 +137,7 @@ sgdnet.default <- function(x,
   # Collect sgdnet-specific options for debugging and more
   debug <- getOption("sgdnet.debug")
 
-  if (is.null(lambda) || isFALSE(lambda))
+  if (is.null(lambda) || is_false(lambda))
     lambda <- double(0L)
   else
     nlambda <- length(lambda)
