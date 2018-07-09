@@ -38,7 +38,7 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL THE alphaENTS OR CONTRIBUTORS BE LIABLE FOR
+// ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE FOR
 // ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
 // DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
 // SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
@@ -277,21 +277,43 @@ inline void Reset(const unsigned                 k,
   }
 }
 
-//' Lagged updates for L1-regularized regression
+//' The SAGA algorithm
 //'
-//' @param k current iteration
-//' @param w weights vector
-//' @param n_features number of features
+//' @param x the feature matrix
+//' @param y response vector or vectorized response matrix
+//' @param fit_intercept whether the intercept should be fit
+//' @param intercept_decay adjustment of learning rate for intercept,
+//'   which is lower for sparse features to guard against intercept
+//'   oscillation
+//' @param intercept the vector. Initialized to zero but will be stored
+//'   and continually updated along the regularization path to support
+//'   warm starts
+//' @param w weights. Updated in the same manner as `intercept`.
+//' @param family a pointer to the Family object
+//' @param prox a pointer to the Prox object
+//' @param gamma step size
+//' @param alpha L2-regularization penalty strength
+//' @param beta L1-regularization penalty strength
 //' @param g_sum gradient sum
-//' @param lag iteration at which the features were last updated
-//' @param x the feature matrix. Sparse or dense Eigen object.
-//' @param s_ind the index of the current sample
-//' @param lag_scaling geometric sum for lagged updates
-//' @param prox_scaling step size for the projection step
-//' @param grad_scaling step size for gradient step
-//' @param prox pointer to the proximal operator
+//' @param g_sum_intercept gradient sum for intercept
+//' @param g gradient memory
+//' @param n_samples number of samples
+//' @param n_features number of features
+//' @param n_classes number of classes
+//' @param max_iter maximum number of iterations allowed
+//' @param tol tolerance threshold for stopping criteria
+//' @param n_iter accumulated number of epochs (outer iterations) along
+//'   the path
+//' @param return_codes a vector storage for return codes from each
+//'   fit along the regularization path. 0 means the algorithm converged. 1
+//'   means that `max_iter` was reached before convergence
+//' @param losses a temporary storage for loss from vectors. Only used if
+//'   `debug` is true.
+//' @param debug whether we are debuggin and should store loss from the
+//'   fit inside `losses`.
 //'
-//' @return Updates weights and lag.
+//' @return Updates `w`, `intercept`, `g_sum`, `g_sum_intercept`, `g`,
+//'   `n_iter`, `return_codes`, and possibly `losses`.
 template <typename T>
 void Saga(const T&                               x,
           const std::vector<double>&             y,
