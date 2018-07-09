@@ -140,7 +140,7 @@ Rcpp::List SetupSgdnet(T&                   x,
                      y_scale,
                      family);
 
-  unsigned n_penalties = lambda.size();
+  unsigned n_lambda = lambda.size();
 
   // Maximum of sums of squares over samples
   double max_squared_sum = ColNormsMax(x);
@@ -187,10 +187,10 @@ Rcpp::List SetupSgdnet(T&                   x,
   // Null deviance on scaled y for computing deviance ratio
   double null_deviance_scaled = family->NullDeviance(y);
   vector<double> deviance_ratio;
-  deviance_ratio.reserve(n_penalties);
+  deviance_ratio.reserve(n_lambda);
 
   // Fit the path of penalty values
-  for (unsigned penalty_ind = 0; penalty_ind < n_penalties; ++penalty_ind) {
+  for (unsigned lambda_ind = 0; lambda_ind < n_lambda; ++lambda_ind) {
     vector<double> losses;
     if (debug)
       losses.reserve(max_iter);
@@ -203,9 +203,9 @@ Rcpp::List SetupSgdnet(T&                   x,
          weights,
          family,
          prox,
-         step_size[penalty_ind],
-         alpha[penalty_ind],
-         beta[penalty_ind],
+         step_size[lambda_ind],
+         alpha[lambda_ind],
+         beta[lambda_ind],
          sum_gradient,
          sum_gradient_intercept,
          gradient_memory,
