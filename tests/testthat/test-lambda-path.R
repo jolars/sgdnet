@@ -20,6 +20,7 @@ test_that("lambda paths are computed appropriately", {
       # lambda paths when no intercept is fit
       for (intercept in c(TRUE)) {
         for (family in c("gaussian")) {
+          set.seed(1)
           y <- switch(family,
                       gaussian = rnorm(n, 5, 2),
                       binomial = rbinom(n, 1, 0.2))
