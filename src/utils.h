@@ -195,7 +195,10 @@ void RegularizationPath(std::vector<double>&                   lambda,
     double lambda_max =
       LambdaMax(x, y, n_samples, elasticnet_mix);
     lambda_max *= family->lambda_scaling();
-    lambda = LogSpace(lambda_max, lambda_max*lambda_min_ratio, n_lambda);
+    if (lambda_max != 0.0)
+      lambda = LogSpace(lambda_max, lambda_max*lambda_min_ratio, n_lambda);
+    else
+      lambda.resize(n_lambda, 0.0);
   }
 
   alpha.reserve(n_lambda);
