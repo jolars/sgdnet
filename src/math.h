@@ -17,8 +17,6 @@
 #ifndef SGDNET_MATH_
 #define SGDNET_MATH_
 
-#include <RcppArmadillo.h>
-
 //' LogSumExp function
 //'
 //' @param x a vector in the log domain
@@ -28,8 +26,8 @@ inline double LogSumExp(const std::vector<double>& x) {
   double x_max = *std::max_element(x.begin(), x.end());
   double exp_sum = 0.0;
 
-  for (auto const& x_val : x)
-    exp_sum += std::exp(x_val - x_max);
+  for (auto x_i : x)
+    exp_sum += std::exp(x_i - x_max);
 
   return std::log(exp_sum) + x_max;
 }
@@ -41,16 +39,16 @@ inline double LogSumExp(const std::vector<double>& x) {
 //' @param n number of elements
 //'
 //' @return a log-spaced sequence
-inline std::vector<double> LogSpace(const double      from,
-                                    const double      to,
-                                    const std::size_t n) {
+inline std::vector<double> LogSpace(const double from,
+                                    const double to,
+                                    const int    n) {
   double log_from = std::log(from);
   double step = (std::log(to) - log_from)/(n - 1);
 
   std::vector<double> out;
   out.reserve(n);
 
-  for (std::size_t i = 0; i < n; ++i)
+  for (unsigned i = 0; i < n; ++i)
     out.push_back(std::exp(log_from + i*step));
 
   return out;
@@ -65,8 +63,8 @@ inline std::vector<double> LogSpace(const double      from,
 //'
 //' @noRd
 template <typename T>
-inline double Mean(const T& x, const std::size_t n) {
-  return std::accumulate(x.begin(), x.end(), 0.0)/n;
+inline double Mean(const T& x) {
+  return std::accumulate(x.begin(), x.end(), 0.0)/x.size();
 }
 
 //' Standard deviation
@@ -78,15 +76,14 @@ inline double Mean(const T& x, const std::size_t n) {
 //'
 //' @noRd
 template <typename T>
-inline double StandardDeviation(const T& x, const std::size_t n) {
-  double x_mean = Mean(x, n);
+inline double StandardDeviation(const T& x) {
+  auto x_mean = Mean(x);
 
-  double squared_deviance = 0.0;
+  double var = 0.0;
+  for (auto x_i : x)
+    var += std::pow(x_i - x_mean, 2)/x.size();
 
-  for (const auto& x_val : x)
-    squared_deviance += (x_val - x_mean)*(x_val - x_mean)/n;
-
-  return std::sqrt(squared_deviance);
+  return std::sqrt(var);
 }
 
 #endif // SGDNET_MATH_

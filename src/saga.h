@@ -47,453 +47,458 @@
 // OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 // DAMAGE.
 
-#include <RcppArmadillo.h>
+#include <RcppEigen.h>
 #include "utils.h"
 #include "math.h"
 #include "families.h"
 #include "constants.h"
 #include "prox.h"
 
-//' Perform Lagged Updates
+//' Lagged updates for L2-regularized regression
 //'
-//' @param weights the weights matrix
-//' @param wscale the weights scale
-//' @param nonzero_ptr a pointer to a vector of indices for the nonzero elements
-//'   of the current sample
-//' @param n_samples the number of data points
-//' @param n_classes the number of classes for the outcome
-//' @param cumulative_sums storage for cumulative sums
-//' @param cumulative_sums_prox storage for cumulative sums for the proximal
-//'   operator
-//' @param feature_history keeps track of the iteration at which each
-//'   feature was last updated
-//' @param nontrivial_prox nontrivial proximal operator?
-//' @param sum_gradient gradient sum storage
-//' @param reset TRUE if wscale is to be reset and weights rescaled
-//' @param it_inner the current iteration in the inner loop
-//' @param prox a proximal operator
+//' @param k current iteration
+//' @param w weights vector
+//' @param n_features number of features
+//' @param g_sum gradient sum
+//' @param lag iteration at which the features were last updated
+//' @param x the feature matrix. Sparse or dense Eigen object.
+//' @param s_ind the index of the current sample
+//' @param lag_scaling geometric sum for lagged updates
+//' @param grad_scaling step size for gradient
 //'
-//' @return Weights, cumulative_sums, and feature_history are updated.
+//' @return Updates weights and lag.
+inline void LaggedUpdate(const unsigned             k,
+                         std::vector<double>&       w,
+                         const unsigned             n_features,
+                         const std::vector<double>& g_sum,
+                         std::vector<unsigned>&     lag,
+                         const Eigen::MatrixXd&     x,
+                         const unsigned             s_ind,
+                         const std::vector<double>& lag_scaling,
+                         const double               grad_scaling) {
+
+  for (unsigned ind = 0; ind < n_features; ++ind) {
+    const unsigned lagged_amount = k - lag[ind];
+
+    if (lagged_amount == 0)
+      continue;
+
+    lag[ind] = k;
+
+    w[ind] += lag_scaling[lagged_amount]*grad_scaling*g_sum[ind];
+  }
+}
+
+inline void LaggedUpdate(const unsigned                     k,
+                         std::vector<double>&               w,
+                         const unsigned                     n_features,
+                         const std::vector<double>&         g_sum,
+                         std::vector<unsigned>&             lag,
+                         const Eigen::SparseMatrix<double>& x,
+                         const unsigned                     s_ind,
+                         const std::vector<double>&         lag_scaling,
+                         const double                       grad_scaling) {
+
+  for (Eigen::SparseMatrix<double>::InnerIterator it(x, s_ind); it; ++it) {
+    const unsigned ind = it.index();
+    const unsigned lagged_amount = k - lag[ind];
+
+    if (lagged_amount == 0)
+      continue;
+
+    lag[ind] = k;
+
+    w[ind] += lag_scaling[lagged_amount]*grad_scaling*g_sum[ind];
+  }
+}
+
+//' Lagged updates for L1-regularized regression
 //'
-//' @noRd
-void LaggedUpdate(std::vector<double>&            weights,
-                  const double                    wscale,
-                  std::vector<std::size_t>       *nonzero_ptr,
-                  const std::size_t               n_samples,
-                  const std::size_t               n_classes,
-                  std::vector<double>&            cumulative_sums,
-                  std::vector<int>&               feature_history,
-                  const bool                      nontrivial_prox,
-                  const std::vector<double>&      sum_gradient,
-                  const bool                      reset,
-                  const int                       it_inner,
-                  std::unique_ptr<sgdnet::Prox>&  prox,
-                  const int                       prox_ind) {
+//' @param k current iteration
+//' @param w weights vector
+//' @param n_features number of features
+//' @param g_sum gradient sum
+//' @param lag iteration at which the features were last updated
+//' @param x the feature matrix. Sparse or dense Eigen object.
+//' @param s_ind the index of the current sample
+//' @param lag_scaling geometric sum for lagged updates
+//' @param prox_scaling step size for the projection step
+//' @param grad_scaling step size for gradient step
+//' @param prox pointer to the proximal operator
+//'
+//' @return Updates weights and lag.
+inline void LaggedProjection(const unsigned                       k,
+                             std::vector<double>&                 w,
+                             const unsigned                       n_features,
+                             const std::vector<double>&           g_sum,
+                             std::vector<unsigned>&               lag,
+                             const Eigen::MatrixXd&               x,
+                             const unsigned                       s_ind,
+                             const std::vector<double>&           lag_scaling,
+                             const double                         prox_scaling,
+                             const double                         grad_scaling,
+                             const std::unique_ptr<sgdnet::Prox>& prox) {
 
-  for (auto&& feature_ind : *nonzero_ptr) {
+  for (unsigned ind = 0; ind < n_features; ++ind) {
+    const unsigned lagged_amount = k - lag[ind];
 
-    double cum_sum = cumulative_sums[it_inner*prox_ind - prox_ind];
+    if (lagged_amount == 0)
+      continue;
+
+    lag[ind] = k;
+
+    w[ind] += grad_scaling*lag_scaling[lagged_amount]*g_sum[ind];
+    w[ind] = prox->Evaluate(w[ind], prox_scaling*lag_scaling[lagged_amount]);
+  }
+}
+
+inline void LaggedProjection(const unsigned                       k,
+                             std::vector<double>&                 w,
+                             const unsigned                       n_features,
+                             const std::vector<double>&           g_sum,
+                             std::vector<unsigned>&               lag,
+                             const Eigen::SparseMatrix<double>&   x,
+                             const unsigned                       s_ind,
+                             const std::vector<double>&           lag_scaling,
+                             const double                         prox_scaling,
+                             const double                         grad_scaling,
+                             const std::unique_ptr<sgdnet::Prox>& prox)  {
+
+  for (Eigen::SparseMatrix<double>::InnerIterator it(x, s_ind); it; ++it) {
+    const unsigned ind = it.index();
+    const unsigned lagged_amount = k - lag[ind];
+
+    if (lagged_amount == 0)
+      continue;
+
+    lag[ind] = k;
+
+    w[ind] += grad_scaling*lag_scaling[lagged_amount]*g_sum[ind];
+    w[ind] = prox->Evaluate(w[ind], prox_scaling*lag_scaling[lagged_amount]);
+  }
+}
+
+//' Dot product
+//'
+//' @param w weights vector
+//' @param n_features number of features
+//' @param x the feature matrix. Sparse or dense Eigen object.
+//' @param s_ind the index of the current sample
+//'
+//' @return Returns the dot product of a sample in x with w, used for
+//'   predicting the response in a sample.
+inline double DotProduct(const std::vector<double>& w,
+                         const unsigned             n_features,
+                         const unsigned             s_ind,
+                         const Eigen::MatrixXd&     x)  {
+  double inner_product = 0.0;
+  for (unsigned f_ind = 0; f_ind < n_features; ++f_ind)
+    inner_product += x(f_ind, s_ind) * w[f_ind];
+
+  return inner_product;
+}
+
+inline double DotProduct(const std::vector<double>&         w,
+                         const unsigned                     n_features,
+                         const unsigned                     s_ind,
+                         const Eigen::SparseMatrix<double>& x)  {
+  double inner_product = 0.0;
+  for (Eigen::SparseMatrix<double>::InnerIterator it(x, s_ind); it; ++it)
+    inner_product += it.value() * w[it.index()];
+
+  return inner_product;
+}
 
 
-    int last_update_ind = feature_history[feature_ind] - 1;
+//' Weighted addition
+//'
+//' Updates `y` with a weighted sample in `x`
+//'
+//' @param y weights or gradient vector
+//' @param x the feature matrix. Sparse or dense Eigen object.
+//' @param scaling step size
+//'
+//' @return Updates `y` with `x` scaled.
+inline void AddWeighted(std::vector<double>&   y,
+                        const Eigen::MatrixXd& x,
+                        const unsigned         s_ind,
+                        const double           scaling)  {
 
-    if (feature_history[feature_ind] != 0)
-      cum_sum -= cumulative_sums[last_update_ind*prox_ind];
+  for (unsigned f_ind = 0; f_ind < y.size(); ++f_ind)
+    y[f_ind] += scaling * x(f_ind, s_ind);
+}
 
-    if (nontrivial_prox) {
-      double cum_sum_prox = cumulative_sums[it_inner*prox_ind - prox_ind + 1];
+inline void AddWeighted(std::vector<double>&               y,
+                        const Eigen::SparseMatrix<double>& x,
+                        const unsigned                     s_ind,
+                        const double                       scaling) {
 
-      if (feature_history[feature_ind] != 0)
-        cum_sum_prox -= cumulative_sums[last_update_ind*prox_ind + 1];
+  for (Eigen::SparseMatrix<double>::InnerIterator it(x, s_ind); it; ++it)
+    y[it.index()] += scaling * it.value();
+}
 
-      for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
-        std::size_t f_idx = feature_ind*n_classes + class_ind;
+//' Reset weights and lag
+//'
+//' Scales and resets the weights and lag
+//'
+//' @param k current iteration
+//' @param w weights vector
+//' @param g_sum gradient sum
+//' @param lag_scaling geometric sum for lagged updates
+//' @param lag iteration at which the features were last updated
+//' @param n_features number of features
+//' @param prox_scaling step size for the projection step
+//' @param grad_scaling step size for gradient step
+//' @param nontrivial_prox true if non-trivial (not L2) update
+//' @param prox pointer to the proximal operator
+//'
+//' @return Unlags the coefficients by adding the lagged updates.
+inline void Reset(const unsigned                 k,
+                  std::vector<double>&           w,
+                  std::vector<double>&           g_sum,
+                  std::vector<double>&           lag_scaling,
+                  std::vector<unsigned>&         lag,
+                  const unsigned                 n_features,
+                  const double                   wscale,
+                  const double                   prox_scaling,
+                  const double                   grad_scaling,
+                  const bool                     nontrivial_prox,
+                  const std::unique_ptr<sgdnet::Prox>& prox) {
+  for (unsigned ind = 0; ind < n_features; ++ind) {
+    unsigned lagged_amount = k - lag[ind];
 
-        double sum_gradient_idx = sum_gradient[f_idx];
+    w[ind] += lag_scaling[lagged_amount]*grad_scaling*g_sum[ind];
 
-        if (std::abs(sum_gradient_idx*cum_sum) < cum_sum_prox) {
-
-          weights[f_idx] =
-            prox->Evaluate(weights[f_idx] - cum_sum*sum_gradient_idx,
-                           cum_sum_prox);
-
-        } else {
-
-          if (last_update_ind == -1)
-            last_update_ind = it_inner - 1;
-
-          for (int lagged_ind = it_inner - 1;
-               lagged_ind > last_update_ind - 1;
-               --lagged_ind) {
-
-            // Grad and prox steps
-            int lagged_idx = lagged_ind*prox_ind;
-
-            double grad_step = cumulative_sums[lagged_idx];
-            double prox_step = cumulative_sums[lagged_idx + 1];
-
-            if (lagged_ind > 0) {
-              grad_step -= cumulative_sums[lagged_idx - prox_ind];
-              prox_step -= cumulative_sums[lagged_idx - prox_ind + 1];
-            }
-
-            weights[f_idx] =
-              prox->Evaluate(weights[f_idx] - grad_step*sum_gradient_idx,
-                             prox_step);
-          }
-        }
-      } // for class_ind (nontrivial prox)
-    } else { // Trivial prox
-      for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
-        std::size_t f_idx = feature_ind*n_classes + class_ind;
-        weights[f_idx] -= cum_sum*sum_gradient[f_idx];
-      }
-    }
-
-    if (!reset)
-      feature_history[feature_ind] = it_inner;
-  } // for each feature
-
-  if (reset) {
-    cumulative_sums[it_inner*prox_ind - prox_ind] = 0.0;
     if (nontrivial_prox)
-      cumulative_sums[it_inner*prox_ind - prox_ind + 1] = 0.0;
+      w[ind] = prox->Evaluate(w[ind], lag_scaling[lagged_amount]*prox_scaling);
 
-    std::for_each(weights.begin(),
-                  weights.end(),
-                  [&](double& weight) { weight *= wscale; });
-
-    std::fill(feature_history.begin(),
-              feature_history.end(),
-              it_inner % n_samples);
+    // Rescale weights
+    w[ind] *= wscale;
   }
 }
 
-//' Update the gradient
+//' The SAGA algorithm
 //'
-//' Update the gradient and store it in `gradient_memory` and update
-//' coefficients
-//'
-//' @param x the current sample
-//' @param nonzero_ptr vector of indices of nonzero elements in the
-//'   current sample
-//' @param weights coefficients
-//' @param gradient gradient for current sample
-//' @param gradient_memory memory of gradients for each sample
-//' @param sum_gradient gradient sum
-//' @param step_size step size
-//' @param wscale scale for weights
-//' @param n_seen number of samples seen so far
-//' @param n_classes pseudo-number of classes
-//' @param sample_ind index of current sample
-//'
-//' @return Updates weights and sum_gradient.
-//'
-//' @noRd
-template <typename T>
-void UpdateWeights(const T&                        x,
-                   std::vector<std::size_t>       *nonzero_ptr,
-                   std::vector<double>&            weights,
-                   std::vector<double>&            intercept,
-                   const std::vector<double>&      gradient,
-                   const std::vector<double>&      gradient_memory,
-                   std::vector<double>&            sum_gradient,
-                   std::vector<double>&            intercept_sum_gradient,
-                   const double                    step_size,
-                   const double                    wscale,
-                   const double                    intercept_decay,
-                   const std::size_t               n_seen,
-                   const std::size_t               n_classes,
-                   const std::size_t               sample_ind,
-                   const bool                      fit_intercept) {
-  auto x_itr = x.begin_col(sample_ind);
-
-  for (auto&& feature_ind : *nonzero_ptr) {
-    for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
-      std::size_t s_idx = sample_ind*n_classes + class_ind;
-      std::size_t f_idx = feature_ind*n_classes + class_ind;
-
-      double gradient_diff = gradient[class_ind] - gradient_memory[s_idx];
-      double step = step_size*(1.0 - 1.0/n_seen);
-      double gradient_correction = (*x_itr)*gradient_diff;
-
-      weights[f_idx] -= gradient_correction*step/wscale;
-      sum_gradient[f_idx] += gradient_correction;
-
-      if (fit_intercept) {
-        intercept_sum_gradient[class_ind] += gradient_diff;
-        intercept[class_ind] -=
-          step_size*intercept_sum_gradient[class_ind]/n_seen*intercept_decay
-          + gradient_diff*step;
-      }
-    }
-    ++x_itr;
-  }
-}
-
-//' SAGA algorithm
-//'
-//' @param x feature matrix
-//' @param y response matrix
-//' @param weights coefficients
-//' @param fit_intercept whether to fit the intercept
-//' @param intercept intercept
-//' @param intercept_decay weight of intercept update, which is different
-//'   for the sparse implementation
-//' @param intercept_sum_gradient gradient sum for the intercept
-//' @param family response type
-//' @param prox proximal operator
-//' @param step_size step size
-//' @param alpha_scaled scaled l2-penalty weight
-//' @param beta_scaled scaled l1-penalty weight
-//' @param sum_gradient gradient sum for the weights
-//' @param gradient_memory storage for gradients for each sample
-//' @param seen vector of indices for whether the sample has been seen
-//'   previously
-//' @param n_seen number of previously seen samples
+//' @param x the feature matrix
+//' @param y response vector or vectorized response matrix
+//' @param fit_intercept whether the intercept should be fit
+//' @param intercept_decay adjustment of learning rate for intercept,
+//'   which is lower for sparse features to guard against intercept
+//'   oscillation
+//' @param intercept the vector. Initialized to zero but will be stored
+//'   and continually updated along the regularization path to support
+//'   warm starts
+//' @param w weights. Updated in the same manner as `intercept`.
+//' @param family a pointer to the Family object
+//' @param prox a pointer to the Prox object
+//' @param gamma step size
+//' @param alpha L2-regularization penalty strength
+//' @param beta L1-regularization penalty strength
+//' @param g_sum gradient sum
+//' @param g_sum_intercept gradient sum for intercept
+//' @param g gradient memory
 //' @param n_samples number of samples
-//' @param n_features number of features (variables)
-//' @param n_classes pseudo-number of classes
-//' @param is_sparse whether x is sparse
-//' @param max_iter maximum number of iterations
-//' @param tol treshold for convergence (stops if max weight/max change
-//'   in weights < tol)
-//' @param n_iter number of accumulated effective passes
-//' @param return_codes vector of return codes for each fit
-//' @param losses vector of losses for each fit and pass
-//' @param debug whether diagnostic information should be computed
+//' @param n_features number of features
+//' @param n_classes number of classes
+//' @param max_iter maximum number of iterations allowed
+//' @param tol tolerance threshold for stopping criteria
+//' @param n_iter accumulated number of epochs (outer iterations) along
+//'   the path
+//' @param return_codes a vector storage for return codes from each
+//'   fit along the regularization path. 0 means the algorithm converged. 1
+//'   means that `max_iter` was reached before convergence
+//' @param losses a temporary storage for loss from vectors. Only used if
+//'   `debug` is true.
+//' @param debug whether we are debuggin and should store loss from the
+//'   fit inside `losses`.
 //'
-//' @return Updates weights, intercept, sum_gradient, intercept_sum_gradient,
-//'   gradient_memory.
-//'
-//' @noRd
+//' @return Updates `w`, `intercept`, `g_sum`, `g_sum_intercept`, `g`,
+//'   `n_iter`, `return_codes`, and possibly `losses`.
 template <typename T>
-void Saga(const T&                                x,
-          const std::vector<double>&              y,
-          std::vector<double>&                    weights,
-          const bool                              fit_intercept,
-          std::vector<double>&                    intercept,
-          const double                            intercept_decay,
-          std::vector<double>&                    intercept_sum_gradient,
-          std::unique_ptr<sgdnet::Family>&        family,
-          std::unique_ptr<sgdnet::Prox>&          prox,
-          const double                            step_size,
-          const double                            alpha_scaled,
-          const double                            beta_scaled,
-          std::vector<std::vector<std::size_t> >& nonzero_indices,
-          std::vector<double>&                    sum_gradient,
-          std::vector<double>&                    gradient_memory,
-          std::vector<bool>&                      seen,
-          std::size_t&                            n_seen,
-          const std::size_t                       n_samples,
-          const std::size_t                       n_features,
-          const std::size_t                       n_classes,
-          const bool                              is_sparse,
-          const std::size_t                       max_iter,
-          const double                            tol,
-          std::size_t&                            n_iter,
-          std::vector<unsigned int>&              return_codes,
-          std::vector<double>&                    losses,
-          const bool                              debug) {
+void Saga(const T&                               x,
+          const std::vector<double>&             y,
+          const bool                             fit_intercept,
+          const double                           intercept_decay,
+          std::vector<double>&                   intercept,
+          std::vector<double>&                   w,
+          const std::unique_ptr<sgdnet::Family>& family,
+          const std::unique_ptr<sgdnet::Prox>&   prox,
+          const double                           gamma,
+          const double                           alpha,
+          const double                           beta,
+          std::vector<double>&                   g_sum,
+          std::vector<double>&                   g_sum_intercept,
+          std::vector<double>&                   g,
+          const unsigned                         n_samples,
+          const unsigned                         n_features,
+          const unsigned                         n_classes,
+          const unsigned                         max_iter,
+          const double                           tol,
+          unsigned&                              n_iter,
+          std::vector<unsigned>&                 return_codes,
+          std::vector<double>&                   losses,
+          const bool                             debug) {
+
+  using namespace std;
 
   // Are we dealing with a nontrivial prox?
-  const bool nontrivial_prox = beta_scaled > 0.0;
-  const int prox_ind = static_cast<int>(nontrivial_prox) + 1;
+  const bool nontrivial_prox = beta > 0.0;
 
   // Keep track of when each feature was last updated
-  std::vector<int> feature_history(n_features);
+  vector<unsigned> lag(n_features);
 
-  // Store previous weights for computing stopping criteria
-  std::vector<double> previous_weights(weights);
-
-  // Scale of weights
   double wscale = 1.0;
 
-  // Store a matrix of cumulative sums, prox sums in second column
-  std::vector<double> cumulative_sums(n_samples*prox_ind);
+  vector<double> lag_scaling;
+  lag_scaling.reserve(n_samples + 1);
+  lag_scaling.push_back(0.0);
+  lag_scaling.push_back(1.0);
+  double geo_sum = 1.0;
+  double wscale_update = 1.0 - alpha*gamma;
 
-  // Precomputated stepsize
-  double wscale_update = 1.0 - step_size*alpha_scaled;
+  for (unsigned i = 2; i < n_samples + 1; ++i) {
+    geo_sum *= wscale_update;
+    double tmp = lag_scaling.back() + geo_sum;
+    lag_scaling.push_back(tmp);
+  }
 
-  // Keep a vector of the full range of indicies for each row for when
-  // we update the full range of weights
-  std::vector<std::size_t> full_range_indices(n_features);
-  std::iota(full_range_indices.begin(), full_range_indices.end(), 0);
-
-  std::vector<std::size_t> *nonzero_ptr;
-
-  if (!is_sparse)
-    nonzero_ptr = &full_range_indices;
-
-  // Vector to store prediction
-  std::vector<double> prediction(n_classes);
-  prediction.reserve(n_classes);
-
-  // Vector to store gradient
-  std::vector<double> gradient;
-  gradient.reserve(n_classes);
+  // Store previous weights for computing stopping criteria
+  vector<double> w_previous(w);
 
   // Outer loop
-  std::size_t it_outer = 0;
-  for (; it_outer < max_iter; ++it_outer) {
-
+  unsigned it_outer = 0;
+  bool converged = false;
+  do {
     // Inner loop
-    for (std::size_t it_inner = 0; it_inner < n_samples; ++it_inner) {
+    for (unsigned it_inner = 0; it_inner < n_samples; ++it_inner) {
 
-      // Extract a random sample
-      std::size_t sample_ind = std::floor(R::runif(0.0, n_samples));
-
-      // Update the number of samples seen and the seen array
-      if (!seen[sample_ind]) {
-        n_seen++;
-        seen[sample_ind] = true;
-        if (is_sparse)
-          nonzero_indices[sample_ind] = Nonzeros(x.col(sample_ind));
+      // Rescale and unlag weights whenever wscale becomes too small
+      if (wscale < sgdnet::SMALL) {
+        Reset(it_inner,
+              w,
+              g_sum,
+              lag_scaling,
+              lag,
+              n_features,
+              wscale,
+              beta*gamma / wscale,
+              -gamma/wscale,
+              nontrivial_prox,
+              prox);
+        wscale = 1.0;
+        lag.assign(lag.size(), it_inner);
       }
 
-      if (is_sparse)
-        nonzero_ptr = &nonzero_indices[sample_ind];
+      // Pull a sample
+      unsigned s_ind = floor(R::runif(0.0, n_samples));
 
-      if (it_inner > 0)
-        LaggedUpdate(weights,
-                     wscale,
-                     nonzero_ptr,
-                     n_samples,
-                     n_classes,
-                     cumulative_sums,
-                     feature_history,
-                     nontrivial_prox,
-                     sum_gradient,
-                     false,
-                     it_inner,
-                     prox,
-                     prox_ind);
-
-      PredictSample(prediction,
-                    x,
-                    nonzero_ptr,
-                    weights,
-                    wscale,
-                    intercept,
-                    n_classes,
-                    sample_ind);
-
-      for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind) {
-        gradient[class_ind] =
-          family->Gradient(prediction[class_ind],
-                           y[sample_ind*n_classes + class_ind]);
+      // Apply missed updates to coefficients just-in-time
+      if (nontrivial_prox) {
+        LaggedProjection(it_inner,
+                         w,
+                         n_features,
+                         g_sum,
+                         lag,
+                         x,
+                         s_ind,
+                         lag_scaling,
+                         beta*gamma / wscale,
+                         -gamma / wscale,
+                         prox);
+      } else {
+        LaggedUpdate(it_inner,
+                     w,
+                     n_features,
+                     g_sum,
+                     lag,
+                     x,
+                     s_ind,
+                     lag_scaling,
+                     -gamma / wscale);
       }
 
-      // L2-regularization by rescaling the weights
+      double prediction =
+        wscale * DotProduct(w, n_features, s_ind, x) + intercept[0];
+
+      double g_new = family->Gradient(prediction, y[s_ind]);
+      double g_change = g_new - g[s_ind];
+      g[s_ind] = g_new;
+
       wscale *= wscale_update;
 
-      UpdateWeights(x,
-                    nonzero_ptr,
-                    weights,
-                    intercept,
-                    gradient,
-                    gradient_memory,
-                    sum_gradient,
-                    intercept_sum_gradient,
-                    step_size,
-                    wscale,
-                    intercept_decay,
-                    n_seen,
-                    n_classes,
-                    sample_ind,
-                    fit_intercept);
+      // Update coefficients (w) with sparse step (with L2 scaling)
+      AddWeighted(w, x, s_ind, -g_change*gamma/wscale);
 
-      // Update the gradient memory for this sample
-      for (std::size_t class_ind = 0; class_ind < n_classes; ++class_ind)
-        gradient_memory[sample_ind*n_classes + class_ind] = gradient[class_ind];
+      // TODO(jolars): modify to work with multivariate outcomes
+      if (fit_intercept) {
+        g_sum_intercept[0] += g_change/n_samples;
+        intercept[0] -=
+          gamma*g_sum_intercept[0]*intercept_decay + g_change/n_samples;
+      }
 
-      // Update cumulative sums
-      if (it_inner == 0) {
-        cumulative_sums[0] = step_size/(wscale*n_seen);
-        if (nontrivial_prox)
-          cumulative_sums[1] = step_size*beta_scaled/wscale;
+      // Gradient-average step
+      if (nontrivial_prox) {
+        LaggedProjection(it_inner + 1,
+                         w,
+                         n_features,
+                         g_sum,
+                         lag,
+                         x,
+                         s_ind,
+                         lag_scaling,
+                         beta*gamma / wscale,
+                         -gamma / wscale,
+                         prox);
       } else {
-        cumulative_sums[it_inner*prox_ind] =
-          cumulative_sums[it_inner*prox_ind - prox_ind]
-          + step_size/(wscale*n_seen);
-        if (nontrivial_prox)
-          cumulative_sums[it_inner*prox_ind + 1] =
-            cumulative_sums[it_inner*prox_ind - prox_ind + 1]
-            + step_size*beta_scaled/wscale;
+        LaggedUpdate(it_inner + 1,
+                     w,
+                     n_features,
+                     g_sum,
+                     lag,
+                     x,
+                     s_ind,
+                     lag_scaling,
+                     -gamma / wscale);
       }
 
-      // if wscale is too small, reset the scale
-      if (wscale < sgdnet::SMALL) {
-        LaggedUpdate(weights,
-                     wscale,
-                     &full_range_indices,
-                     n_samples,
-                     n_classes,
-                     cumulative_sums,
-                     feature_history,
-                     nontrivial_prox,
-                     sum_gradient,
-                     true,
-                     it_inner + 1,
-                     prox,
-                     prox_ind);
-        wscale = 1.0;
-      }
+      // Update the gradient average
+      AddWeighted(g_sum, x, s_ind, g_change/n_samples);
 
-    } // inner loop
+    } // Outer loop
 
-    // scale the weights for every epoch and reset the JIT update system
-    LaggedUpdate(weights,
-                 wscale,
-                 &full_range_indices,
-                 n_samples,
-                 n_classes,
-                 cumulative_sums,
-                 feature_history,
-                 nontrivial_prox,
-                 sum_gradient,
-                 true,
-                 n_samples,
-                 prox,
-                 prox_ind);
-
+    // Unlag and rescale coefficients
+    Reset(n_samples,
+          w,
+          g_sum,
+          lag_scaling,
+          lag,
+          n_features,
+          wscale,
+          beta*gamma / wscale,
+          -gamma/wscale,
+          nontrivial_prox,
+          prox);
     wscale = 1.0;
+    lag.assign(lag.size(), 0);
 
-    // compute loss for the current solution if debugging
-    if (debug)
-      EpochLoss(x,
-                y,
-                weights,
-                intercept,
-                family,
-                alpha_scaled,
-                beta_scaled,
-                n_samples,
-                n_classes,
-                is_sparse,
-                losses);
-
-    // check termination conditions
-    double max_change = 0.0;
-    double max_weight = 0.0;
-
-    for (std::size_t i = 0; i < weights.size(); ++i) {
-      double abs_weight = std::abs(weights[i]);
-      if (abs_weight > max_weight)
-        max_weight = abs_weight;
-
-      double change = std::abs(weights[i] - previous_weights[i]);
-      if (change > max_change)
-        max_change = change;
-      previous_weights[i] = weights[i];
+    if (debug) {
+      double loss = EpochLoss(x,
+                              y,
+                              w,
+                              intercept,
+                              family,
+                              alpha,
+                              beta,
+                              n_samples,
+                              n_features,
+                              n_classes);
+      losses.push_back(loss);
     }
 
-    if ((max_weight != 0.0 && max_change/max_weight <= tol)
-        || (max_weight == 0.0 && max_change == 0.0)) {
-      break;
-    }
-  } // outer loop
-  it_outer++;
+    converged = CheckConvergence(w, w_previous, tol);
+    ++it_outer;
+
+  } while (!converged && it_outer < max_iter); // outer loop
 
   // Update accumulated number of epochs
   n_iter += it_outer;
@@ -506,3 +511,4 @@ void Saga(const T&                                x,
     return_codes.push_back(0);
   }
 }
+

@@ -26,3 +26,14 @@ extract_family <- function(x) {
   family_index <- inherits(x, paste0("sgdnet_", supported_families), TRUE) > 0
   supported_families[family_index]
 }
+
+#' Check if x is FALSE
+#'
+#' @param x Argument to be tested.
+#'
+#' @return A bool.
+#'
+#' @keywords internal
+is_false <- function(x) {
+  identical(x, FALSE)
+}

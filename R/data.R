@@ -68,3 +68,17 @@
 #'   UCI Machine Learning Repository <http://archive.ics.uci.edu/ml>. Irvine,
 #'   CA: University of California, School of Information and Computer Science.
 "mushrooms"
+
+#' Benchmark data for binomial response family
+#'
+#' @source <https://github.com/jolars/sgdnet/data-raw/
+#'
+#' @format A `data.frame` with 5 variables and 2000 observations.
+#' \describe{
+#'   \item{dataset}{dataset used}
+#'   \item{package}{R package}
+#'   \item{time}{run time in seconds}
+#'   \item{loss}{objective loss}
+#'   \item{penalty}{type of penalty, "ridge" or "lasso"}
+#' }
+"benchmarks_binomial"

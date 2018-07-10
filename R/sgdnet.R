@@ -35,15 +35,15 @@
 #' The *binomial* family solves the following objective:
 #'
 #' \deqn{
-#'   -\frac{1}{n} \sum_{i=1}^n
-#'     \bigg[y_i (\beta_0 + x_i^\mathsf{T} \beta) - \log\Big(1 + e^{\beta_0 + x_i^\mathsf{T} \beta}\Big)\bigg]
+#'   \frac{1}{n} \sum_{i=1}^n
+#'     \log\left[1 + e^{-y_i\left(\beta_0 + x^\mathsf{T} \beta \right)} \right]
 #'   + \lambda \left( \frac{1 - \alpha}{2} ||\beta||_2^2
 #'                    + \alpha||\beta||_1 \right),
 #' }{
-#'   -1/n \sum [y_i(\beta_0 + x^T \beta) - log(1 + exp(\beta_0 + x^T \beta)]
+#'   1/n \sum log {1 + exp[-y_i(\beta_0 + x^T \beta)]}
 #'   + \lambda [(1 - \alpha)/2 ||\beta||_2^2 + \alpha||\beta||_1],
 #' }
-#' where \eqn{y_i \in \{0, 1\}}{y ~ {0, 1}}.
+#' where \eqn{y_i \in \{-1, 1\}}{y ~ {-1, 1}}.
 #'
 #' @section Regularization Path:
 #' The default regularization path is a sequence of `nlambda`
@@ -137,8 +137,13 @@ sgdnet.default <- function(x,
   # Collect sgdnet-specific options for debugging and more
   debug <- getOption("sgdnet.debug")
 
-  if (is.null(lambda))
+  if (is.null(lambda) || is_false(lambda))
     lambda <- double(0L)
+  else
+    nlambda <- length(lambda)
+
+  if (nlambda == 0)
+    stop("lambda path cannot be of zero length.")
 
   stopifnot(identical(NROW(y), NROW(x)),
             !any(is.na(y)),
@@ -158,7 +163,7 @@ sgdnet.default <- function(x,
          gaussian = {
            stopifnot(is.numeric(y),
                      NCOL(y) == 1)
-           },
+         },
          binomial = {
            stopifnot(length(unique(y)) == 2)
            y_table <- table(y)
@@ -169,11 +174,11 @@ sgdnet.default <- function(x,
 
            class_names <- names(y_table)
 
-           # Transform response to {0, 1}, which is used internally
+           # Transform response to {-1, 1}, which is used internally
            y <- as.double(y)
-           y[y == min(y)] <- 0
+           y[y == min(y)] <- -1
            y[y == max(y)] <- 1
-           }
+         }
          )
 
   y <- as.matrix(y)
@@ -191,7 +196,11 @@ sgdnet.default <- function(x,
                   debug = debug)
 
   # Fit the model by calling the Rcpp routine.
-  res <- SgdnetCpp(x, y, control)
+  if (is_sparse) {
+    res <- SgdnetSparse(x, y, control)
+  } else {
+    res <- SgdnetDense(x, y, control)
+  }
 
   lambda <- res$lambda
   n_penalties <- length(lambda)

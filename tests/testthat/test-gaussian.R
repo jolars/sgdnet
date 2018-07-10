@@ -20,11 +20,14 @@ test_that("gaussian regression with sparse and dense features work", {
   seed <- sample.int(100, 1)
 
   set.seed(seed)
-  fit_sparse <- sgdnet(x, y, alpha = 0, intercept = FALSE)
+  fit_sparse <- sgdnet(x, y, alpha = 0, intercept = FALSE, standardize = FALSE)
   set.seed(seed)
-  fit_dense <- sgdnet(as.matrix(x), y, alpha = 0, intercept = FALSE)
+  fit_dense <- sgdnet(as.matrix(x), y, alpha = 0, intercept = FALSE,
+                      standardize = FALSE)
+  gfit <- sgdnet(x, y, alpha = 0, intercept = FALSE, standardize = FALSE)
 
-  expect_equal(coef(fit_sparse), coef(fit_dense))
+  expect_equal(coef(fit_sparse), coef(fit_dense), tolerance = 1e-3)
+  expect_equal(coef(gfit), coef(fit_sparse), tolerance = 1e-3)
 })
 
 test_that("we can approximately reproduce the OLS solution", {
@@ -101,4 +104,16 @@ test_that("we generate the same lambda path as in glmnet", {
   sgdnetfit <- sgdnet(x, y)
 
   expect_equal(glmnetfit$lambda, sgdnetfit$lambda)
+})
+
+
+test_that("a constant response returns a completely sparse solution with intercept at mean(y)", {
+  x <- as.matrix(iris[, 1:4])
+  y <- rep(5, nrow(x))
+
+  sfit <- sgdnet(x, y)
+
+  expect_equal(sfit$lambda, rep(0, length(sfit$lambda)))
+  expect_equal(as.vector(sfit$beta), rep(0, length(sfit$beta)))
+  expect_equal(as.vector(sfit$a0), rep(mean(y), length(sfit$a0)))
 })

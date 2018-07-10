@@ -1,0 +1,60 @@
+---
+title: "Benchmarks"
+author: "Johan Larsson"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+
+library(lattice)
+library(latticeExtra)
+
+lattice.options(default.theme = list(fontsize = list(points = 4, text = 8)))
+```
+
+This vignette contains benchmarks of **sgdnet** against other similar
+packages. The data has been precomputed from scripts that are
+available at <https://github.com/jolars/sgdnet/data-raw/>.
+
+The benchmarks were produced by fitting models over a range
+of tolerance thresholds and recording the run times for each run.
+
+## Binomial family
+
+In this section, we are going to look at the following datasets:
+
+Name              Observations      Features
+----------    ----------------     ---------
+icjnn1                  49,990            22
+a9a                     32,561           123
+phishing                11,055            68
+mushroooms               8,124           112
+covtype                581,012            54
+
+Table: Benchmarking datasets for the binomial model.
+
+All of these have been collected from the
+[libsvm binary dataset collection](https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary.html).
+
+```{r, echo = FALSE, fig.cap = "Benchmarking results for binomial responses.", fig.width = 7, fig.height = 5}
+library(sgdnet)
+p_binomial <- lattice::xyplot(loss ~ time | dataset + penalty,
+                              benchmarks_binomial,
+                              type = "l",
+                              xlab = "Time (seconds)",
+                              ylab = "Objective loss",
+                              groups = package,
+                              scales = list(relation = "free"),
+                              auto.key = list(lines = TRUE, points = FALSE))
+latticeExtra::useOuterStrips(p_binomial)
+```
+
