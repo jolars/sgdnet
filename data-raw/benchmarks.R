@@ -24,7 +24,7 @@ binomial_loss <- function(fit, X, y, lambda, alpha) {
 library(SparseM)
 library(Matrix)
 library(glmnet)
-library(gsoc18saga)
+library(gsoc18saga) # https://github.com/jolars/gsoc18saga/
 
 # load datasets
 datasets <- list(
