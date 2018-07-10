@@ -105,3 +105,15 @@ test_that("we generate the same lambda path as in glmnet", {
 
   expect_equal(glmnetfit$lambda, sgdnetfit$lambda)
 })
+
+
+test_that("a constant response returns a completely sparse solution with intercept at mean(y)", {
+  x <- as.matrix(iris[, 1:4])
+  y <- rep(5, nrow(x))
+
+  sfit <- sgdnet(x, y)
+
+  expect_equal(sfit$lambda, rep(0, length(sfit$lambda)))
+  expect_equal(as.vector(sfit$beta), rep(0, length(sfit$beta)))
+  expect_equal(as.vector(sfit$a0), rep(mean(y), length(sfit$a0)))
+})
