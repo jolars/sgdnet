@@ -2,10 +2,25 @@
 % Please edit documentation in R/predict.sgdnet.R
 \name{predict.sgdnet}
 \alias{predict.sgdnet}
+\alias{predict.sgdnet_gaussian}
+\alias{predict.sgdnet_binomial}
+\alias{predict.sgdnet_multinomial}
 \title{Predictions for sgdnet Models}
 \usage{
-\method{predict}{sgdnet}(object, newx, s = NULL, type = c("link",
-  "response", "coefficients", "nonzero", "class"), exact = FALSE, ...)
+\method{predict}{sgdnet}(object, newx = NULL, s = NULL, type,
+  exact = FALSE, newoffset = NULL, ...)
+
+\method{predict}{sgdnet_gaussian}(object, newx = NULL, s = NULL,
+  type = c("link", "response", "coefficients", "nonzero"), exact = FALSE,
+  newoffset = NULL, ...)
+
+\method{predict}{sgdnet_binomial}(object, newx = NULL, s = NULL,
+  type = c("link", "response", "coefficients", "nonzero", "class"),
+  exact = FALSE, newoffset = NULL, ...)
+
+\method{predict}{sgdnet_multinomial}(object, newx = NULL, s = NULL,
+  type = c("link", "response", "coefficients", "nonzero", "class"),
+  exact = FALSE, newoffset = NULL, ...)
 }
 \arguments{
 \item{object}{an object of class \code{'sgdnet'}.}
@@ -20,14 +35,21 @@
 \item{\code{link}}{ linear predictors,}
 \item{\code{response}}{responses,}
 \item{\code{coefficients}}{coefficients (weights); equivalent to calling
-\code{\link[=coef]{coef()}}, and}
+\code{\link[=coef]{coef()}}}
 \item{\code{nonzero}}{nonzero coefficients at each step of the regularization
-path.}
+path, and}
+\item{\code{class}}{class predictions for each new data point in \code{newx} at
+each step of the regularization path -- only useful for 'binomial' and
+'multinomial' families.}
 }}
 
 \item{exact}{if the given value of \code{s} is not in the model and
 \code{exact = TRUE}, the model will be refit using \code{s}. If \code{FALSE}, predictions
 will be made using a linearly interpolated coefficient matrix.}
+
+\item{newoffset}{if an offset was used in the call to \code{\link[=sgdnet]{sgdnet()}},
+a new offset can be provided here for making predictions (but not for
+\code{type = 'coefficients'/'nonzero'})}
 
 \item{...}{arguments to be passed on to \code{\link[stats:update]{stats::update()}} to refit
 the model via \code{\link[=sgdnet]{sgdnet()}} if \code{s} is missing
@@ -43,18 +65,41 @@ Predictions for sgdnet Models
 # Gaussian
 
 # Split into training and test sets
-id <- sample.int(nrow(iris))
-train_ind <- id[1:100]
-test_ind <- id[101:150]
-gaussian_fit <- sgdnet(iris[train_ind, 2:4], iris[train_ind, 1])
-pred <- predict(gaussian_fit,
-                newx = iris[test_ind, 2:4],
-                s = 0.003,
-                type = "response",
-                exact = TRUE)
+n <- length(houses$y)
+train_ind <- sample(n, size = floor(0.8 * n))
 
-# Mean absolute error
-mae <- 1/length(test_ind)*sum(abs(iris[test_ind, 2:4] - pred))
+# Fit the model using the training set
+fit_gaussian <- sgdnet(houses$x[train_ind, ], houses$y[train_ind])
+
+# Predict using the test set
+pred_gaussian <- predict(fit_gaussian, newx = houses$x[-train_ind, ])
+
+# Mean absolute prediction error along regularization path
+mae <- 1/(n - length(train_ind)) *
+         colSums(abs(houses$y[-train_ind] - pred_gaussian))
+
+# Binomial
+n <- length(mushrooms$y)
+train_ind <- sample(n, size = floor(0.8 * n))
+
+fit_binomial <- sgdnet(mushrooms$x[train_ind, ],
+                       mushrooms$y[train_ind],
+                       family = "binomial")
+
+# Predict classes at custom lambda value (s) using linear interpolation
+predict(fit_binomial, mushrooms$x[-train_ind, ], type = "class", s = 1/n)
+
+# Multinomial
+fit_multinomial <- sgdnet(pendigits$train$x,
+                          pendigits$train$y,
+                          family = "multinomial",
+                          alpha = 0.25)
+predict(fit_multinomial,
+        pendigits$test$x,
+        s = 1/nrow(pendigits$test$x),
+        exact = TRUE,
+        type = "class")
+
 }
 \seealso{
 \code{\link[=sgdnet]{sgdnet()}}, \code{\link[=coef.sgdnet]{coef.sgdnet()}}

@@ -1,12 +1,28 @@
+# houses (gaussian) -------------------------------------------------------
 
-# permeability (gaussian) -------------------------------------------------
+library(Matrix)
 
-data(permeability, package = "AppliedPredictiveModeling")
+temp_file <- tempfile()
 
-permeability <- list(x = Matrix::Matrix(fingerprints),
-                     y = permeability)
+download.file(
+  "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/regression/cadata",
+  temp_file
+)
 
-usethis::use_data(permeability)
+tmp <- e1071::read.matrix.csr(temp_file, fac = FALSE)
+tmp_x <- as.data.frame(as.matrix(tmp$x))
+colnames(tmp_x) <- c("median_income",
+                     "housing_median_age",
+                     "total_rooms",
+                     "total_bedrooms",
+                     "population",
+                     "households",
+                     "latitude",
+                     "longitude")
+
+houses <- list(x = tmp_x, y = tmp$y)
+
+usethis::use_data(houses, overwrite = TRUE)
 
 # mushrooms (binomial) ----------------------------------------------------
 
@@ -199,3 +215,36 @@ y <- pull(temp_data2, edibility)
 mushrooms <- list(x = x, y = y)
 
 devtools::use_data(mushrooms, overwrite = TRUE)
+
+unlink(temp_file)
+
+# pendigits (multinomial) -------------------------------------------------
+
+temp_file1 <- tempfile()
+temp_file2 <- tempfile()
+
+download.file(
+  "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multiclass/pendigits",
+  temp_file1
+)
+
+download.file(
+  "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multiclass/pendigits.t",
+  temp_file2
+)
+
+test <- e1071::read.matrix.csr(temp_file1, fac = TRUE)
+train <- e1071::read.matrix.csr(temp_file2, fac = TRUE)
+
+library(Matrix)
+
+test_x <- as(test$x, "dgCMatrix")
+train_x <- as(train$x, "dgCMatrix")
+
+pendigits <- list(test = list(x = test_x, y = test$y),
+                  train = list(x = train_x, y = train$y))
+
+usethis::use_data(pendigits, overwrite = TRUE)
+
+unlink(temp_file1)
+unlink(temp_file2)

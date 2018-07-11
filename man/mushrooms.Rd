@@ -3,7 +3,7 @@
 \docType{data}
 \name{mushrooms}
 \alias{mushrooms}
-\title{Mushrooms}
+\title{Mushroom Data Set}
 \format{A list with two items representing 8,124 observations from
 112 variables.
 \describe{

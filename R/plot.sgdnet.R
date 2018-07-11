@@ -35,22 +35,53 @@
 #' @seealso [lattice::xyplot()], [sgdnet()]
 #'
 #' @examples
-#' fit <- sgdnet(iris[, 2:4], iris[, 1])
-#' plot(fit, main = "Lassoing with sgdnet", type = "S")
+#' # Gaussian logistic regression
+#' gfit <- sgdnet(houses$x, houses$y, alpha = 0)
+#' plot(gfit, auto.key = list(columns = 2, space = "top"))
+#'
+#' # Binomial logistic regression
+#' bfit <- sgdnet(with(infert, cbind(age, parity)),
+#'                infert$case,
+#'                family = "binomial")
+#' plot(bfit, xvar = "lambda", grid = TRUE)
+#'
+#' # Multinomial logistic regression
+#' mfit <- sgdnet(iris[, 1:4], iris[, 5], family = "multinomial")
+#' plot(mfit, xvar = "dev", main = "Lassoing with sgdnet")
+#'
 plot.sgdnet <- function(x, xvar = c("norm", "lambda", "dev"), ...) {
   lambda <- x$lambda
-  beta <- t(as.matrix(x$beta))
+  beta <- x$beta
+  n_lambda <- length(lambda)
 
-  plot_data <- utils::stack(as.data.frame(beta))
+  reorganize <- function(beta) {
+    tmp <- t(as.matrix(beta))
+    utils::stack(as.data.frame(tmp))
+  }
+
+  if (is.list(beta)) {
+    n_classes <- length(beta)
+    plot_data <- data.frame(matrix(NA, ncol = 3, nrow = 0))
+    for (i in seq_len(n_classes)) {
+      plot_data <- rbind(plot_data,
+                         cbind(reorganize(beta[[i]]), names(beta)[i]))
+    }
+    colnames(plot_data)[3] <- "response"
+  } else {
+    plot_data <- reorganize(beta)
+  }
 
   n_vars = length(unique(plot_data$ind))
 
   plot_args <- list(
-    x = quote(values ~ xval),
+    x = if (is.list(beta))
+      quote(values ~ xval | response)
+    else
+      quote(values ~ xval),
+    type = if (n_lambda == 1) "p" else "l",
     groups = quote(ind),
     data = quote(plot_data),
-    type = "l",
-    ylab = expression(beta),
+    ylab = expression(hat(beta)),
     auto.key = if (n_vars <= 10)
       list(space = "right", lines = TRUE, points = FALSE)
     else FALSE,
@@ -60,8 +91,11 @@ plot.sgdnet <- function(x, xvar = c("norm", "lambda", "dev"), ...) {
   switch(match.arg(xvar),
          norm = {
            plot_args$xlab <-
-             expression(group("|", group("|", beta, "|"), "|")[1])
-           plot_data$xval <- rowSums(abs(beta))
+             expression(group("|", group("|", hat(beta), "|"), "|")[1])
+           plot_data$xval <- if (is.list(beta))
+             rowSums(sapply(beta, function(x) colSums(abs(as.matrix(x)))))
+           else
+             colSums(abs(as.matrix(beta)))
          },
          lambda = {
            plot_args$xlab <- expression(lambda)
@@ -83,3 +117,5 @@ plot.sgdnet <- function(x, xvar = c("norm", "lambda", "dev"), ...) {
   # Let the user modify the plot parameters
   do.call(lattice::xyplot, utils::modifyList(plot_args, list(...)))
 }
+
+# do.call(lattice::xyplot,plot_args)

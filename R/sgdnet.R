@@ -17,11 +17,13 @@
 #' Fit a Generalized Linear Model with Elastic Net Regularization
 #'
 #' @section Model families:
-#' Two model families are currently supported: gaussian univariate
-#' regression and binomial logistic regression, the choice of which is made
-#' using the `family` argument.
+#' Three model families are currently supported: gaussian univariate
+#' regression, binomial logistic regression, and multinomial logistic
+#' regression. The choice of which is made
+#' using the `family` argument. Next follows the objectives of the various
+#' model families:
 #'
-#' The *gaussian* family solves the following objective:
+#' *Gaussian univariate regression*:
 #'
 #' \deqn{
 #'   \frac{1}{2n} \sum_{i=1}^n (y_i - \beta_0 - x_i^\mathsf{T} \beta)^2
@@ -32,7 +34,7 @@
 #'   + \lambda [(1 - \alpha)/2 ||\beta||_2^2 + \alpha||\beta||_1].
 #' }
 #'
-#' The *binomial* family solves the following objective:
+#' *Binomial logistic regression*:
 #'
 #' \deqn{
 #'   \frac{1}{n} \sum_{i=1}^n
@@ -44,6 +46,20 @@
 #'   + \lambda [(1 - \alpha)/2 ||\beta||_2^2 + \alpha||\beta||_1],
 #' }
 #' where \eqn{y_i \in \{-1, 1\}}{y ~ {-1, 1}}.
+#'
+#' *Multinomial logistic regression*:
+#' \deqn{
+#'  -\bigg\{\frac1n \sum_{i=1}^n \Big[\sum_{k=1}^m y_{i_k} (\beta_{0_k} + x_i^\mathsf{T} \beta_k) -
+#'  \log \sum_{k=1}^m e^{\beta_{0_k}+x_i^\mathsf{T} \beta_k}\Big]\bigg\}
+#'  + \lambda \left( \frac{1 - \alpha}{2}||\beta||_F^2 + \alpha \sum_{j=1}^p ||\beta_j||_q \right),
+#' }{
+#'  -{1\n \sum_{i=1}^n [\sum_{k=1}^m y_{i_k} (\beta_{0_k} + x_i^T \beta_k) -
+#'  \log \sum_{k=1}^m exp(\beta_{0_k}+x_i^T \beta_k)]}
+#'  + \lambda ((1 - \alpha)/2||\beta||_F^2 + \alpha \sum_{j=1}^p ||\beta_j||_q),
+#' }
+#' where \eqn{q \in {1, 2}}{q = {1,2}} invokes the standard lasso and 2 the
+#' group lasso penalty respectively, \eqn{F} indicates the Frobenius norm,
+#' and \eqn{p} is the number of classes.
 #'
 #' @section Regularization Path:
 #' The default regularization path is a sequence of `nlambda`
@@ -60,18 +76,17 @@
 #'
 #' @param x input matrix
 #' @param y response variable
-#' @param family reponse type, one of `'gaussian'` and `'binomial'`. See
-#'   **Supported families** for details.
+#' @param family reponse type, one of `'gaussian'`, `'binomial'`, or
+#'   `'multinomial'`. See **Supported families** for details.
 #' @param alpha elastic net mixing parameter
 #' @param nlambda number of penalties in the regualrization path
 #' @param lambda.min.ratio the ratio between `lambda_max` (the smallest
 #'   penalty at which the solution is completely sparse) and the smallest
-#'   lambda value on the path. See section **Regularization Path** for details.
+#'   lambda value on the path. See **Regularization Path** for details.
 #' @param lambda regularization strength
 #' @param intercept whether to fit an intercept or not
 #' @param maxit maximum number of effective passes (epochs)
-#' @param standardize whether to standardize `x` or not -- ignored when
-#'   `intercept == FALSE`.
+#' @param standardize whether to standardize `x` or not
 #' @param thresh tolerance level for termination of the algorithm. The
 #'   algorithm terminates when
 #'   \deqn{
@@ -90,15 +105,28 @@
 #' @export
 #'
 #' @examples
-#' # Gaussian regression with sparse features
-#' fit <- sgdnet(permeability$x, permeability$y, alpha = 0)
+#' # Gaussian regression with sparse features with ridge penalty
+#' fit <- sgdnet(houses$x, houses$y, alpha = 0)
+#'
+#' # Binomial logistic regression with elastic net penalty, no intercept
+#' binom_fit <- sgdnet(mushrooms$x,
+#'                     mushrooms$y,
+#'                     family = "binomial",
+#'                     alpha = 0.5,
+#'                     intercept = FALSE)
+#'
+#' # Multinomial logistic regression with lasso
+#' multinom_fit <- sgdnet(pendigits$train$x,
+#'                        pendigits$train$y,
+#'                        family = "multinomial")
+#'
 sgdnet <- function(x, ...) UseMethod("sgdnet")
 
 #' @export
 #' @rdname sgdnet
 sgdnet.default <- function(x,
                            y,
-                           family = c("gaussian", "binomial"),
+                           family = c("gaussian", "binomial", "multinomial"),
                            alpha = 1,
                            nlambda = 100,
                            lambda.min.ratio =
@@ -145,43 +173,96 @@ sgdnet.default <- function(x,
   if (nlambda == 0)
     stop("lambda path cannot be of zero length.")
 
-  stopifnot(identical(NROW(y), NROW(x)),
-            !any(is.na(y)),
-            !any(is.na(x)),
-            alpha >= 0 && alpha <= 1,
-            length(alpha) == 1L,
-            thresh > 0,
-            all(lambda >= 0),
+  stopifnot(NROW(y) == NROW(x),
+            length(alpha) == 1,
             is.logical(intercept),
             is.logical(standardize),
             is.logical(debug))
 
+  if (alpha < 0 || alpha > 1)
+    stop("elastic net mixing parameter (alpha) must be in [0, 1].")
+
+  if (any(lambda < 0))
+    stop("penalty strengths (lambdas) must be positive.")
+
+  if (any(is.na(y)) || any(is.na(x)))
+    stop("NA values are not allowed.")
+
+  if (thresh < 0)
+    stop("threshold for stopping criteria cannot be negative.")
+
+  if (maxit <= 0)
+    stop("maximum number of iterations cannot be negative or zero.")
+
+  # TODO(jolars): implement group lasso penalty
+  type.multinomial <- "ungrouped"
+  switch(
+    type.multinomial,
+    ungrouped = {
+      grouped <- FALSE
+    }
+  )
+
   # Setup reponse type options and assert appropriate input
   family <- match.arg(family)
+  n_targets <- NCOL(y)
 
-  switch(family,
-         gaussian = {
-           stopifnot(is.numeric(y),
-                     NCOL(y) == 1)
-         },
-         binomial = {
-           stopifnot(length(unique(y)) == 2)
-           y_table <- table(y)
-           min_class <- min(y_table)
+  switch(
+    family,
+    gaussian = {
+      if (n_targets > 1)
+        stop("response for Gaussian regression must be one-dimensional.")
 
-           if (min_class <= 1)
-             stop("one class only has ", min_class, " observations.")
+      if (!is.numeric(y))
+        stop("non-numeric response.")
 
-           class_names <- names(y_table)
+      n_classes <- 1L
+      y <- as.numeric(y)
+    },
+    binomial = {
+      if (length(unique(y)) > 2)
+        stop("more than two classes in response. Are you looking for family = 'multinomial'?")
 
-           # Transform response to {-1, 1}, which is used internally
-           y <- as.double(y)
-           y[y == min(y)] <- -1
-           y[y == max(y)] <- 1
-         }
-         )
+      if (length(unique(y)) == 1)
+        stop("only one class in response.")
 
-  y <- as.matrix(y)
+      y_table <- table(y)
+      min_class <- min(y_table)
+      n_classes <- 1L
+
+      if (min_class <= 1)
+        stop("one class only has ", min_class, " observations.")
+
+      class_names <- names(y_table)
+
+      # Transform response to {-1, 1}, which is used internally
+      y <- as.double(y)
+      y[y == min(y)] <- -1
+      y[y == max(y)] <- 1
+    },
+    multinomial = {
+      y <- droplevels(as.factor(y))
+
+      y_table <- table(y)
+      min_class <- min(y_table)
+      class_names <- names(y_table)
+      n_classes <- length(y_table)
+
+      if (n_classes == 2)
+        stop("only two classes in response. Are you looking for family = 'binomial'?")
+
+      if (n_classes == 1)
+        stop("only one class in response.")
+
+      if (min_class <= 1)
+        stop("one class only has ", min_class, " observations.")
+
+      y <- as.numeric(y) - 1
+    }
+  )
+
+  # TODO(jolars): implement offset
+  offset <- FALSE
 
   control <- list(family = family,
                   intercept = intercept,
@@ -189,8 +270,10 @@ sgdnet.default <- function(x,
                   lambda = lambda,
                   elasticnet_mix = alpha,
                   n_lambda = nlambda,
+                  n_classes = n_classes,
+                  n_targets = n_targets,
                   lambda_min_ratio = lambda.min.ratio,
-                  normalize = standardize,
+                  standardize = standardize,
                   max_iter = maxit,
                   tol = thresh,
                   debug = debug)
@@ -216,6 +299,20 @@ sgdnet.default <- function(x,
                            ncol = n_penalties,
                            dimnames = list(variable_names, path_names),
                            sparse = TRUE)
+  } else if (family == "multinomial") {
+    a0 <- matrix(unlist(res$a0, use.names = FALSE), ncol = n_penalties)
+    colnames(a0) <- path_names
+    rownames(a0) <- class_names
+    tmp <- matrix(unlist(res$beta), nrow = n_classes)
+    beta <- vector("list", n_classes)
+    names(beta) <- class_names
+    for (i in seq_len(n_classes)) {
+      beta[[i]] <- Matrix::Matrix(tmp[i, ],
+                                  nrow = n_features,
+                                  ncol = n_penalties,
+                                  dimnames = list(variable_names, path_names),
+                                  sparse = TRUE)
+    }
   }
 
   out <- structure(list(a0 = a0,
@@ -225,7 +322,9 @@ sgdnet.default <- function(x,
                         nulldev = res$nulldev,
                         npasses = res$npasses,
                         alpha = alpha,
+                        offset = offset,
                         classnames = class_names,
+                        grouped = grouped,
                         call = ocall,
                         nobs = n_samples),
                    class = c(paste0("sgdnet_", family), "sgdnet"))
