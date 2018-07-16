@@ -1,5 +1,10 @@
 context("deviance")
 
+test_that("deviance functions run and return as expected", {
+  fit <- sgdnet(mtcars$mpg, mtcars$drat)
+  expect_is(deviance(fit), "numeric")
+})
+
 test_that("we receive the correct deviance from deviance.sgdnet()", {
   set.seed(1)
 

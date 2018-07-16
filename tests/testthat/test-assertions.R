@@ -19,7 +19,13 @@ test_that("wrong input to predict.sgdnet() return errors", {
 test_that("wrong input to sgdnet() returns errors", {
   x <- with(trees, cbind(Girth, Volume))
   y <- trees$Height
+  y_na <- y
+  y_na[1] <- NA
 
+  expect_error(sgdnet(x, as.factor(y)))
+  expect_error(sgdnet(x, y, thresh = -0.1))
+  expect_error(sgdnet(x, y_na))
+  expect_error(sgdnet(x, cbind(y, y)))
   expect_error(sgdnet(x, y[-1]))
   expect_error(sgdnet(x, y, family = "binomial"))
   expect_error(sgdnet(x, y, lambda = -1))
@@ -35,4 +41,9 @@ test_that("wrong input to sgdnet() returns errors", {
   expect_error(sgdnet(x, y, family = "binomial"))
   y <- rbinom(nrow(x), 1, 0.5)
   expect_error(sgdnet(x, y, family = "multinomial"))
+  y <- rep.int(0, nrow(x))
+  expect_error(sgdnet(x, y, family = "binomial"))
+  y <- c(0, 0, 1)
+  x <- c(0.5, 0.5, 0.5)
+  expect_error(sgdnet(x, y, family = "binomial"))
 })
