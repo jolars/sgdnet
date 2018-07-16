@@ -102,5 +102,43 @@ inline void Standardize(const T& x) {
   }
 }
 
+//' Clamp a value to [min, max]
+//' @param x value to clamp
+//' @param min min
+//' @param max max
+//' @noRd
+template <typename T>
+inline T Clamp(const T& x, const T& min, const T& max) {
+  return x > max ? max : (x < min ? min : x);
+}
+
+//' Table proportions of unique values in vector
+//'
+//' The input vector `x` will be coerced into unsigned integers by
+//' static_cast<unsigned>()
+//'
+//' @param x vector with integerish components
+//' @param n_classes number of classes (unique values)
+//'
+//' @return A
+//' @noRd
+template <typename T>
+inline std::vector<double> Proportions(const T& x, const unsigned n_classes) {
+  std::vector<double> proportions(n_classes);
+
+  // Count up all unique values
+  for (auto x_i : x) {
+    unsigned y_i = static_cast<unsigned>(x_i + 0.5);
+    proportions[y_i] += 1.0;
+  }
+
+  // Turn into proportions
+  auto n = static_cast<double>(x.size());
+
+  for (auto& proportions_i : proportions)
+    proportions_i /= n;
+
+  return proportions;
+}
 
 #endif // SGDNET_MATH_

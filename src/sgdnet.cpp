@@ -114,8 +114,8 @@ Rcpp::List SetupSgdnet(T&                   x,
   else if (family_choice == "multinomial")
     family = unique_ptr<Family>(new Multinomial(y, n_samples, n_classes));
 
-  // Store null deviance here before processing response
-  double null_deviance = family->NullDeviance();
+    // Store null deviance here before processing response
+  double null_deviance = family->NullDeviance(fit_intercept);
 
   // intercept updates are scaled to avoid oscillation
   double intercept_decay = is_sparse ? 0.01 : 1.0;
@@ -176,7 +176,7 @@ Rcpp::List SetupSgdnet(T&                   x,
   unsigned n_iter = 0;
 
   // Null deviance on scaled y for computing deviance ratio
-  double null_deviance_scaled = family->NullDeviance();
+  double null_deviance_scaled = family->NullDeviance(fit_intercept);
   vector<double> deviance_ratio;
   deviance_ratio.reserve(n_lambda);
 

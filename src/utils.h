@@ -154,8 +154,21 @@ void RegularizationPath(std::vector<double>&                   lambda,
   double lambda_scaling = family->lambda_scaling;
 
   if (lambda.empty()) {
-    double lambda_max = family->LambdaMax(x);
-    lambda_max /= std::max(elasticnet_mix, 0.001);
+    Eigen::MatrixXd inner_products = family->y_mat.transpose() * x.transpose();
+
+    double max_coeff = 0.0;
+
+    for (unsigned i = 0; i < inner_products.cols(); ++i) {
+      for (unsigned j = 0; j < inner_products.rows(); ++j) {
+        max_coeff =
+          std::max(std::abs(inner_products(j, i)*family->y_mat_scale[j]),
+                   max_coeff);
+      }
+    }
+
+    double lambda_max =
+      max_coeff/(std::max(elasticnet_mix, 0.001)*family->n_samples);
+
     if (lambda_max != 0.0)
       lambda = LogSpace(lambda_max, lambda_max*lambda_min_ratio, n_lambda);
     else

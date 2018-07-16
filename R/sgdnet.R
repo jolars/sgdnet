@@ -37,15 +37,16 @@
 #' *Binomial logistic regression*:
 #'
 #' \deqn{
-#'   \frac{1}{n} \sum_{i=1}^n
-#'     \log\left[1 + e^{-y_i\left(\beta_0 + x^\mathsf{T} \beta \right)} \right]
+#'   -\frac1n \sum_{i=1}^n \bigg[y_i (\beta_0 + \beta^\mathsf{T} x_i) -
+#'     \log\Big(1 + e^{\beta_0 + \beta^\mathsf{T} x_i}\Big)\bigg]
 #'   + \lambda \left( \frac{1 - \alpha}{2} ||\beta||_2^2
 #'                    + \alpha||\beta||_1 \right),
 #' }{
-#'   1/n \sum log {1 + exp[-y_i(\beta_0 + x^T \beta)]}
+#'   -1/n \sum_{i=1}^n {y_i (\beta_0 + \beta^T x_i) -
+#'     log[1 + exp(\beta_0 + \beta^T x_i)]}
 #'   + \lambda [(1 - \alpha)/2 ||\beta||_2^2 + \alpha||\beta||_1],
 #' }
-#' where \eqn{y_i \in \{-1, 1\}}{y ~ {-1, 1}}.
+#' where \eqn{y_i \in \{0, 1\}}{y ~ {0, 1}}.
 #'
 #' *Multinomial logistic regression*:
 #' \deqn{
@@ -237,7 +238,7 @@ sgdnet.default <- function(x,
 
       # Transform response to {-1, 1}, which is used internally
       y <- as.double(y)
-      y[y == min(y)] <- -1
+      y[y == min(y)] <- 0
       y[y == max(y)] <- 1
     },
     multinomial = {
