@@ -444,7 +444,6 @@ void Saga(const T&                               x,
       // Update coefficients (w) with sparse step (with L2 scaling)
       AddWeighted(w, x, s_ind, n_features, n_classes, g_change, -gamma/wscale);
 
-      // TODO(jolars): modify to work with multivariate outcomes
       if (fit_intercept) {
         for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind) {
           g_sum_intercept[c_ind] += g_change[c_ind]/n_samples;
