@@ -99,7 +99,7 @@ Rcpp::List SetupSgdnet(T&                   x,
   vector<double> x_scale(n_features, 1.0);
 
   if (standardize)
-    PreprocessFeatures(x, x_center, x_scale, n_features, n_samples);
+    PreprocessFeatures(x, x_center, x_scale);
 
   // Transpose x for more efficient access of samples
   AdaptiveTranspose(x);

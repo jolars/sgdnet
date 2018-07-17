@@ -67,11 +67,11 @@ inline double ColNormsMax(const Eigen::SparseMatrix<double>& x) {
 //' @return Modifies `x_center` and `x_scale`.
 void PreprocessFeatures(Eigen::MatrixXd&     x,
                         std::vector<double>& x_center,
-                        std::vector<double>& x_scale,
-                        const unsigned       n_features,
-                        const unsigned       n_samples) {
+                        std::vector<double>& x_scale) {
 
   // Center feature matrix with mean
+  auto n_features = x.cols();
+  auto n_samples = x.rows();
 
   for (unsigned f_ind = 0; f_ind < n_features; ++f_ind) {
 
@@ -79,11 +79,12 @@ void PreprocessFeatures(Eigen::MatrixXd&     x,
 
     x_center[f_ind] = x_col_mu;
 
-    double var = 0.0;
-    for (unsigned s_ind = 0; s_ind < n_samples; ++s_ind) {
+    for (unsigned s_ind = 0; s_ind < n_samples; ++s_ind)
       x.coeffRef(s_ind, f_ind) -= x_col_mu;
+
+    double var = 0.0;
+    for (unsigned s_ind = 0; s_ind < n_samples; ++s_ind)
       var += x(s_ind, f_ind)*x(s_ind, f_ind)/n_samples;
-    }
 
     double x_col_sd = std::sqrt(var);
     if (x_col_sd == 0.0) x_col_sd = 1.0;
@@ -97,9 +98,9 @@ void PreprocessFeatures(Eigen::MatrixXd&     x,
 
 void PreprocessFeatures(Eigen::SparseMatrix<double>& x,
                         std::vector<double>&         x_center,
-                        std::vector<double>&         x_scale,
-                        const unsigned               n_features,
-                        const unsigned               n_samples) {
+                        std::vector<double>&         x_scale) {
+  auto n_features = x.cols();
+  auto n_samples = x.rows();
 
   // Center feature matrix with mean
   for (unsigned f_ind = 0; f_ind < n_features; ++f_ind) {
@@ -112,8 +113,10 @@ void PreprocessFeatures(Eigen::SparseMatrix<double>& x,
     double var = 0.0;
     for (Eigen::SparseMatrix<double>::InnerIterator it(x, f_ind); it; ++it)
       var += std::pow(it.value() - x_col_mu, 2)/n_samples;
+    auto n_zeros = n_samples - x.col(f_ind).nonZeros();
+    var += n_zeros*x_col_mu*x_col_mu/n_samples;
 
-    double x_col_sd = std::sqrt(var);
+    auto x_col_sd = std::sqrt(var);
     if (x_col_sd == 0.0) x_col_sd = 1.0;
 
     for (Eigen::SparseMatrix<double>::InnerIterator it(x, f_ind); it; ++it)
