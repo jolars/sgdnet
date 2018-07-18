@@ -331,6 +331,8 @@ predict.sgdnet <- function(object,
   } else {
     if (inherits(newx, "sparseMatrix"))
       newx <- methods::as(newx, "dgCMatrix")
+    if (inherits(newx, "data.frame"))
+      newx <- as.matrix(newx))
 
     fit <- as.matrix(methods::cbind2(1, newx) %*% beta)
   }
