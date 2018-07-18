@@ -294,6 +294,7 @@ interpolate_coefficients <- function(beta, s, lamlist) {
 #'
 #' # Multinomial
 #' n <- length(wine$y)
+#' train_ind <- sample(n, size = floor(0.8 * n))
 #' fit_multinomial <- sgdnet(wine$x[train_ind, ],
 #'                           wine$y[train_ind],
 #'                           family = "multinomial",
