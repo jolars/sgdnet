@@ -128,10 +128,7 @@ binom_fit <- sgdnet(heart$x,
                     intercept = FALSE)
 
 # Multinomial logistic regression with lasso
-multinom_fit <- sgdnet(wine$train$x,
-                       wine$train$y,
-                       family = "multinomial")
-
+multinom_fit <- sgdnet(wine$x, wine$y, family = "multinomial")
 }
 \seealso{
 \code{\link[=predict.sgdnet]{predict.sgdnet()}}, \code{\link[=plot.sgdnet]{plot.sgdnet()}}, \code{\link[=coef.sgdnet]{coef.sgdnet()}},
