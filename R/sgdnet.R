@@ -160,7 +160,7 @@ sgdnet.default <- function(x,
 
   if (is.null(variable_names))
     variable_names <- paste0("V", seq_len(NCOL(x)))
-  if (is.null(variable_names))
+  if (is.null(response_names))
     response_names <- paste0("y", seq_len(NCOL(y)))
 
   # Collect sgdnet-specific options for debugging and more
