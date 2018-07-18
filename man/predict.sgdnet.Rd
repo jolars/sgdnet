@@ -91,6 +91,7 @@ predict(fit_binomial, heart$x[-train_ind, ], type = "class", s = 1/n)
 
 # Multinomial
 n <- length(wine$y)
+train_ind <- sample(n, size = floor(0.8 * n))
 fit_multinomial <- sgdnet(wine$x[train_ind, ],
                           wine$y[train_ind],
                           family = "multinomial",
