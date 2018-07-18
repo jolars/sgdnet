@@ -42,5 +42,22 @@ test_that("test that all combinations run without errors", {
       gpred <- predict(gfit, x, type = type)
       expect_equivalent(spred, gpred, tolerance = 0.01)
     }
+
+    # treat nonzero predictions and classes separately
+    spred <- predict(sfit, x, type = "nonzero")
+    gpred <- predict(gfit, x, type = "nonzero")
+
+    f1 <- function(a, b) all(a == b)
+    f2 <- function(x, y) mapply(f1, x, y)
+    res <- mapply(f2, spred, gpred)
+    frac_correct <- sum(unlist(res))/length(res)
+    expect_gte(frac_correct, 0.75)
+
+    if (pars$family %in% c("binomial", "multinomial")) {
+      spred <- predict(sfit, x, type = "class")
+      gpred <- predict(gfit, x, type = "class")
+      frac_correct <- sum(spred == gpred)/length(spred)
+      expect_gte(frac_correct, 0.99)
+    }
   }
 })
