@@ -26,7 +26,7 @@ cultivars of wine as well as \code{x}: a sparse feature matrix of class
 }}
 \source{
 Dua, D. and Karra Taniskidou, E. (2017). UCI Machine Learning Repository
-\link{http://archive.ics.uci.edu/ml}. Irvine, CA: University of California,
+\url{http://archive.ics.uci.edu/ml}. Irvine, CA: University of California,
 School of Information and Computer Science.
 
 \url{https://raw.githubusercontent.com/hadley/rminds/master/1-data/wine.csv}
