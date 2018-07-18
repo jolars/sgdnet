@@ -527,8 +527,3 @@ predict.sgdnet_multinomial <- function(object,
 coef.sgdnet <- function(object, ...) {
   stats::predict(object, type = "coefficients", ...)
 }
- soft <- function(x) {
-   exp_x <- exp(x)
-   exp_x/sum(exp_x)
- }
-
