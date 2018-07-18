@@ -21,6 +21,7 @@
 #' @return A bool.
 #'
 #' @keywords internal
+#' @noRd
 is_false <- function(x) {
   identical(x, FALSE)
 }

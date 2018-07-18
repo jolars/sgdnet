@@ -45,6 +45,7 @@
 #'
 #' @return Nonzero coefficients.
 #' @keywords internal
+#' @noRd
 nonzero_coefs <- function(beta, bystep = FALSE) {
   if (is.list(beta)) {
     lapply(beta, nonzero_coefs, bystep = bystep)
@@ -136,6 +137,7 @@ softmax <- function(x) {
 #' @author Jerome Friedman, Trevor Hastie, Rob Tibshirani, and Noah Simon
 #'
 #' @keywords internal
+#' @noRd
 lambda_interpolate <- function(lambda, s) {
 
   if (length(lambda) == 1) {
@@ -171,13 +173,11 @@ lambda_interpolate <- function(lambda, s) {
 #'
 #' @return A new fit from [sgdnet()].
 #' @keywords internal
+#' @noRd
 refit <- function(object, s, ...) {
-  lambda <- object$lambda
-  which <- match(s, lambda, FALSE)
-
-  if (!all(which > 0)) {
-    lambda <- unique(rev(sort(c(s, lambda))))
-    object <- stats::update(object, lambda = lambda, ...)
+  if (!all(s %in% object$lambda)) {
+    lambda <- unique(rev(sort(c(s, object$lambda))))
+    object <- stats::update(object, lambda = object$lambda, ...)
   }
 }
 
@@ -189,6 +189,7 @@ refit <- function(object, s, ...) {
 #'
 #' @return A matrix (or listof matrices).
 #' @keywords internal
+#' @noRd
 bind_intercept <- function(beta, a0) {
   if (is.list(beta)) {
     for (i in seq_along(beta))
@@ -211,6 +212,7 @@ bind_intercept <- function(beta, a0) {
 #' @return A matrix (or list of matrices) with new coefficients based
 #'   on linearly interpolating from new and old lambda values.
 #' @keywords internal
+#' @noRd
 interpolate_coefficients <- function(beta, s, lamlist) {
   if (is.list(beta)) {
     lapply(beta, interpolate_coefficients, s = s, lamlist = lamlist)
