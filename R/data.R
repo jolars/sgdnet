@@ -14,124 +14,109 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#' S&P Letters Data
+#' Abalone
 #'
-#' Spatial data containing housing prices with economic covariates.
-#'
-#' "We collected information on the variables using all the block groups in
-#' California from the 1990 Census. In this sample a block group on average
-#' includes 1425.5 individuals living in a geographically compact area.
-#' Naturally, the geographical area included varies inversely with the
-#' population density. We computed distances among the centroids of each
-#' block group as measured in latitude and longitude. We excluded all the block
-#' groups reporting zero entries for the independent and dependent variables.
-#' The final data contained 20,640 observations on 9 variables. The dependent
-#' variable is ln(median house value)."
+#' This data set contains observations of abalones, the common
+#' name for any of a group of sea snails. The goal is to predict the
+#' age of an individual abalone given physical measurements such as
+#' sex, weight, and height.
 #'
 #' @format A list with two items representing 20,640 observations from
 #'   9 variables
 #' \describe{
-#'   \item{x}{a dense feature matrix with median house value, median income,
-#'            housing median age, total rooms, total bedrooms, population,
-#'            households, latitude, and longitude}
-#'   \item{y}{a numeric vector of permeability values for 165 compounds}
+#'   \item{sex}{sex of abalone, 1 for female}
+#'   \item{infant}{indicates that the person is an infant}
+#'   \item{length}{longest shell measurement in mm}
+#'   \item{diameter}{perpendicular to length in mm}
+#'   \item{height}{height in mm including meat in shell}
+#'   \item{weight_whole}{weight of entire abalone}
+#'   \item{weight_shucked}{weight of meat}
+#'   \item{weight_viscera}{weight of viscera}
+#'   \item{weight_shell}{weight of shell}
+#'   \item{rings}{rings. +1.5 gives the age in years}
 #' }
 #' @source Pace, R. Kelley and Ronald Barry, Sparse Spatial Autoregressions,
 #'   Statistics and Probability Letters, 33 (1997) 291-297.
-"houses"
+"abalone"
 
-#' Mushroom Data Set
+#' Heart Disease
 #'
-#' Mushroom records from The Audubon Society Field Guide to North
-#' American Mushrooms (1981). G. H. Lincoff (Pres.), New York: Alfred A. Knopf.
+#' Diagnostic attributes of patients classified as having heart disease or not.
 #'
-#' The data set was retrieved from the UCI database and came with the
-#' following description:
+#' @section Preprocessing:
+#' The original dataset contained 13 variables. The nominal of these were
+#' dummycoded, removing the first category. No precise information regarding
+#' variables `chest_pain`, `thal` and `ecg` could be found, which explains
+#' their obscure definitions here.
 #'
-#' "This data set includes descriptions of hypothetical samples corresponding to
-#' 23 species of gilled mushrooms in the Agaricus and Lepiota Family.
-#' Each species is identified as definitely edible, definitely
-#' poisonous, or of unknown edibility and not recommended. This latter class was
-#' combined with the poisonous one. The Guide clearly states that there is no
-#' simple rule for determining the edibility of a mushroom; no rule like
-#' "leaflets three, let it be" for Poisonous Oak and Ivy."
-#'
-#' @section Processing:
-#' The original dataset contained 22 variables (features). Out of these,
-#' "stalk-root" was dropped since it contained missing values. All of the
-#' remaining variables were dummy-coded.
-#'
-#' @format A list with two items representing 8,124 observations from
-#'   112 variables.
+#' @format 270 observations from 17 variables represented as a list consisting
+#'  of a binary factor response vector `y`,
+#' with levels 'absence' and 'presence' indicating the absence or presence of
+#' heart disease and `x`: a sparse feature matrix of class 'dgCMatrix' with the
+#' following variables:
 #' \describe{
-#'   \item{x}{a sparse feature matrix dummy-coded attributes for each
-#'            mushroom}
-#'   \item{y}{a factor variable represing the outcome, edibility, either
-#'            "edible" or "poisonous"}
+#'   \item{age}{age}
+#'   \item{bp}{diastolic blood pressure}
+#'   \item{chol}{serum cholesterol in mg/dl}
+#'   \item{hr}{maximum heart rate achieved}
+#'   \item{old_peak}{ST depression induced by exercise relative to rest}
+#'   \item{vessels}{the number of major blood vessels (0 to 3) that were
+#'                  colored by fluoroscopy}
+#'   \item{sex}{sex of the participant: 0 for male, 1 for female}
+#'   \item{angina}{a dummy variable indicating whether the person suffered
+#'                 angina-pectoris during exercise}
+#'   \item{glucose_high}{indicates a fasting blood sugar over 120 mg/dl}
+#'   \item{cp_typical}{typical angina}
+#'   \item{cp_atypical}{atypical angina}
+#'   \item{cp_nonanginal}{non-anginal pain}
+#'   \item{ecg_abnormal}{indicates a ST-T wave abnormality
+#'                       (T wave inversions and/or ST elevation or depression of
+#'                       > 0.05 mV)}
+#'   \item{ecg_estes}{probable or definite left ventricular hypertrophy by
+#'                    Estes' criteria}
+#'   \item{slope_flat}{a flat ST curve during peak exercise}
+#'   \item{slope_downsloping}{a downwards-sloping ST curve during peak exercise}
+#'   \item{thal_reversible}{reversible defect}
+#'   \item{thal_fixed}{fixed defect}
 #' }
-#' @source The Audubon Society Field Guide to North
-#'   American Mushrooms (1981). G. H. Lincoff (Pres.), New York: Alfred A.
-#'   Knopf.
-#' @source <https://archive.ics.uci.edu/ml/datasets/mushroom>
-#' @source Dua, D. and Karra Taniskidou, E. (2017).
-#'   UCI Machine Learning Repository <http://archive.ics.uci.edu/ml>. Irvine,
-#'   CA: University of California, School of Information and Computer Science.
-"mushrooms"
+#' @source Dua, D. and Karra Taniskidou, E. (2017). UCI Machine Learning Repository
+#'   [http://archive.ics.uci.edu/ml]. Irvine, CA: University of California,
+#'   School of Information and Computer Science.
+#' @source <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary.html#heart>
+"heart"
 
-#' Pen-Based Recognition of Handwritten Digits Data Set
+#' Wine Cultivars
 #'
-#' A data set of 250 samples of handwritten digits from 44 writers. Thirty of
-#' these make up the training set.
+#' A data set of results from chemical analysis of wines grown in Italy
+#' from three different cultivars.
 #'
-#' From description on UCI (with a few formatting changes):
-#'
-#' "In our study, we use only (x, y) coordinate information. The stylus
-#' pressure level values are ignored. First we apply normalization to make our
-#' representation invariant to translations and scale distortions. The raw
-#' data that we capture from the tablet consist of integer values between 0 and
-#' 500 (tablet input box resolution). The new coordinates are such that the
-#' coordinate which has the maximum range varies between 0 and 100. Usually x
-#' stays in this range, since most characters are taller than they are wide.
-#'
-#' In order to train and test our classifiers, we need to represent digits as
-#' constant length feature vectors. A commonly used technique leading to good
-#' results is resampling the \eqn{(x_t, y_t)} points. Temporal
-#' resampling (points
-#' regularly spaced in time) or spatial resampling (points regularly spaced in
-#' arc length) can be used here. Raw point data are already regularly spaced in
-#' time but the distance between them is variable. Previous research showed
-#' that spatial resampling to obtain a constant number of regularly spaced
-#' points on the trajectory yields much better performance, because it provides
-#' a better alignment between points. Our resampling algorithm uses simple
-#' linear interpolation between pairs of points. The resampled digits are
-#' represented as a sequence of T points
-#' \eqn{(x_t, y_t)_{t=1}^\mathsf{T}}{(x_t, y_t)_{t=1}^T}, regularly
-#' spaced in arc length, as opposed to the input sequence, which is regularly
-#' spaced in time.
-#'
-#' So, the input vector size is 2*T, two times the number of points resampled.
-#' We considered spatial resampling to T = 8, 12, 16 points in our experiments
-#' and
-#' found that T = 8 gave the best trade-off between accuracy and complexity."
-#'
-#' @source <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multiclass.html>
-#' @source <https://archive.ics.uci.edu/ml/datasets/Pen-Based+Recognition+of+Handwritten+Digits>
-#' @source F. Alimoglu (1996) Combining Multiple Classifiers for Pen-Based
-#'   Handwritten Digit Recognition, MSc Thesis, Institute of Graduate Studies
-#'   in Science and Engineering, Bogazici University.
-#' @source F. Alimoglu, E. Alpaydin, "Methods of Combining Multiple Classifiers
-#'   Based on Different Representations for Pen-based Handwriting Recognition,"
-#'   Proceedings of the Fifth Turkish Artificial Intelligence and Artificial
-#'   Neural Networks Symposium (TAINN 96), June 1996, Istanbul, Turkey.
-#'
-#' @format A `list` containing two lists, `train` and `test` with
-#'   7,494 and 3,498 observations respectively, each containing
+#' @format 178 observations from 13 variables represented as a list consisting
+#'  of a binary factor response vector `y`
+#' with three levels: *A*, *B*, and *C* representing different
+#' cultivars of wine as well as `x`: a sparse feature matrix of class
+#' 'dgCMatrix' with the following variables:
 #' \describe{
-#'   \item{x}{a feature matrix of class `'Matrix::dgCMatrix'` with
-#'            16 features}
-#'   \item{y}{a factor with 10 levels, one for each digit}
+#'   \item{alcohol}{alcoholic content}
+#'   \item{malic}{malic acid}
+#'   \item{ash}{ash}
+#'   \item{alcalinity}{alcalinity of ash}
+#'   \item{magnesium}{magnemium}
+#'   \item{phenols}{total phenols}
+#'   \item{flavanoids}{flavanoids}
+#'   \item{nonflavanoids}{nonflavanoid phenols}
+#'   \item{proanthocyanins}{proanthocyanins}
+#'   \item{color}{color intensity}
+#'   \item{hue}{hue}
+#'   \item{dilution}{OD280/OD315 of diluted wines}
+#'   \item{proline}{proline}
 #' }
-"pendigits"
+#'
+#' @source Dua, D. and Karra Taniskidou, E. (2017). UCI Machine Learning Repository
+#'   [http://archive.ics.uci.edu/ml]. Irvine, CA: University of California,
+#'   School of Information and Computer Science.
+#' @source <https://raw.githubusercontent.com/hadley/rminds/master/1-data/wine.csv>
+#' @source <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multiclass.html#wine>
+"wine"
 
 #' Benchmark data for binomial response family
 #'

@@ -1,250 +1,125 @@
-# houses (gaussian) -------------------------------------------------------
 
-library(Matrix)
+# abalone (gaussian) ------------------------------------------------------
 
 temp_file <- tempfile()
 
 download.file(
-  "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/regression/cadata",
+  "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/regression/abalone",
   temp_file
 )
 
 tmp <- e1071::read.matrix.csr(temp_file, fac = FALSE)
+unlink(temp_file)
 tmp_x <- as.data.frame(as.matrix(tmp$x))
-colnames(tmp_x) <- c("median_income",
-                     "housing_median_age",
-                     "total_rooms",
-                     "total_bedrooms",
-                     "population",
-                     "households",
-                     "latitude",
-                     "longitude")
+tmp_x$V1 <- as.factor(tmp_x$V1)
 
-houses <- list(x = tmp_x, y = tmp$y)
+tmp_x <- as.data.frame(model.matrix(~ ., tmp_x))[, -1]
+colnames(tmp_x) <- c("sex",
+                     "infant",
+                     "length",
+                     "diameter",
+                     "height",
+                     "weight_whole",
+                     "weight_shucked",
+                     "weight_viscera",
+                     "weight_shell")
 
-usethis::use_data(houses, overwrite = TRUE)
+abalone <- list(x = tmp_x, y = tmp$y)
 
-# mushrooms (binomial) ----------------------------------------------------
+usethis::use_data(abalone, overwrite = TRUE)
+
+# heart (binomial) --------------------------------------------------------
+
+library(SparseM)
+library(Matrix)
+library(fastDummies)
+library(tidyverse)
 
 temp_file <- tempfile()
 
 download.file(
-  "https://archive.ics.uci.edu/ml/machine-learning-databases/mushroom/agaricus-lepiota.data",
+  "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/heart",
   temp_file
 )
 
-library(readr)
-library(forcats)
+tmp <- e1071::read.matrix.csr(temp_file, fac = FALSE)
+x <- as.data.frame(as.matrix(tmp$x))
+colnames(x) <- c("age",
+                 "sex",
+                 "chest_pain",
+                 "bp",
+                 "chol",
+                 "glucose",
+                 "ecg",
+                 "hr",
+                 "angina",
+                 "old_peak",
+                 "slope",
+                 "vessels",
+                 "thal")
 
-temp_data <- readr::read_csv(temp_file,
-                             col_names = c("edibility",
-                                           "cap_shape",
-                                           "cap_surface",
-                                           "cap_color",
-                                           "bruises",
-                                           "odor",
-                                           "gill_attachment",
-                                           "gill_spacing",
-                                           "gill_size",
-                                           "gill_color",
-                                           "stalk_shape",
-                                           "stalk_root",
-                                           "stalk_surface_above_ring",
-                                           "stalk_surface_below_ring",
-                                           "stalk_color_above_ring",
-                                           "stalk_color_below_ring",
-                                           "veil_type",
-                                           "veil_color",
-                                           "ring_number",
-                                           "ring_type",
-                                           "spore_print_color",
-                                           "population",
-                                           "habitat"))
+x2 <- x %>%
+  mutate(sex = factor(sex, labels = c("male", "female")),
+         cp = factor(chest_pain,
+                     levels = c(4, 1, 2, 3),
+                     labels = c("asymtompatic", "typical", "atypical", "nonanginal")),
+         ecg = factor(ecg, labels = c("normal", "abnormal", "estes")),
+         angina = as.factor(angina),
+         glucose = factor(glucose, labels = c("low", "high")),
+         slope = factor(slope,
+                        levels = c(1, 2, 3),
+                        labels = c("upsloping", "flat", "downsloping")),
+         thal = factor(thal, labels = c("normal", "fixed", "reversible")))
 
-temp_data2 <- temp_data %>%
-  # we drop stalk_root which has missing data
-  select(-stalk_root) %>%
-  # recode into factor variables
-  mutate(edibility = fct_recode(edibility,
-                                poisonous = "p",
-                                edible = "e"),
-         cap_shape = fct_recode(cap_shape,
-                                bell = "b",
-                                conical = "c",
-                                convex = "x",
-                                flat = "f",
-                                knobbed = "k",
-                                sunken = "s"),
-         cap_surface = fct_recode(cap_surface,
-                                  fibrous = "f",
-                                  grooves = "g",
-                                  scaly = "y",
-                                  smooth = "s"),
-         cap_color = fct_recode(cap_color,
-                                brown = "n",
-                                buff = "b",
-                                cinnamon = "c",
-                                gray = "g",
-                                green = "r",
-                                pink = "p",
-                                purple = "u",
-                                red = "e",
-                                white = "w",
-                                yellow = "y"),
-         bruises = fct_recode(bruises,
-                              bruises = "t",
-                              no = "f"),
-         odor = fct_recode(odor,
-                           almond = "a",
-                           anise = "l",
-                           creosote = "c",
-                           fishy = "y",
-                           foul = "f",
-                           musty = "m",
-                           none = "n",
-                           pungent = "p",
-                           spicy = "s"),
-         gill_attachment = fct_recode(gill_attachment,
-                                      attached = "a",
-                                     #descending = "d",
-                                     #notched = "n",
-                                      free = "f"),
-         gill_spacing = fct_recode(gill_spacing,
-                                   close = "c",
-                                  #distant = "d",
-                                   crowded = "w"),
-         gill_size = fct_recode(gill_size,
-                                broad = "b",
-                                narrow = "n"),
-         gill_color = fct_recode(gill_color,
-                                 black = "k",
-                                 brown = "n",
-                                 buff = "b",
-                                 chocolate = "h",
-                                 gray = "g",
-                                 green = "r",
-                                 orange = "o",
-                                 pink = "p",
-                                 purple = "u",
-                                 red = "e",
-                                 white = "w",
-                                 yellow = "y"),
-         stalk_shape = fct_recode(stalk_shape,
-                                  enlarging = "e",
-                                  tapering = "t"),
-         stalk_surface_above_ring = fct_recode(stalk_surface_above_ring,
-                                               fibrous = "f",
-                                               scaly = "y",
-                                               silky = "k",
-                                               smooth = "s"),
-         stalk_surface_below_ring = fct_recode(stalk_surface_below_ring,
-                                               fibrous = "f",
-                                               scaly = "y",
-                                               silky = "k",
-                                               smooth = "s"),
-         stalk_color_above_ring = fct_recode(stalk_color_above_ring,
-                                             brown = "n",
-                                             buff = "b",
-                                             cinnamon = "c",
-                                             gray = "g",
-                                             orange = "o",
-                                             pink = "p",
-                                             red = "e",
-                                             white = "w",
-                                             yellow = "y"),
-         stalk_color_below_ring = fct_recode(stalk_color_below_ring,
-                                             brown = "n",
-                                             buff = "b",
-                                             cinnamon = "c",
-                                             gray = "g",
-                                             orange = "o",
-                                             pink = "p",
-                                             red = "e",
-                                             white = "w",
-                                             yellow = "y"),
-         veil_type = fct_recode(veil_type,
-                               #universal = "u",
-                                partial = "p"),
-         veil_color = fct_recode(veil_color,
-                                 brown = "n",
-                                 orange = "o",
-                                 white = "w",
-                                 yellow = "y"),
-         ring_number = fct_recode(ring_number,
-                                  none = "n",
-                                  one = "o",
-                                  two = "t"),
-         ring_type = fct_recode(ring_type,
-                               #cobwebby = "c",
-                                evanescent = "e",
-                                flaring = "f",
-                                large = "l",
-                                none = "n",
-                               #sheathing = "s",
-                               #zone = "z"
-                                pendant = "p"),
-         spore_print_color = fct_recode(spore_print_color,
-                                        black = "k",
-                                        brown = "n",
-                                        buff = "b",
-                                        chocolate = "h",
-                                        green = "r",
-                                        orange = "o",
-                                        purple = "u",
-                                        white = "w",
-                                        yellow = "y"),
-         population = fct_recode(population,
-                                 abundant = "a",
-                                 clustered = "c",
-                                 numerous = "n",
-                                 scattered = "s",
-                                 several = "v",
-                                 solitary = "y"),
-         habitat = fct_recode(habitat,
-                              grasses = "g",
-                              leaves = "l",
-                              meadows = "m",
-                              paths = "p",
-                              urban = "u",
-                              waste = "w",
-                              woods = "d"))
+x3 <- model.matrix(~ ., x2) %>%
+  as.data.frame() %>%
+  select(age,
+         bp,
+         chol,
+         hr,
+         old_peak,
+         vessels,
+         sex = sexfemale,
+         angina = angina1,
+         glucose_high = glucosehigh,
+         cp_typical = cptypical,
+         cp_atypical = cpatypical,
+         cp_nonanginal = cpnonanginal,
+         ecg_abnormal = ecgabnormal,
+         ecg_estes = ecgestes,
+         slope_flat = slopeflat,
+         slope_downsloping = slopedownsloping,
+         thal_fixed = thalfixed,
+         thal_reversible = thalreversible)
 
-x <- Matrix::Matrix(as.matrix(dummy_columns(temp_data2[, -1])[, 22:133]))
-y <- pull(temp_data2, edibility)
+x4 <- Matrix::Matrix(as.matrix(x3), sparse = TRUE)
 
-mushrooms <- list(x = x, y = y)
+# response
+y <- factor(tmp$y, labels = c("absence", "presence"))
 
-devtools::use_data(mushrooms, overwrite = TRUE)
+heart <- list(x = x5, y = y)
 
-unlink(temp_file)
+usethis::use_data(heart, overwrite = TRUE)
 
-# pendigits (multinomial) -------------------------------------------------
-
-temp_file1 <- tempfile()
-temp_file2 <- tempfile()
-
-download.file(
-  "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multiclass/pendigits",
-  temp_file1
-)
-
-download.file(
-  "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multiclass/pendigits.t",
-  temp_file2
-)
-
-test <- e1071::read.matrix.csr(temp_file1, fac = TRUE)
-train <- e1071::read.matrix.csr(temp_file2, fac = TRUE)
+# wine (multiclass) -------------------------------------------------------
 
 library(Matrix)
+library(SparseM)
 
-test_x <- as(test$x, "dgCMatrix")
-train_x <- as(train$x, "dgCMatrix")
+temp_file <- tempfile(fileext = ".csv")
 
-pendigits <- list(test = list(x = test_x, y = test$y),
-                  train = list(x = train_x, y = train$y))
+download.file(
+  "https://raw.githubusercontent.com/hadley/rminds/master/1-data/wine.csv",
+  temp_file
+)
 
-usethis::use_data(pendigits, overwrite = TRUE)
+tmp <- read.csv(temp_file)
 
-unlink(temp_file1)
-unlink(temp_file2)
+x <- tmp[, -1]
+y <- as.factor(tmp[, 1])
+
+wine <- list(x = x, y = y)
+
+usethis::use_data(wine, overwrite = TRUE)
+
+

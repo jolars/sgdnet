@@ -107,18 +107,18 @@
 #'
 #' @examples
 #' # Gaussian regression with sparse features with ridge penalty
-#' fit <- sgdnet(houses$x, houses$y, alpha = 0)
+#' fit <- sgdnet(abalone$x, abalone$y, alpha = 0)
 #'
 #' # Binomial logistic regression with elastic net penalty, no intercept
-#' binom_fit <- sgdnet(mushrooms$x,
-#'                     mushrooms$y,
+#' binom_fit <- sgdnet(heart$x,
+#'                     heart$y,
 #'                     family = "binomial",
 #'                     alpha = 0.5,
 #'                     intercept = FALSE)
 #'
 #' # Multinomial logistic regression with lasso
-#' multinom_fit <- sgdnet(pendigits$train$x,
-#'                        pendigits$train$y,
+#' multinom_fit <- sgdnet(wine$train$x,
+#'                        wine$train$y,
 #'                        family = "multinomial")
 #'
 sgdnet <- function(x, ...) UseMethod("sgdnet")

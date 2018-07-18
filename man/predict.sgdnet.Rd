@@ -65,38 +65,39 @@ Predictions for sgdnet Models
 # Gaussian
 
 # Split into training and test sets
-n <- length(houses$y)
+n <- length(abalone$y)
 train_ind <- sample(n, size = floor(0.8 * n))
 
 # Fit the model using the training set
-fit_gaussian <- sgdnet(houses$x[train_ind, ], houses$y[train_ind])
+fit_gaussian <- sgdnet(abalone$x[train_ind, ], abalone$y[train_ind])
 
 # Predict using the test set
-pred_gaussian <- predict(fit_gaussian, newx = houses$x[-train_ind, ])
+pred_gaussian <- predict(fit_gaussian, newx = abalone$x[-train_ind, ])
 
 # Mean absolute prediction error along regularization path
 mae <- 1/(n - length(train_ind)) *
-         colSums(abs(houses$y[-train_ind] - pred_gaussian))
+         colSums(abs(abalone$y[-train_ind] - pred_gaussian))
 
 # Binomial
-n <- length(mushrooms$y)
+n <- length(heart$y)
 train_ind <- sample(n, size = floor(0.8 * n))
 
-fit_binomial <- sgdnet(mushrooms$x[train_ind, ],
-                       mushrooms$y[train_ind],
+fit_binomial <- sgdnet(heart$x[train_ind, ],
+                       heart$y[train_ind],
                        family = "binomial")
 
 # Predict classes at custom lambda value (s) using linear interpolation
-predict(fit_binomial, mushrooms$x[-train_ind, ], type = "class", s = 1/n)
+predict(fit_binomial, heart$x[-train_ind, ], type = "class", s = 1/n)
 
 # Multinomial
-fit_multinomial <- sgdnet(pendigits$train$x,
-                          pendigits$train$y,
+n <- length(wine$y)
+fit_multinomial <- sgdnet(wine$x[train_ind, ],
+                          wine$y[train_ind],
                           family = "multinomial",
                           alpha = 0.25)
 predict(fit_multinomial,
-        pendigits$test$x,
-        s = 1/nrow(pendigits$test$x),
+        wine$x[-train_ind, ],
+        s = 0.0001,
         exact = TRUE,
         type = "class")
 

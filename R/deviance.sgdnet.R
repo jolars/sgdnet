@@ -26,7 +26,7 @@
 #' @seealso [stats::deviance()], [sgdnet()]
 #'
 #' @examples
-#' fit <- with(trees, sgdnet(cbind(Girth, Height), Volume))
+#' fit <- sgdnet(wine$x, wine$y, family = "multinomial")
 #' deviance(fit)
 deviance.sgdnet <- function(object, ...) {
   (1 - object$dev.ratio)*object$nulldev

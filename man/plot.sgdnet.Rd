@@ -30,7 +30,7 @@ arranged the plotting data slightly.
 }
 \examples{
 # Gaussian logistic regression
-gfit <- sgdnet(houses$x, houses$y, alpha = 0)
+gfit <- sgdnet(abalone$x, abalone$y, alpha = 0)
 plot(gfit, auto.key = list(columns = 2, space = "top"))
 
 # Binomial logistic regression
