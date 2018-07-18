@@ -41,5 +41,15 @@ test_that("prediction for gaussian models peform as expected", {
 
   expect_true(all(abs(as.vector(pred_one)) > abs(as.vector(pred_old))))
   expect_true(all(abs(as.vector(pred_two)) < abs(as.vector(pred_old))))
+
+  # check that we can have data.frame as new input
+  fit <- sgdnet(iris[, 1:4], iris$Species, family = "multinomial")
+  expect_error(predict(fit, newx = iris[, 1:4]), NA)
+
+  # check that we can have a vector as new data
+  fit <- sgdnet(mtcars$mpg, mtcars$drat)
+  expect_error(predict(fit, newx = mtcars$drat), NA)
+
+
 })
 
