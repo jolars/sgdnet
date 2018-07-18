@@ -1,9 +1,5 @@
 context("assertions")
 
-test_that("output types are those that we expect", {
-  expect_equal(2 * 2, 4)
-})
-
 test_that("wrong input to predict.sgdnet() return errors", {
   x <- with(trees, cbind(Girth, Volume))
   y <- trees$Height
