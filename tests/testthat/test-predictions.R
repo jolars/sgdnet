@@ -46,11 +46,4 @@ test_that("prediction for gaussian models peform as expected", {
   # check that we can have a vector as new data
   fit <- sgdnet(mtcars$mpg, mtcars$drat)
   expect_error(predict(fit, newx = mtcars$drat), NA)
-
-  # compare linear interpolation against new predictions
-  fit <- sgdnet(trees$Girth, trees$Volume)
-  pred_exact <- predict(fit, trees$Girth, s = 0.001, exact = TRUE)
-  pred_approx <- predict(fit, trees$Girth, s = 0.001)
-  expect_equal(pred_exact, pred_approx, tolerance = 1e-4)
 })
-
