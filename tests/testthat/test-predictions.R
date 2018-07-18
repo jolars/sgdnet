@@ -49,7 +49,5 @@ test_that("prediction for gaussian models peform as expected", {
   # check that we can have a vector as new data
   fit <- sgdnet(mtcars$mpg, mtcars$drat)
   expect_error(predict(fit, newx = mtcars$drat), NA)
-
-
 })
 
