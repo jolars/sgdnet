@@ -28,32 +28,12 @@
 //' @param x A Eigen matrix of sparse or dense type.
 //'
 //' @return The maximum squared norm over columns (samples).
-inline double ColNormsMax(const Eigen::MatrixXd& x) {
+template <typename T>
+inline double ColNormsMax(const T& x) {
   double cn_max = 0.0;
 
-  for (unsigned i = 0; i < x.cols(); ++i) {
-
-    double cn_current = 0.0;
-    for (unsigned j = 0; j < x.rows(); ++j)
-      cn_current += x(i, j)*x(i, j);
-
-    cn_max = std::max(cn_max, cn_current);
-  }
-
-  return cn_max;
-}
-
-inline double ColNormsMax(const Eigen::SparseMatrix<double>& x) {
-  double cn_max = 0.0;
-
-  for (unsigned i = 0; i < x.outerSize(); ++i) {
-
-    double cn_current = 0.0;
-    for (Eigen::SparseMatrix<double>::InnerIterator it(x, i); it; ++it)
-      cn_current += it.value()*it.value();
-
-    cn_max = std::max(cn_max, cn_current);
-  }
+  for (unsigned i = 0; i < x.cols(); ++i)
+    cn_max = std::max(cn_max, x.col(i).squaredNorm());
 
   return cn_max;
 }
@@ -136,12 +116,8 @@ void PreprocessFeatures(Eigen::SparseMatrix<double>& x,
 //' @param lambda_min_ratio smallest lambda_min_ratio
 //' @param elasticnet_mix ratio of l1 penalty to l2. Same as alpha in glmnet.
 //' @param x feature matrix
-//' @param y response vector
-//' @param n_samples number of samples
 //' @param alpha l2-penalty
 //' @param beta l1-penalty
-//' @param y_scale scale of y, used only to return lambda values to same
-//'   scale as in glmnet
 //' @param family pointer to respone type family class object
 //'
 //' @return lambda, alpha and beta are updated.
@@ -238,7 +214,6 @@ inline void PredictSample(std::vector<double>&               prediction,
 //' Loss for the current epoch
 //'
 //' @param x feature matrix
-//' @param y response vector
 //' @param weights coefficients
 //' @param intercept the intercept
 //' @param family a Family class object for the current response type
@@ -346,7 +321,6 @@ inline void AdaptiveTranspose(Eigen::MatrixXd& x) {
 //' Computes the deviance of the model given by `weights` and `intercept`.
 //'
 //' @param x a feature matrix (dense or sparse)
-//' @param y a response vector
 //' @param weights a vector of coefficients
 //' @param intercept an intercept vector
 //' @param is_sparse whether x is sparse
