@@ -21,9 +21,6 @@ test_that("prediction for gaussian models peform as expected", {
   pred_nonzero <- predict(fit, x, type = "nonzero")
   expect_is(pred_nonzero, "list")
   expect_length(pred_nonzero, ncol(coef(fit)))
-  expect_equivalent(pred_nonzero[[1]], NULL)
-  expect_equal(predict(fit, x, s = max(fit$lambda), type = "nonzero")[[1]],
-               NULL)
   expect_equal(predict(fit, x, s = 0, type = "nonzero")[[1]], seq_len(ncol(x)))
 
   pred_coefficients <- predict(fit, x, type = "coefficients")
