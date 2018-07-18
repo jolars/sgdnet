@@ -18,6 +18,8 @@ test_that("wrong input to sgdnet() returns errors", {
   y_na <- y
   y_na[1] <- NA
 
+  expect_error(sgdnet(x, y, lambda = double(0)))
+  expect_error(sgdnet(x, y, maxit = 0))
   expect_error(sgdnet(x, as.factor(y)))
   expect_error(sgdnet(x, y, thresh = -0.1))
   expect_error(sgdnet(x, y_na))
