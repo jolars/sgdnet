@@ -114,7 +114,7 @@ Rcpp::List SetupSgdnet(T&                   x,
   else if (family_choice == "multinomial")
     family = unique_ptr<Family>(new Multinomial(y, n_samples, n_classes));
 
-    // Store null deviance here before processing response
+  // Store null deviance here before processing response
   double null_deviance = family->NullDeviance(fit_intercept);
 
   // intercept updates are scaled to avoid oscillation
