@@ -93,7 +93,9 @@ plot.sgdnet <- function(x, xvar = c("norm", "lambda", "dev"), ...) {
            plot_args$xlab <-
              expression(group("|", group("|", hat(beta), "|"), "|")[1])
            plot_data$xval <- if (is.list(beta))
-             rowSums(sapply(beta, function(x) colSums(abs(as.matrix(x)))))
+             rowSums(vapply(beta,
+                            function(x) colSums(abs(as.matrix(x))),
+                            double(ncol(beta[[1]]))))
            else
              colSums(abs(as.matrix(beta)))
          },
@@ -117,5 +119,3 @@ plot.sgdnet <- function(x, xvar = c("norm", "lambda", "dev"), ...) {
   # Let the user modify the plot parameters
   do.call(lattice::xyplot, utils::modifyList(plot_args, list(...)))
 }
-
-# do.call(lattice::xyplot,plot_args)
