@@ -27,8 +27,8 @@ test_that("predictions for binomial model compare with glmnet", {
 
   # expect equivalent output for all the types of predictions
   for (type in c("link", "response", "class")) {
-    expect_equal(predict(sgdfit, x, type = type),
-                 predict(glmfit, x, type = type),
-                 tolerance = 0.001)
+    spred <- predict(sgdfit, x, type = type)
+    gpred <- predict(glmfit, x, type = type)
+    expect_equal(spred, gpred, tolerance = 0.001)
   }
 })
