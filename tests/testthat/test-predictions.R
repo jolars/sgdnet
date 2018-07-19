@@ -25,8 +25,37 @@ test_that("prediction for gaussian models peform as expected", {
 
   pred_coefficients <- predict(fit, x, type = "coefficients")
   expect_equal(pred_coefficients, coef(fit))
+})
 
-  # check linear interpolation
+test_that("predictions run smoothly for a range of combinations and options", {
+  x1 <- cbind(mtcars$mpg, mtcars$hp)
+  x2a <- mtcars$mpg
+  x2b <- x2a
+  x2b[1] <- NA
+  for (family in c("gaussian", "binomial", "multinomial")) {
+    y <- switch(family,
+                gaussian = mtcars$drat,
+                binomial = mtcars$vs,
+                multinomial = mtcars$gear)
+
+    fit1a <- sgdnet(x1, y, family = family)
+    fit1a <- sgdnet(x1, y, lambda = 0.0001, family = family)
+    fit2a <- sgdnet(x2a, y, lambda = 0.0001, family = family)
+
+    for (type in c("link", "response", "coefficients", "nonzero", "class")) {
+      if (type == "class" && !(family %in% c("binomial", "multinomial")))
+        next
+
+      expect_error(predict(fit1a, newx = x1, type = type), NA)
+      expect_error(predict(fit1a, newx = x1, s = 0.001), NA)
+      expect_error(predict(fit2a, newx = x2a, type = type), NA)
+      expect_error(predict(fit2a, newx = x2a, s = 0.001), NA)
+      expect_error(predict(fit2b, newx = x2b))
+    }
+  }
+})
+
+test_that("linear interpolation succeeds", {
   pred_old <- predict(fit, x, s = 0.04, type = "coefficients")
   pred_new <- predict(sgdnet(x, y, lambda = 0.04), type = "coefficients")
 
@@ -38,12 +67,7 @@ test_that("prediction for gaussian models peform as expected", {
 
   expect_true(all(abs(as.vector(pred_one)) > abs(as.vector(pred_old))))
   expect_true(all(abs(as.vector(pred_two)) < abs(as.vector(pred_old))))
-
-  # check that we can have data.frame as new input
-  fit <- sgdnet(iris[, 1:4], iris$Species, family = "multinomial")
-  expect_error(predict(fit, newx = iris[, 1:4]), NA)
-
-  # check that we can have a vector as new data
-  fit <- sgdnet(mtcars$mpg, mtcars$drat)
-  expect_error(predict(fit, newx = mtcars$drat), NA)
 })
+
+
+
