@@ -10,6 +10,9 @@ test_that("wrong input to predict.sgdnet() return errors", {
   expect_error(predict(fit, x, type = 1))
   expect_error(predict(fit, x, s = -3))
   expect_error(predict(fit, x, type = "class"))
+
+  fit <- sgdnet(iris[, 1:2], iris[, 5], family = "multinomial")
+  expect_error(predict(fit, x, s = -3, type = "class"))
 })
 
 test_that("wrong input to sgdnet() returns errors", {

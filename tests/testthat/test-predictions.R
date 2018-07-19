@@ -56,6 +56,11 @@ test_that("predictions run smoothly for a range of combinations and options", {
 })
 
 test_that("linear interpolation succeeds", {
+  x <- with(trees, cbind(Girth, Volume))
+  y <- trees$Height
+
+  fit <- sgdnet(x, y)
+
   pred_old <- predict(fit, x, s = 0.04, type = "coefficients")
   pred_new <- predict(sgdnet(x, y, lambda = 0.04), type = "coefficients")
 
