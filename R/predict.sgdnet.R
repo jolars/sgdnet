@@ -45,50 +45,85 @@
 #'
 #' @return Nonzero coefficients.
 #' @keywords internal
+#' @noRd
 nonzero_coefs <- function(beta, bystep = FALSE) {
+  if (is.list(beta)) {
+    lapply(beta, nonzero_coefs, bystep = bystep)
+  } else {
+    nr <- nrow(beta)
 
-  nr <- nrow(beta)
+    if (nr == 1) {
+      # degenerate case
+      if (bystep)
+        apply(beta, 2, function(x) if (abs(x) > 0) 1 else NULL)
+      else {
+        if (any(abs(beta) > 0)) 1 else NULL
+      }
+    } else {
+      beta <- abs(beta) > 0 # this is sparse
+      which <- seq(nr)
+      ones <- rep(1, ncol(beta))
+      nz <- as.vector((beta %*% ones) > 0)
+      which <- which[nz]
 
-  if (nr == 1) {
-    #degenerate case
-    if (bystep)
-      apply(beta, 2, function(x) if (abs(x) > 0) 1 else NULL)
-    else {
-      if (any(abs(beta) > 0))
-        1
-      else
-        NULL
+      if (bystep) {
+
+        if (length(which) > 0) {
+
+          beta <- as.matrix(beta[which, , drop = FALSE])
+          nzel <- function(x, which) if (any(x)) which[x] else NULL
+          which <- apply(beta, 2, nzel, which)
+
+          if (!is.list(which))
+            which <- data.frame(which)
+
+          which
+
+        } else {
+
+          dn <- dimnames(beta)[[2]]
+          which <- vector("list", length(dn))
+          names(which) <- dn
+          which
+
+        }
+      } else which
+    }
+  }
+}
+
+#' Softmax-based prediction
+#'
+#' @param x linear predictors
+#'
+#' @return Class predictions.
+#' @keywords internal
+softmax <- function(x) {
+  d <- dim(x)
+  nas <- apply(is.na(x), 1, any)
+  if (any(nas)) {
+    pclass <- rep(NA, d[1])
+    if (sum(nas) < d[1]) {
+      pclass2 <- softmax(x[!nas, ])
+      pclass[!nas] <- pclass2
+      if (is.factor(pclass2))
+        pclass <- factor(pclass, levels = seq(d[2]), labels = levels(pclass2))
     }
   } else {
-    beta <- abs(beta) > 0 # this is sparse
-    which <- seq(nr)
-    ones <- rep(1, ncol(beta))
-    nz <- as.vector((beta %*% ones) > 0)
-    which <- which[nz]
-
-    if (bystep) {
-
-      if (length(which) > 0) {
-
-        beta <- as.matrix(beta[which, , drop = FALSE])
-        nzel <- function(x, which) if (any(x)) which[x] else NULL
-        which <- apply(beta, 2, nzel, which)
-
-        if (!is.list(which))
-          which <- data.frame(which)
-
-        which
-
-      } else {
-
-        dn <- dimnames(beta)[[2]]
-        which <- vector("list", length(dn))
-        names(which) <- dn
-        which
-
-      }
-    } else which
+    maxdist <- x[, 1]
+    pclass <- rep(1, d[1])
+    for (i in seq(2, d[2])) {
+      l <- x[, i] > maxdist
+      pclass[l] <- i
+      maxdist[l] <- x[l, i]
+    }
+    dd <- dimnames(x)[[2]]
+    pclass <- if (is.null(dd) || !length(dd))
+      pclass
+    else
+      factor(pclass, levels = seq(d[2]), labels = dd)
   }
+  pclass
 }
 
 #' Interpolate Lambda Values
@@ -102,6 +137,7 @@ nonzero_coefs <- function(beta, bystep = FALSE) {
 #' @author Jerome Friedman, Trevor Hastie, Rob Tibshirani, and Noah Simon
 #'
 #' @keywords internal
+#' @noRd
 lambda_interpolate <- function(lambda, s) {
 
   if (length(lambda) == 1) {
@@ -111,7 +147,7 @@ lambda_interpolate <- function(lambda, s) {
     right <- left
     sfrac <- rep(1, nums)
 
-  } else{
+  } else {
 
     s[s > max(lambda)] <- max(lambda)
     s[s < min(lambda)] <- min(lambda)
@@ -129,6 +165,68 @@ lambda_interpolate <- function(lambda, s) {
   list(left = left, right = right, frac = sfrac)
 }
 
+#' Refit sgdnet object
+#'
+#' @param object an object of class `sgdnet`
+#' @param s a new lambda penalty (or several)
+#' @param ... new arguments to pass on to [sgdnet()]
+#'
+#' @return A new fit from [sgdnet()].
+#' @keywords internal
+#' @noRd
+refit <- function(object, s, ...) {
+  if (!all(s %in% object$lambda)) {
+    lambda <- unique(rev(sort(c(s, object$lambda))))
+    object <- stats::update(object, lambda = object$lambda, ...)
+  }
+}
+
+#' Bind intercept with coefficients
+#'
+#' @param beta coefficients
+#' @param a0 intercept
+#'
+#' @return A matrix (or listof matrices).
+#' @keywords internal
+#' @noRd
+bind_intercept <- function(beta, a0) {
+  if (is.list(beta)) {
+    for (i in seq_along(beta))
+      beta[[i]] <- bind_intercept(beta[[i]], a0[i, , drop = FALSE])
+    beta
+  } else {
+    out <- methods::rbind2(a0, beta)
+    rownames(out)[1] <- "(Intercept)"
+    out
+  }
+}
+
+#' Interpolate coefficients
+#'
+#' @param beta coeffieicnts
+#' @param s lambda penalty
+#' @param lamlist a list of lambda interpolation parameters, returned from
+#'   [lambda_interpolate()].
+#'
+#' @return A matrix (or list of matrices) with new coefficients based
+#'   on linearly interpolating from new and old lambda values.
+#' @keywords internal
+#' @noRd
+interpolate_coefficients <- function(beta, s, lamlist) {
+  if (is.list(beta)) {
+    lapply(beta, interpolate_coefficients, s = s, lamlist = lamlist)
+  } else {
+    vnames <- dimnames(beta)[[1]]
+    dimnames(beta) <- list(NULL, NULL)
+    beta <- beta[, lamlist$left, drop = FALSE] %*%
+      Matrix::Diagonal(x = lamlist$frac) +
+      beta[, lamlist$right, drop = FALSE] %*%
+      Matrix::Diagonal(x = 1 - lamlist$frac)
+    dimnames(beta) <- list(vnames, paste(seq(along = s)))
+    beta
+  }
+}
+
 #' Predictions for sgdnet Models
 #'
 #' @param object an object of class `'sgdnet'`.
@@ -140,13 +238,19 @@ lambda_interpolate <- function(lambda, s) {
 #'   \item{`link`}{ linear predictors,}
 #'   \item{`response`}{responses,}
 #'   \item{`coefficients`}{coefficients (weights); equivalent to calling
-#'     [coef()], and}
+#'     [coef()]}
 #'   \item{`nonzero`}{nonzero coefficients at each step of the regularization
-#'     path.}
+#'     path, and}
+#'   \item{`class`}{class predictions for each new data point in `newx` at
+#'     each step of the regularization path -- only useful for 'binomial' and
+#'     'multinomial' families.}
 #'  }
 #' @param exact if the given value of `s` is not in the model and
 #'   `exact = TRUE`, the model will be refit using `s`. If `FALSE`, predictions
 #'   will be made using a linearly interpolated coefficient matrix.
+#' @param newoffset if an offset was used in the call to [sgdnet()],
+#'   a new offset can be provided here for making predictions (but not for
+#'   `type = 'coefficients'/'nonzero'`)
 #' @param ... arguments to be passed on to [stats::update()] to refit
 #'   the model via [sgdnet()] if `s` is missing
 #'   from the model and an exact fit is required by `exact`.
@@ -163,95 +267,240 @@ lambda_interpolate <- function(lambda, s) {
 #' # Gaussian
 #'
 #' # Split into training and test sets
-#' id <- sample.int(nrow(iris))
-#' train_ind <- id[1:100]
-#' test_ind <- id[101:150]
-#' gaussian_fit <- sgdnet(iris[train_ind, 2:4], iris[train_ind, 1])
-#' pred <- predict(gaussian_fit,
-#'                 newx = iris[test_ind, 2:4],
-#'                 s = 0.003,
-#'                 type = "response",
-#'                 exact = TRUE)
+#' n <- length(abalone$y)
+#' train_ind <- sample(n, size = floor(0.8 * n))
 #'
-#' # Mean absolute error
-#' mae <- 1/length(test_ind)*sum(abs(iris[test_ind, 2:4] - pred))
+#' # Fit the model using the training set
+#' fit_gaussian <- sgdnet(abalone$x[train_ind, ], abalone$y[train_ind])
+#'
+#' # Predict using the test set
+#' pred_gaussian <- predict(fit_gaussian, newx = abalone$x[-train_ind, ])
+#'
+#' # Mean absolute prediction error along regularization path
+#' mae <- 1/(n - length(train_ind)) *
+#'          colSums(abs(abalone$y[-train_ind] - pred_gaussian))
+#'
+#' # Binomial
+#' n <- length(heart$y)
+#' train_ind <- sample(n, size = floor(0.8 * n))
+#'
+#' fit_binomial <- sgdnet(heart$x[train_ind, ],
+#'                        heart$y[train_ind],
+#'                        family = "binomial")
+#'
+#' # Predict classes at custom lambda value (s) using linear interpolation
+#' predict(fit_binomial, heart$x[-train_ind, ], type = "class", s = 1/n)
+#'
+#' # Multinomial
+#' n <- length(wine$y)
+#' train_ind <- sample(n, size = floor(0.8 * n))
+#' fit_multinomial <- sgdnet(wine$x[train_ind, ],
+#'                           wine$y[train_ind],
+#'                           family = "multinomial",
+#'                           alpha = 0.25)
+#' predict(fit_multinomial,
+#'         wine$x[-train_ind, ],
+#'         s = 0.0001,
+#'         exact = TRUE,
+#'         type = "class")
+#'
 predict.sgdnet <- function(object,
-                           newx,
+                           newx = NULL,
                            s = NULL,
-                           type = c("link",
-                                    "response",
-                                    "coefficients",
-                                    "nonzero",
-                                    "class"),
+                           type,
                            exact = FALSE,
+                           newoffset = NULL,
                            ...) {
 
-  stopifnot(is.logical(exact))
+  if (isTRUE(exact) && !is.null(s))
+    object <- refit(object, s, ...)
 
-  type <- match.arg(type)
-
-  family <- extract_family(object)
-
-  if (missing(newx) && type %in% c("link", "response", "class"))
-    stop("new data must be provided for type = ", type)
-
-  if (isTRUE(exact) && !is.null(s)) {
-    lambda <- object$lambda
-    which <- match(s, lambda, FALSE)
-
-    if (!all(which > 0)) {
-      lambda <- unique(rev(sort(c(s, lambda))))
-      object <- stats::update(object, lambda = lambda)
-    }
-  }
-
-  a0 <- t(as.matrix(object$a0))
-  rownames(a0) <- "(Intercept)"
-  beta <- methods::rbind2(a0, object$beta)
+  beta <- bind_intercept(object$beta, object$a0)
 
   if (!is.null(s)) {
-    stopifnot(s >= 0)
+    if (s < 0)
+      stop("s (lambda penalty) cannot be negative")
 
-    vnames <- dimnames(beta)[[1]]
-    dimnames(beta) <- list(NULL, NULL)
-    lambda <- object$lambda
-    lamlist <- lambda_interpolate(lambda, s)
-
-    beta <- beta[, lamlist$left, drop = FALSE] %*%
-      Matrix::Diagonal(x = lamlist$frac) +
-      beta[, lamlist$right, drop = FALSE] %*%
-      Matrix::Diagonal(x = 1 - lamlist$frac)
-
-    dimnames(beta) = list(vnames, paste(seq(along = s)))
+    lamlist <- lambda_interpolate(object$lambda, s)
+    beta <- interpolate_coefficients(beta, s, lamlist)
   }
 
-  if (type %in% c("link", "response", "class")) {
+  if (is.null(newx)) {
+    if (type %in% c("link", "response", "class"))
+      stop("you need to supply a value for 'newx' for type = '", type, "'")
+  } else {
     if (inherits(newx, "sparseMatrix"))
       newx <- methods::as(newx, "dgCMatrix")
-    else
+    if (inherits(newx, "data.frame"))
       newx <- as.matrix(newx)
 
-    linear_predictors <- as.matrix(cbind(1, newx) %*% beta)
+    fit <- as.matrix(methods::cbind2(1, newx) %*% beta)
+  }
+
+  if (isTRUE(object$offset)) {
+    if (is.null(newoffset))
+      stop("need 'newoffset' since offset was used in fit")
+    if (is.matrix(newoffset) &&
+        inherits(object, "sgdnet_binomial") &&
+        dim(newoffset)[[2]] == 2)
+      newoffset <- newoffset[, 2]
+    fit <- fit + array(newoffset, dim = dim(fit))
   }
 
   switch(
     type,
-    link = linear_predictors,
-    response = {
-      if (family == "gaussian")
-        linear_predictors
-      else if (family == "binomial")
-        1 / (1 + exp(-linear_predictors))
-    },
+    link = fit,
+    response = fit,
     coefficients = beta,
     nonzero = nonzero_coefs(beta[-1, , drop = FALSE], bystep = TRUE),
-    class = {
-      cnum <- ifelse(linear_predictors > 0, 2, 1)
-      clet <- object$classnames[cnum]
+    fit
+  )
+}
 
+#' @inherit predict.sgdnet
+#'
+#' @export
+#' @rdname predict.sgdnet
+predict.sgdnet_gaussian <- function(object,
+                                    newx = NULL,
+                                    s = NULL,
+                                    type = c("link",
+                                             "response",
+                                             "coefficients",
+                                             "nonzero"),
+                                    exact = FALSE,
+                                    newoffset = NULL,
+                                    ...) {
+  type <- match.arg(type)
+  NextMethod("predict", type = type)
+}
+
+#' @inherit predict.sgdnet
+#'
+#' @export
+#' @rdname predict.sgdnet
+predict.sgdnet_binomial <- function(object,
+                                    newx = NULL,
+                                    s = NULL,
+                                    type = c("link",
+                                             "response",
+                                             "coefficients",
+                                             "nonzero",
+                                             "class"),
+                                    exact = FALSE,
+                                    newoffset = NULL,
+                                    ...) {
+  type <- match.arg(type)
+  fit <- NextMethod("predict", type = type)
+  switch(
+    type,
+    response = 1 / (1 + exp(-fit)),
+    class = {
+      cnum <- ifelse(fit > 0, 2, 1)
+      clet <- object$classnames[cnum]
       if (is.matrix(cnum))
         clet <- array(clet, dim(cnum), dimnames(cnum))
       clet
+    },
+    fit
+  )
+}
+
+#' @inherit predict.sgdnet
+#' @export
+#' @rdname predict.sgdnet
+predict.sgdnet_multinomial <- function(object,
+                                       newx = NULL,
+                                       s = NULL,
+                                       type = c("link",
+                                                "response",
+                                                "coefficients",
+                                                "nonzero",
+                                                "class"),
+                                       exact = FALSE,
+                                       newoffset = NULL,
+                                       ...) {
+  type <- match.arg(type)
+
+  if (isTRUE(exact) && !is.null(s))
+    object <- refit(object, s, ...)
+
+  a0 <- object$a0
+  beta <- object$beta
+  klam <- dim(a0)
+  nclass <- klam[[1]]
+
+  nbeta <- bind_intercept(beta, a0)
+
+  if (is.null(newx)) {
+    if (type %in% c("link", "response", "class"))
+      stop("you need to supply a value for 'newx' for type = '", type, "'")
+  } else {
+    if (inherits(newx, "sparseMatrix"))
+      newx <- methods::as(newx, "dgCMatrix")
+    else
+      newx <- as.matrix(newx)
+  }
+
+  if (!is.null(s)) {
+    if (s < 0)
+      stop("s (lambda penalty) cannot be negative")
+    nlambda <- length(s)
+    lamlist <- lambda_interpolate(object$lambda, s)
+    nbeta <- interpolate_coefficients(nbeta, s, lamlist)
+  } else {
+    nlambda <- length(object$lambda)
+  }
+
+  if (type %in% c("link", "response", "class")) {
+    dd <- dim(newx)
+    if (inherits(newx, "sparseMatrix"))
+      newx <- methods::as(newx, "dgCMatrix")
+
+    npred <- nrow(newx)
+    dp <- array(0,
+                c(nclass, nlambda, npred),
+                dimnames = list(names(nbeta),
+                                dimnames(nbeta[[1]])[[2]],
+                                dimnames(newx)[[1]]))
+
+    for (i in seq(nclass)) {
+      fitk <- methods::cbind2(1, newx) %*% nbeta[[i]]
+      dp[i, , ] <- dp[i, , ] + t(as.matrix(fitk))
+    }
+
+    if (isTRUE(object$offset)) {
+      if (is.null(newoffset))
+        stop("no newoffset provided for prediction, yet offset used in fit of sgdnet")
+
+      if (!is.matrix(newoffset) || dim(newoffset)[[2]] != nclass)
+        stop("dimension of newoffset should be [", npred, nclass, "]")
+
+      toff <- t(newoffset)
+      for (i in seq(nlambda))
+        dp[, i, ] <- dp[, i, ] + toff
+    }
+  }
+
+  switch(
+    type,
+    coefficients = nbeta,
+    nonzero = {
+      if (object$grouped)
+        nonzero_coefs(object$beta[[1]], bystep = TRUE)
+      else
+        nonzero_coefs(object$beta, bystep = TRUE)
+    },
+    response = {
+      pp <- exp(dp)
+      psum <- apply(pp, c(2, 3), sum)
+      aperm(pp / rep(psum, rep(nclass, nlambda * npred)), c(3, 1, 2))
+    },
+    link = aperm(dp, c(3, 1, 2)),
+    class = {
+      dp <- aperm(dp, c(3, 1, 2))
+
+      apply(dp, 3, softmax)
     }
   )
 }

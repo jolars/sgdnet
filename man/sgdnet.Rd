@@ -7,10 +7,10 @@
 \usage{
 sgdnet(x, ...)
 
-\method{sgdnet}{default}(x, y, family = c("gaussian", "binomial"),
-  alpha = 1, nlambda = 100, lambda.min.ratio = if (NROW(x) < NCOL(x)) 0.01
-  else 1e-04, lambda = NULL, maxit = 1000, standardize = TRUE,
-  intercept = TRUE, thresh = 0.001, ...)
+\method{sgdnet}{default}(x, y, family = c("gaussian", "binomial",
+  "multinomial"), alpha = 1, nlambda = 100, lambda.min.ratio = if (NROW(x)
+  < NCOL(x)) 0.01 else 1e-04, lambda = NULL, maxit = 1000,
+  standardize = TRUE, intercept = TRUE, thresh = 0.001, ...)
 }
 \arguments{
 \item{x}{input matrix}
@@ -19,8 +19,8 @@ sgdnet(x, ...)
 
 \item{y}{response variable}
 
-\item{family}{reponse type, one of \code{'gaussian'} and \code{'binomial'}. See
-\strong{Supported families} for details.}
+\item{family}{reponse type, one of \code{'gaussian'}, \code{'binomial'}, or
+\code{'multinomial'}. See \strong{Supported families} for details.}
 
 \item{alpha}{elastic net mixing parameter}
 
@@ -28,14 +28,13 @@ sgdnet(x, ...)
 
 \item{lambda.min.ratio}{the ratio between \code{lambda_max} (the smallest
 penalty at which the solution is completely sparse) and the smallest
-lambda value on the path. See section \strong{Regularization Path} for details.}
+lambda value on the path. See \strong{Regularization Path} for details.}
 
 \item{lambda}{regularization strength}
 
 \item{maxit}{maximum number of effective passes (epochs)}
 
-\item{standardize}{whether to standardize \code{x} or not -- ignored when
-\code{intercept == FALSE}.}
+\item{standardize}{whether to standardize \code{x} or not}
 
 \item{intercept}{whether to fit an intercept or not}
 
@@ -56,11 +55,13 @@ Fit a Generalized Linear Model with Elastic Net Regularization
 }
 \section{Model families}{
 
-Two model families are currently supported: gaussian univariate
-regression and binomial logistic regression, the choice of which is made
-using the \code{family} argument.
+Three model families are currently supported: gaussian univariate
+regression, binomial logistic regression, and multinomial logistic
+regression. The choice of which is made
+using the \code{family} argument. Next follows the objectives of the various
+model families:
 
-The \emph{gaussian} family solves the following objective:
+\emph{Gaussian univariate regression}:
 
 \deqn{
   \frac{1}{2n} \sum_{i=1}^n (y_i - \beta_0 - x_i^\mathsf{T} \beta)^2
@@ -71,18 +72,33 @@ The \emph{gaussian} family solves the following objective:
   + \lambda [(1 - \alpha)/2 ||\beta||_2^2 + \alpha||\beta||_1].
 }
 
-The \emph{binomial} family solves the following objective:
+\emph{Binomial logistic regression}:
 
 \deqn{
-  \frac{1}{n} \sum_{i=1}^n
-    \log\left[1 + e^{-y_i\left(\beta_0 + x^\mathsf{T} \beta \right)} \right]
+  -\frac1n \sum_{i=1}^n \bigg[y_i (\beta_0 + \beta^\mathsf{T} x_i) -
+    \log\Big(1 + e^{\beta_0 + \beta^\mathsf{T} x_i}\Big)\bigg]
   + \lambda \left( \frac{1 - \alpha}{2} ||\beta||_2^2
                    + \alpha||\beta||_1 \right),
 }{
-  1/n \sum log {1 + exp[-y_i(\beta_0 + x^T \beta)]}
+  -1/n \sum_{i=1}^n {y_i (\beta_0 + \beta^T x_i) -
+    log[1 + exp(\beta_0 + \beta^T x_i)]}
   + \lambda [(1 - \alpha)/2 ||\beta||_2^2 + \alpha||\beta||_1],
 }
-where \eqn{y_i \in \{-1, 1\}}{y ~ {-1, 1}}.
+where \eqn{y_i \in \{0, 1\}}{y ~ {0, 1}}.
+
+\emph{Multinomial logistic regression}:
+\deqn{
+ -\bigg\{\frac1n \sum_{i=1}^n \Big[\sum_{k=1}^m y_{i_k} (\beta_{0_k} + x_i^\mathsf{T} \beta_k) -
+ \log \sum_{k=1}^m e^{\beta_{0_k}+x_i^\mathsf{T} \beta_k}\Big]\bigg\}
+ + \lambda \left( \frac{1 - \alpha}{2}||\beta||_F^2 + \alpha \sum_{j=1}^p ||\beta_j||_q \right),
+}{
+ -{1\n \sum_{i=1}^n [\sum_{k=1}^m y_{i_k} (\beta_{0_k} + x_i^T \beta_k) -
+ \log \sum_{k=1}^m exp(\beta_{0_k}+x_i^T \beta_k)]}
+ + \lambda ((1 - \alpha)/2||\beta||_F^2 + \alpha \sum_{j=1}^p ||\beta_j||_q),
+}
+where \eqn{q \in {1, 2}}{q = {1,2}} invokes the standard lasso and 2 the
+group lasso penalty respectively, \eqn{F} indicates the Frobenius norm,
+and \eqn{p} is the number of classes.
 }
 
 \section{Regularization Path}{
@@ -101,8 +117,18 @@ vector,
 }
 
 \examples{
-# Gaussian regression with sparse features
-fit <- sgdnet(permeability$x, permeability$y, alpha = 0)
+# Gaussian regression with sparse features with ridge penalty
+fit <- sgdnet(abalone$x, abalone$y, alpha = 0)
+
+# Binomial logistic regression with elastic net penalty, no intercept
+binom_fit <- sgdnet(heart$x,
+                    heart$y,
+                    family = "binomial",
+                    alpha = 0.5,
+                    intercept = FALSE)
+
+# Multinomial logistic regression with lasso
+multinom_fit <- sgdnet(wine$x, wine$y, family = "multinomial")
 }
 \seealso{
 \code{\link[=predict.sgdnet]{predict.sgdnet()}}, \code{\link[=plot.sgdnet]{plot.sgdnet()}}, \code{\link[=coef.sgdnet]{coef.sgdnet()}},

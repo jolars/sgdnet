@@ -29,8 +29,20 @@ This function calls \code{\link[lattice:xyplot]{lattice::xyplot()}} under the ho
 arranged the plotting data slightly.
 }
 \examples{
-fit <- sgdnet(iris[, 2:4], iris[, 1])
-plot(fit, main = "Lassoing with sgdnet", type = "S")
+# Gaussian logistic regression
+gfit <- sgdnet(abalone$x, abalone$y, alpha = 0)
+plot(gfit, auto.key = list(columns = 2, space = "top"))
+
+# Binomial logistic regression
+bfit <- sgdnet(with(infert, cbind(age, parity)),
+               infert$case,
+               family = "binomial")
+plot(bfit, xvar = "lambda", grid = TRUE)
+
+# Multinomial logistic regression
+mfit <- sgdnet(iris[, 1:4], iris[, 5], family = "multinomial")
+plot(mfit, xvar = "dev", main = "Lassoing with sgdnet")
+
 }
 \seealso{
 \code{\link[lattice:xyplot]{lattice::xyplot()}}, \code{\link[=sgdnet]{sgdnet()}}

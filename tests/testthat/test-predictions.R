@@ -3,9 +3,6 @@ context("predictions")
 test_that("prediction for gaussian models peform as expected", {
   set.seed(1)
 
-  library(glmnet)
-  glmnet.control(fdev = 0)
-
   x <- with(trees, cbind(Girth, Volume))
   y <- trees$Height
 
@@ -17,30 +14,53 @@ test_that("prediction for gaussian models peform as expected", {
   pred_response <- predict(fit, x, type = "response")
 
   # test that these predictions are equal
-  expect_equal(pred_link, pred_response, pred_manual)
-
-  # compare against glmnet
-  fit2 <- glmnet(x, y)
-
-  for (type in c("link", "response")) {
-    expect_equal(predict(fit, x, type = type),
-                 predict(fit2, x, type = type),
-                 tolerance = 0.001)
-  }
+  expect_equal(pred_link, pred_response)
+  expect_equal(pred_link, pred_manual)
 
   # check that we get the expected nonzero indices
   pred_nonzero <- predict(fit, x, type = "nonzero")
   expect_is(pred_nonzero, "list")
   expect_length(pred_nonzero, ncol(coef(fit)))
-  expect_equivalent(pred_nonzero[[1]], NULL)
-  expect_equal(predict(fit, x, s = max(fit$lambda), type = "nonzero")[[1]],
-               NULL)
   expect_equal(predict(fit, x, s = 0, type = "nonzero")[[1]], seq_len(ncol(x)))
 
   pred_coefficients <- predict(fit, x, type = "coefficients")
   expect_equal(pred_coefficients, coef(fit))
+})
 
-  # check linear interpolation
+test_that("predictions run smoothly for a range of combinations and options", {
+  x1 <- cbind(mtcars$mpg, mtcars$hp)
+  x2a <- mtcars$mpg
+  x2b <- x2a
+  x2b[1] <- NA
+  for (family in c("gaussian", "binomial", "multinomial")) {
+    y <- switch(family,
+                gaussian = mtcars$drat,
+                binomial = mtcars$vs,
+                multinomial = mtcars$gear)
+
+    fit1a <- sgdnet(x1, y, family = family)
+    fit1a <- sgdnet(x1, y, lambda = 0.0001, family = family)
+    fit2a <- sgdnet(x2a, y, lambda = 0.0001, family = family)
+
+    for (type in c("link", "response", "coefficients", "nonzero", "class")) {
+      if (type == "class" && !(family %in% c("binomial", "multinomial")))
+        next
+
+      expect_error(predict(fit1a, newx = x1, type = type), NA)
+      expect_error(predict(fit1a, newx = x1, s = 0.001), NA)
+      expect_error(predict(fit2a, newx = x2a, type = type), NA)
+      expect_error(predict(fit2a, newx = x2a, s = 0.001), NA)
+      expect_error(predict(fit2b, newx = x2b))
+    }
+  }
+})
+
+test_that("linear interpolation succeeds", {
+  x <- with(trees, cbind(Girth, Volume))
+  y <- trees$Height
+
+  fit <- sgdnet(x, y)
+
   pred_old <- predict(fit, x, s = 0.04, type = "coefficients")
   pred_new <- predict(sgdnet(x, y, lambda = 0.04), type = "coefficients")
 
@@ -54,35 +74,5 @@ test_that("prediction for gaussian models peform as expected", {
   expect_true(all(abs(as.vector(pred_two)) < abs(as.vector(pred_old))))
 })
 
-test_that("predictions for binomial model works appropriately", {
-  set.seed(1)
 
-  library(glmnet)
 
-  glmnet.control(fdev = 0)
-
-  x <- as.matrix(with(infert, cbind(age, parity)))
-  y <- infert$case
-
-  sgdfit <- sgdnet(x, y, family = "binomial")
-  glmfit <- glmnet(x, y, family = "binomial")
-
-  # expect equivalent output for all the types of predictions
-  for (type in c("link", "response", "class")) {
-    expect_equal(predict(sgdfit, x, type = type),
-                 predict(glmfit, x, type = type),
-                 tolerance = 0.001)
-  }
-})
-
-test_that("assertations for incorrect input throw errors", {
-  x <- with(trees, cbind(Girth, Volume))
-  y <- trees$Height
-
-  fit <- sgdnet(x, y)
-
-  expect_error(predict(fit))
-  expect_error(predict(fit, x, exact = "yes"))
-  expect_error(predict(fit, x, type = 1))
-  expect_error(predict(fit, x, s = -3))
-})

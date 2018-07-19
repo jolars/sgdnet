@@ -73,8 +73,8 @@
 template <typename T>
 Rcpp::List SetupSgdnet(T&                   x,
                        std::vector<double>& y,
-                       const bool          is_sparse,
-                       const Rcpp::List&   control) {
+                       const bool           is_sparse,
+                       const Rcpp::List&    control) {
   using namespace std;
   using namespace sgdnet;
 
@@ -83,8 +83,10 @@ Rcpp::List SetupSgdnet(T&                   x,
   const double   elasticnet_mix   = Rcpp::as<double>(control["elasticnet_mix"]);
   vector<double> lambda           = Rcpp::as<vector<double>>(control["lambda"]);
   const unsigned n_lambda         = Rcpp::as<unsigned>(control["n_lambda"]);
+  const unsigned n_classes        = Rcpp::as<unsigned>(control["n_classes"]);
+  const unsigned n_targets        = Rcpp::as<unsigned>(control["n_targets"]);
   const double   lambda_min_ratio = Rcpp::as<double>(control["lambda_min_ratio"]);
-  const bool     standardize      = Rcpp::as<bool>(control["normalize"]);
+  const bool     standardize      = Rcpp::as<bool>(control["standardize"]);
   const unsigned max_iter         = Rcpp::as<unsigned>(control["max_iter"]);
   const double   tol              = Rcpp::as<double>(control["tol"]);
   const bool     debug            = Rcpp::as<bool>(control["debug"]);
@@ -97,33 +99,28 @@ Rcpp::List SetupSgdnet(T&                   x,
   vector<double> x_scale(n_features, 1.0);
 
   if (standardize)
-    PreprocessFeatures(x, x_center, x_scale, n_features, n_samples);
+    PreprocessFeatures(x, x_center, x_scale);
 
   // Transpose x for more efficient access of samples
   AdaptiveTranspose(x);
 
   // Setup family-specific options
-  unique_ptr<sgdnet::Family> family;
+  unique_ptr<Family> family = nullptr;
 
-  if (family_choice == "gaussian") {
-    family = unique_ptr<sgdnet::Family>(new sgdnet::Gaussian());
-  } else if (family_choice == "binomial") {
-    family = unique_ptr<sgdnet::Family>(new sgdnet::Binomial());
-  }
+  if (family_choice == "gaussian")
+    family = unique_ptr<Family>(new Gaussian(y, n_samples, n_classes));
+  else if (family_choice == "binomial")
+    family = unique_ptr<Family>(new Binomial(y, n_samples, n_classes));
+  else if (family_choice == "multinomial")
+    family = unique_ptr<Family>(new Multinomial(y, n_samples, n_classes));
 
-  // Store null deviance here before processing outcome
-  double null_deviance = family->NullDeviance(y);
-
-  auto n_classes = family->n_classes();
+  // Store null deviance here before processing response
+  double null_deviance = family->NullDeviance(fit_intercept);
 
   // intercept updates are scaled to avoid oscillation
   double intercept_decay = is_sparse ? 0.01 : 1.0;
 
-  // Preprocess response
-  vector<double> y_center(n_classes);
-  vector<double> y_scale(n_classes, 1.0);
-
-  family->PreprocessResponse(y, y_center, y_scale);
+  family->PreprocessResponse();
 
   // Compute the lambda sequence
   vector<double> alpha, beta;
@@ -133,28 +130,24 @@ Rcpp::List SetupSgdnet(T&                   x,
                      lambda_min_ratio,
                      elasticnet_mix,
                      x,
-                     y,
-                     n_samples,
                      alpha,
                      beta,
-                     y_scale,
                      family);
 
   // Maximum of sums of squares over samples
   double max_squared_sum = ColNormsMax(x);
 
   vector<double> step_size =
-    family->StepSize(max_squared_sum, alpha, fit_intercept, n_samples);
+    family->StepSize(max_squared_sum, alpha, fit_intercept);
 
   // Check if we need the nontrivial prox
   // TODO(jolars): allow more proximal operators
   string prox_choice = "soft_threshold";
 
-  unique_ptr<sgdnet::Prox> prox;
+  unique_ptr<Prox> prox = nullptr;
 
-  if (prox_choice == "soft_threshold") {
-    prox = unique_ptr<sgdnet::Prox>(new sgdnet::SoftThreshold());
-  }
+  if (prox_choice == "soft_threshold")
+    prox = unique_ptr<Prox>(new SoftThreshold());
 
   // Setup intercept vector
   vector<double> intercept(n_classes);
@@ -183,18 +176,15 @@ Rcpp::List SetupSgdnet(T&                   x,
   unsigned n_iter = 0;
 
   // Null deviance on scaled y for computing deviance ratio
-  double null_deviance_scaled = family->NullDeviance(y);
+  double null_deviance_scaled = family->NullDeviance(fit_intercept);
   vector<double> deviance_ratio;
   deviance_ratio.reserve(n_lambda);
 
   // Fit the path of penalty values
   for (unsigned lambda_ind = 0; lambda_ind < n_lambda; ++lambda_ind) {
     vector<double> losses;
-    if (debug)
-      losses.reserve(max_iter);
 
     Saga(x,
-         y,
          fit_intercept,
          intercept_decay,
          intercept,
@@ -218,7 +208,6 @@ Rcpp::List SetupSgdnet(T&                   x,
          debug);
 
     double deviance = Deviance(x,
-                               y,
                                weights,
                                intercept,
                                n_samples,
@@ -235,17 +224,14 @@ Rcpp::List SetupSgdnet(T&                   x,
             intercept_archive,
             x_center,
             x_scale,
-            y_center,
-            y_scale,
+            family->y_center,
+            family->y_scale,
             n_features,
             n_classes,
             fit_intercept);
 
-    if (debug) {
-      // Store losses
-      losses.shrink_to_fit();
-      losses_archive.emplace_back(std::move(losses));
-    }
+    if (debug)
+      losses_archive.push_back(losses);
   }
 
   return Rcpp::List::create(

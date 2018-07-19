@@ -14,14 +14,4 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#' Check if x is FALSE
-#'
-#' @param x Argument to be tested.
-#'
-#' @return A bool.
-#'
-#' @keywords internal
-#' @noRd
-is_false <- function(x) {
-  identical(x, FALSE)
-}
+

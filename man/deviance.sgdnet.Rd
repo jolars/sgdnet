@@ -33,7 +33,7 @@ path. It is computed from the slots \code{dev.ratio} and \code{nulldev} from the
 where \code{nulldev} is the deviance of the intercept-only model.
 }
 \examples{
-fit <- with(trees, sgdnet(cbind(Girth, Height), Volume))
+fit <- sgdnet(wine$x, wine$y, family = "multinomial")
 deviance(fit)
 }
 \seealso{

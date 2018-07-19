@@ -22,14 +22,15 @@
 //' @param x a vector in the log domain
 //'
 //' @return `log(sum(exp(x)))` while avoiding over/underflow.
-inline double LogSumExp(const std::vector<double>& x) {
-  double x_max = *std::max_element(x.begin(), x.end());
+template <typename T>
+inline double LogSumExp(const T& x) {
+  auto x_max = std::max_element(x.begin(), x.end());
   double exp_sum = 0.0;
 
   for (auto x_i : x)
-    exp_sum += std::exp(x_i - x_max);
+    exp_sum += std::exp(x_i - (*x_max));
 
-  return std::log(exp_sum) + x_max;
+  return std::log(exp_sum) + (*x_max);
 }
 
 //' Log-spaced sequence
@@ -76,14 +77,68 @@ inline double Mean(const T& x) {
 //'
 //' @noRd
 template <typename T>
-inline double StandardDeviation(const T& x) {
-  auto x_mean = Mean(x);
-
+inline double StandardDeviation(const T& x, const double x_mean) {
   double var = 0.0;
   for (auto x_i : x)
     var += std::pow(x_i - x_mean, 2)/x.size();
 
-  return std::sqrt(var);
+  // Never return 0 standard deviation
+  return var == 0.0 ? 1.0 : std::sqrt(var);
+}
+
+template <typename T>
+inline double StandardDeviation(const T& x) {
+  return StandardDeviation(x, Mean(x));
+}
+
+template <typename T>
+inline void Standardize(const T& x) {
+  auto x_mu = Mean(x);
+  auto x_sd = StandardDeviation(x, x_mu);
+
+  for (auto& x_i : x) {
+    x_i -= x_mu;
+    x_i /= x_sd;
+  }
+}
+
+//' Clamp a value to [min, max]
+//' @param x value to clamp
+//' @param min min
+//' @param max max
+//' @noRd
+template <typename T>
+inline T Clamp(const T& x, const T& min, const T& max) {
+  return x > max ? max : (x < min ? min : x);
+}
+
+//' Table proportions of unique values in vector
+//'
+//' The input vector `x` will be coerced into unsigned integers by
+//' static_cast<unsigned>()
+//'
+//' @param x vector with integerish components
+//' @param n_classes number of classes (unique values)
+//'
+//' @return A
+//' @noRd
+template <typename T>
+inline std::vector<double> Proportions(const T& x, const unsigned n_classes) {
+  std::vector<double> proportions(n_classes);
+
+  // Count up all unique values
+  for (auto x_i : x) {
+    unsigned y_i = static_cast<unsigned>(x_i + 0.5);
+    proportions[y_i] += 1.0;
+  }
+
+  // Turn into proportions
+  auto n = static_cast<double>(x.size());
+
+  for (auto& proportions_i : proportions)
+    proportions_i /= n;
+
+  return proportions;
 }
 
 #endif // SGDNET_MATH_
