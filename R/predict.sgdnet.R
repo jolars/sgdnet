@@ -181,7 +181,6 @@ refit <- function(object, s, ...) {
   }
 }
 
-
 #' Bind intercept with coefficients
 #'
 #' @param beta coefficients
