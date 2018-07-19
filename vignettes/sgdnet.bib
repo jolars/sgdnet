@@ -1,0 +1,46 @@
+
+@article{defazio2014,
+  title = {{{SAGA}}: {{A Fast Incremental Gradient Method With Support}} for {{Non}}-{{Strongly Convex Composite Objectives}}},
+  volume = {2},
+  shorttitle = {{{SAGA}}},
+  abstract = {In this work we introduce a new optimisation method called SAGA in the spirit of SAG, SDCA, MISO and SVRG, a set of recently proposed incremental gradient algorithms with fast linear convergence rates. SAGA improves on the theory behind SAG and SVRG, with better theoretical convergence rates, and has support for composite objectives where a proximal operator is used on the regulariser. Unlike SDCA, SAGA supports non-strongly convex problems directly, and is adaptive to any inherent strong convexity of the problem. We give experimental results showing the effectiveness of our method.},
+  journal = {Advances in Neural Information Processing Systems},
+  author = {Defazio, Aaron and Bach, Francis and {Lacoste-Julien}, Simon},
+  month = jul,
+  year = {2014},
+  keywords = {_tablet},
+  file = {/home/jolars/Zotero/storage/2TZQZ3YK/defazio_2014_saga.pdf}
+}
+
+@article{schmidt2017,
+  title = {Minimizing Finite Sums with the Stochastic Average Gradient},
+  volume = {162},
+  issn = {0025-5610, 1436-4646},
+  doi = {10/f9xwpn},
+  abstract = {We analyze the stochastic average gradient (SAG) method for optimizing the sum of a finite number of smooth convex functions. Like stochastic gradient (SG) methods, the SAG method's iteration cost is independent of the number of terms in the sum. However, by incorporating a memory of previous gradient values the SAG method achieves a faster convergence rate than black-box SG methods. The convergence rate is improved from O(1/k$\surd$)O(1/k)O(1/$\backslash$sqrt\{k\}) to O(1 / k) in general, and when the sum is strongly-convex the convergence rate is improved from the sub-linear O(1 / k) to a linear convergence rate of the form O($\rho$k)O($\rho$k)O($\backslash$rho \^k) for $\rho{}<$1$\rho{}<$1$\backslash$rho $<$ 1. Further, in many cases the convergence rate of the new method is also faster than black-box deterministic gradient methods, in terms of the number of gradient evaluations. This extends our earlier work Le Roux et al. (Adv Neural Inf Process Syst, 2012), which only lead to a faster rate for well-conditioned strongly-convex problems. Numerical experiments indicate that the new algorithm often dramatically outperforms existing SG and deterministic gradient methods, and that the performance may be further improved through the use of non-uniform sampling strategies.},
+  language = {en},
+  number = {1-2},
+  journal = {Math. Program.},
+  author = {Schmidt, Mark and Roux, Nicolas Le and Bach, Francis},
+  month = mar,
+  year = {2017},
+  pages = {83-112},
+  file = {/home/jolars/Zotero/storage/DZTJ3CD5/schmidt - 2017 - minimizing finite sums with the stochastic.pdf;/home/jolars/Zotero/storage/4R8E9UCS/10.html}
+}
+
+@article{defazio2015,
+  archivePrefix = {arXiv},
+  eprinttype = {arxiv},
+  eprint = {1510.02533},
+  primaryClass = {cs, stat},
+  title = {New {{Optimisation Methods}} for {{Machine Learning}}},
+  abstract = {A thesis submitted for the degree of Doctor of Philosophy of The Australian National University. In this work we introduce several new optimisation methods for problems in machine learning. Our algorithms broadly fall into two categories: optimisation of finite sums and of graph structured objectives. The finite sum problem is simply the minimisation of objective functions that are naturally expressed as a summation over a large number of terms, where each term has a similar or identical weight. Such objectives most often appear in machine learning in the empirical risk minimisation framework in the non-online learning setting. The second category, that of graph structured objectives, consists of objectives that result from applying maximum likelihood to Markov random field models. Unlike the finite sum case, all the non-linearity is contained within a partition function term, which does not readily decompose into a summation. For the finite sum problem, we introduce the Finito and SAGA algorithms, as well as variants of each. For graph-structured problems, we take three complementary approaches. We look at learning the parameters for a fixed structure, learning the structure independently, and learning both simultaneously. Specifically, for the combined approach, we introduce a new method for encouraging graph structures with the "scale-free" property. For the structure learning problem, we establish SHORTCUT, a O(n\^\{2.5\}) expected time approximate structure learning method for Gaussian graphical models. For problems where the structure is known but the parameters unknown, we introduce an approximate maximum likelihood learning algorithm that is capable of learning a useful subclass of Gaussian graphical models.},
+  journal = {arXiv:1510.02533 [cs, stat]},
+  author = {Defazio, Aaron},
+  month = oct,
+  year = {2015},
+  keywords = {Computer Science - Learning,Statistics - Machine Learning},
+  file = {/home/jolars/Zotero/storage/32QUIN5S/defazio_2015_new_optimisation_methods_for_machine.pdf;/home/jolars/Zotero/storage/TXMDUVJC/1510.html}
+}
+
+
