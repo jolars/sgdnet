@@ -1,0 +1,167 @@
+---
+title: "Model Families in sgdnet"
+author: "Johan Larsson"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+bibliography: "sgdnet.bib"
+vignette: >
+  %\VignetteIndexEntry{Model Families in sgdnet}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Overview
+
+**sgdnet** fits generalized linear models of the type
+
+$$
+\min_{\beta_0, \beta}
+\left\{
+-\frac1n \mathcal{L}\left(\beta_0,\beta; \mathbf{y}, \mathbf{X}\right)
++ \lambda \left[(1 - \alpha)||\beta||_2^2 + \alpha||\beta||_1 \right]
+\right\},
+$$
+where $\mathcal{L}(\beta_0,\beta; \mathbf{y}, \mathbf{X})$ is the 
+log-likelihood of the model $\lambda$ is the regularization strength, and
+$\alpha$,is the elastic net mixing parameter, such that
+$\alpha = 1$ results in the lasso and $\alpha = 0$ the ridge penalty.
+
+## Gaussian
+
+For Gaussian (ordinary least squares) regression, we have
+the following objective
+
+$$
+\min_{\beta_0, \beta}
+\left\{
+  \frac{1}{n} \sum_{i=1}^n \left(y_i -\beta_0 - \beta^\intercal \mathbf{x}_i \right)^2
+  + \lambda \left[(1 - \alpha)||\beta||_2^2 + \alpha||\beta||_1 \right]
+\right\}.
+$$
+
+We'll try to fit this model to the [Abalone](https://archive.ics.uci.edu/ml/datasets/abalone) data set using
+the regular lasso (`alpha = 1`) -- the default choice. The objective
+for this data set is to predict the weight of an abalone, a sea snail,
+using various physical attributes of some 4,177 specimen.
+
+```{r}
+library(sgdnet)
+gaussian_fit <- sgdnet(abalone$x, abalone$y, family = "gaussian")
+```
+
+The explicit choice of family is strictly speaking irrelevant here since
+the Gaussian family is the default choice. 
+
+It is worth to mention that the predictors *sex* and *infant* are in fact
+dummy-coded variables from the same categorical predictor. It might make
+more sense to use a group lasso penalty here and group
+these predictors so that they are respectively included or excluded together.
+
+Next, we plot the resulting 
+model fits along the regularization path.
+
+```{r, fig.width = 6, fig.cap = "A Gaussian lasso regression fit to the abalone data set"}
+plot(gaussian_fit)
+```
+
+The deviance of this model is the residual sums of squares,
+
+$$
+RSS = \sum_{i=1}^{n} \left(y_{i} - \hat\beta_0 -  \hat\beta^\intercal \mathbf{x}_{i}\right)^2
+$$
+
+which we could retrieve for each fit using `deviance(fit_gaussian)`.
+
+## Binomial logistic regression
+
+Binomial logistic regression is a natural solution to binary classification
+problems. Here, we model the log-likelihood ratio
+
+$$
+\log \Bigg[\frac{\text{P}(Y = 1 | X = x)}{\text{P}(Y = 0 | X = x)}\Bigg]  = \beta_0 + \beta^\intercal x,
+$$
+where $Y \in \{0, 1\}$. To fit this model, **sgdnet** uses
+logistic binomial regression using the logit link, such that
+
+$$
+\log \left[ \frac{p(\mathbf{y})}{1-p(\mathbf{y})} \right] = \hat\beta_0 + \sum_{i=1}^n\hat\beta^\intercal \mathbf{x}_i.
+$$
+
+To fit this model using the elastic net penalty, we minimize the following
+convex objective:
+
+$$
+\min_{\beta_0, \beta}
+\left\{
+  -\frac1n \sum_{i=1}^n \bigg[y_i (\beta_0 + \beta^\intercal x_i) -
+    \log\Big(1 + e^{\beta_0 + \beta^\intercal x_i}\Big)\bigg]
+  + \lambda \left[(1 - \alpha)||\beta||_2^2 + \alpha||\beta||_1 \right]
+\right\}.
+$$
+
+To illustate fitting the binomial logistic model with **sgdnet**, we'll
+take a look at the [Heart Disease](http://archive.ics.uci.edu/ml/datasets/statlog+(heart))
+data set. In this set,
+we try to predict heart disease using a variety of clinical assessments 
+such as blood pressure, heart rate, and electrocardiography results.
+
+This time, we'll employ ridge regression instead, setting
+$\alpha = 0$
+
+```{r, fig.cap = "Binomial Regression on the Heart Disease Data Set.", fig.show = "hold"}
+binomial_fit <- sgdnet(heart$x, heart$y, family = "binomial", alpha = 0)
+plot(binomial_fit)
+plot(binomial_fit, xvar = "lambda")
+```
+
+## Multinomial logistic regression
+
+Multinomial logistic regression is concerned with classifying categorical
+outcomes using the multinomial likelihood. Here we use the loglinear
+representation
+
+$$
+\text{Pr}(Y_i = c) = 
+  \frac{e^{\beta_{0_c}+\beta_c^\intercal \mathbf{x}_i}}{\sum_{k = 1}^m{e^{\beta_{0_k}+\beta_k^\intercal \mathbf{x}_i}}},
+$$
+
+which is the overspecified version of this model.  As in **glmnet**
+[@friedman2010],
+which much of this packages functinality is modeled after, however,
+we rely on the regularization of model to take care of
+this [@hastie2015, pp. 36-7].
+
+The objective for the multinomial logistic regression is then
+
+$$
+\min_{\{\beta_{0_k}, \beta_k\}_1^m}
+\left\{
+  -\frac1n \sum_{i=1}^n \left[\sum_{k=1}^m y_{i_k} (\beta_{0_k}+\beta_k^\intercal \mathbf{x}_i) -
+  \log \sum_{k=1}^m e^{\beta_{0_k}+\beta_k^\intercal \mathbf{x}_i}\right]
+  + \lambda \left[(1 - \alpha)||\beta||_F ^2 + \alpha\sum_{j=1}^p||\beta_j||_q \right]
+\right\}.
+$$
+
+where $q = 1$ invokes the standard lasso and $q = 2$ for the group lasso 
+penalty.
+
+The example for this model family comes from the [Wine](https://archive.ics.uci.edu/ml/datasets/wine)
+data set where we attempt to classify a number of wines from
+Italy using the results of chemical analysis.
+
+We will use the elastic net penalty this time, setting it (arbitrarily) at
+0.8.
+
+```{r, fig.cap = "Multinomial logistic regression on the wine data set.", fig.width = 7, fig.height = 3.5}
+multinomial_fit <- sgdnet(wine$x, wine$y, family = "multinomial")
+plot(multinomial_fit, layout = c(3, 1))
+```
+
+## References
