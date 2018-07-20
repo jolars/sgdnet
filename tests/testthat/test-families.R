@@ -13,7 +13,7 @@ test_that("test that all combinations run without errors", {
     family = c("gaussian", "binomial", "multinomial"),
     intercept = TRUE,
     sparse = FALSE,
-    alpha = c(0, 0.5, 1),
+    alpha = c(0, 0.75, 1),
     standardize = TRUE,
     stringsAsFactors = FALSE
   )
