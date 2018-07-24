@@ -134,21 +134,14 @@ Rcpp::List SetupSgdnet(T                 x,
   sgdnet::SoftThreshold prox;
 
   // Setup intercept vector
-  vector<double> intercept(n_classes);
   vector<vector<double>> intercept_archive;
 
   // Setup weights matrix and weights archive
   vector<double> weights(n_features*n_classes);
   vector<vector<double>> weights_archive;
 
-  // Sum of gradients for weights
-  vector<double> sum_gradient(n_features*n_classes);
-
-  // Gradient memory
-  vector<double> gradient_memory(n_samples*n_classes);
-
-  // Sum of gradients for intercept
-  vector<double> sum_gradient_intercept(n_classes);
+  // Initialize gradient sum
+  vector<double> g_sum(n_features*n_classes);
 
   // Keep keep track of successes for each penalty
   vector<unsigned> return_codes;
@@ -171,16 +164,13 @@ Rcpp::List SetupSgdnet(T                 x,
     Saga(x,
          fit_intercept,
          intercept_decay,
-         intercept,
          weights,
          family,
          prox,
          step_size[lambda_ind],
          alpha[lambda_ind],
          beta[lambda_ind],
-         sum_gradient,
-         sum_gradient_intercept,
-         gradient_memory,
+         g_sum,
          n_samples,
          n_features,
          n_classes,
@@ -193,7 +183,6 @@ Rcpp::List SetupSgdnet(T                 x,
 
     double deviance = Deviance(x,
                                weights,
-                               intercept,
                                n_samples,
                                n_features,
                                n_classes,
@@ -204,7 +193,7 @@ Rcpp::List SetupSgdnet(T                 x,
     // Rescale and store intercepts and weights for the current solution
     Rescale(weights,
             weights_archive,
-            intercept,
+            family.intercept,
             intercept_archive,
             x_center,
             x_scale,

@@ -168,49 +168,6 @@ void RegularizationPath(std::vector<double>& lambda,
   }
 }
 
-//' Dot product
-//'
-//' @param w weights vector
-//' @param n_features number of features
-//' @param x the feature matrix. Sparse or dense Eigen object.
-//' @param s_ind the index of the current sample
-//'
-//' @return Returns the dot product of a sample in x with w, used for
-//'   predicting the response in a sample.
-inline void PredictSample(std::vector<double>&       prediction,
-                          const std::vector<double>& w,
-                          const double               wscale,
-                          const unsigned             n_features,
-                          const unsigned             n_classes,
-                          const unsigned             s_ind,
-                          const Eigen::MatrixXd&     x,
-                          const std::vector<double>& intercept) {
-  for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind) {
-    double inner_product = 0.0;
-    for (unsigned f_ind = 0; f_ind < n_features; ++f_ind)
-      inner_product += x(f_ind, s_ind) * w[f_ind*n_classes + c_ind];
-
-    prediction[c_ind] = wscale*inner_product + intercept[c_ind];
-  }
-}
-
-inline void PredictSample(std::vector<double>&               prediction,
-                          const std::vector<double>&         w,
-                          const double                       wscale,
-                          const unsigned                     n_features,
-                          const unsigned                     n_classes,
-                          const unsigned                     s_ind,
-                          const Eigen::SparseMatrix<double>& x,
-                          const std::vector<double>&         intercept) {
-  for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind) {
-    double inner_product = 0.0;
-    for (Eigen::SparseMatrix<double>::InnerIterator it(x, s_ind); it; ++it)
-      inner_product += it.value() * w[it.index()*n_classes + c_ind];
-
-    prediction[c_ind] = wscale*inner_product + intercept[c_ind];
-  }
-}
-
 //' Loss for the current epoch
 //'
 //' @param x feature matrix
@@ -231,13 +188,11 @@ inline void PredictSample(std::vector<double>&               prediction,
 template <typename T, typename Family>
 double EpochLoss(const T&                   x,
                  const std::vector<double>& w,
-                 const std::vector<double>& intercept,
                  Family&                    family,
                  const double               alpha,
                  const double               beta,
                  const unsigned             n_samples,
-                 const unsigned             n_features,
-                 const unsigned             n_classes) {
+                 const unsigned             n_features) {
 
   double loss = 0.0;
   double l1_norm = 0.0;
@@ -248,19 +203,9 @@ double EpochLoss(const T&                   x,
     l2_norm_squared += w_i*w_i;
   }
 
-  std::vector<double> prediction(n_classes);
-
   for (unsigned s_ind = 0; s_ind < n_samples; ++s_ind) {
-    PredictSample(prediction,
-                  w,
-                  1.0,
-                  n_features,
-                  n_classes,
-                  s_ind,
-                  x,
-                  intercept);
-
-    loss += family.Loss(prediction, s_ind)/n_samples;
+    family.Predict(w, 1.0, n_features, s_ind, x);
+    loss += family.Loss(s_ind)/n_samples;
   }
 
   return loss;
@@ -333,26 +278,17 @@ inline void AdaptiveTranspose(Eigen::MatrixXd& x) {
 template <typename T, typename Family>
 double Deviance(const T&                   x,
                 const std::vector<double>& w,
-                const std::vector<double>& intercept,
                 const unsigned             n_samples,
                 const unsigned             n_features,
                 const unsigned             n_classes,
                 Family&                    family) {
   double loss = 0.0;
-  std::vector<double> prediction(n_classes);
 
   for (unsigned s_ind = 0; s_ind < n_samples; ++s_ind) {
-    PredictSample(prediction,
-                  w,
-                  1.0,
-                  n_features,
-                  n_classes,
-                  s_ind,
-                  x,
-                  intercept);
-
-    loss += family.Loss(prediction, s_ind);
+    family.Predict(w, 1.0, n_features, s_ind, x);
+    loss += family.Loss(s_ind);
   }
+
   return 2.0 * loss;
 }
 
@@ -404,6 +340,34 @@ void Rescale(std::vector<double>               weights,
 
   weights_archive.push_back(std::move(weights));
   intercept_archive.push_back(std::move(intercept));
+}
+
+void Rescale(std::vector<double>               weights,
+             std::vector<std::vector<double>>& weights_archive,
+             double                            intercept,
+             std::vector<std::vector<double>>& intercept_archive,
+             const std::vector<double>&        x_center,
+             const std::vector<double>&        x_scale,
+             const std::vector<double>&        y_center,
+             const std::vector<double>&        y_scale,
+             const unsigned                    n_features,
+             const unsigned                    n_classes,
+             const bool                        fit_intercept) {
+
+  double x_scale_prod = 0.0;
+  for (unsigned f_ind = 0; f_ind < n_features; ++f_ind) {
+      weights[f_ind] *= y_scale[0]/x_scale[f_ind];
+      x_scale_prod += x_center[f_ind]*weights[f_ind];
+  }
+
+  if (fit_intercept) {
+    intercept = intercept*y_scale[0] + y_center[0] - x_scale_prod;
+  }
+
+  std::vector<double> intercept_vector(1, intercept);
+
+  weights_archive.push_back(std::move(weights));
+  intercept_archive.push_back(std::move(intercept_vector));
 }
 
 #endif // SGDNET_UTILS_

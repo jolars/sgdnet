@@ -208,6 +208,30 @@ inline void AddWeighted(std::vector<double>&       a,
                         const unsigned             s_ind,
                         const unsigned             n_features,
                         const unsigned             n_classes,
+                        const double               g_change,
+                        const double               scaling)  {
+
+  for (unsigned f_ind = 0; f_ind < n_features; ++f_ind)
+      a[f_ind] += g_change * scaling * x(f_ind, s_ind);
+}
+
+inline void AddWeighted(std::vector<double>&               a,
+                        const Eigen::SparseMatrix<double>& x,
+                        const unsigned                     s_ind,
+                        const unsigned                     n_features,
+                        const unsigned                     n_classes,
+                        const double                       g_change,
+                        const double                       scaling) {
+
+  for (Eigen::SparseMatrix<double>::InnerIterator it(x, s_ind); it; ++it)
+      a[it.index()] += g_change * scaling * it.value();
+}
+
+inline void AddWeighted(std::vector<double>&       a,
+                        const Eigen::MatrixXd&     x,
+                        const unsigned             s_ind,
+                        const unsigned             n_features,
+                        const unsigned             n_classes,
                         const std::vector<double>& g_change,
                         const double               scaling)  {
 
@@ -316,7 +340,6 @@ template <typename Features, typename Family, typename Prox>
 void Saga(const Features&        x,
           const bool             fit_intercept,
           const double           intercept_decay,
-          std::vector<double>&   intercept,
           std::vector<double>&   w,
           Family&                family,
           Prox&                  prox,
@@ -324,8 +347,6 @@ void Saga(const Features&        x,
           const double           alpha,
           const double           beta,
           std::vector<double>&   g_sum,
-          std::vector<double>&   g_sum_intercept,
-          std::vector<double>&   g,
           const unsigned         n_samples,
           const unsigned         n_features,
           const unsigned         n_classes,
@@ -361,12 +382,6 @@ void Saga(const Features&        x,
 
   // Store previous weights for computing stopping criteria
   vector<double> w_previous(w);
-
-  vector<double> prediction(n_classes);
-
-  // Gradient vector of sample i
-  vector<double> g_i(n_classes);
-  vector<double> g_change(n_classes);
 
   // Outer loop
   unsigned it_outer = 0;
@@ -405,23 +420,9 @@ void Saga(const Features&        x,
                      -gamma / wscale);
       }
 
-      PredictSample(prediction,
-                    w,
-                    wscale,
-                    n_features,
-                    n_classes,
-                    s_ind,
-                    x,
-                    intercept);
+      family.Predict(w, wscale, n_features, s_ind, x);
 
-      family.Gradient(g_i, prediction, s_ind);
-
-      for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind) {
-        unsigned idx = s_ind*n_classes + c_ind;
-        g_change[c_ind] = g_i[c_ind] - g[idx];
-        // Store current gradient
-        g[idx] = g_i[c_ind];
-      }
+      family.Gradient(s_ind);
 
       // Rescale and unlag weights whenever wscale becomes too small
       if (wscale < sgdnet::SMALL) {
@@ -444,15 +445,16 @@ void Saga(const Features&        x,
       wscale *= wscale_update;
 
       // Update coefficients (w) with sparse step (with L2 scaling)
-      AddWeighted(w, x, s_ind, n_features, n_classes, g_change, -gamma/wscale);
+      AddWeighted(w,
+                  x,
+                  s_ind,
+                  n_features,
+                  n_classes,
+                  family.gradient_change,
+                  -gamma/wscale);
 
-      if (fit_intercept) {
-        for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind) {
-          g_sum_intercept[c_ind] += g_change[c_ind]/n_samples;
-          intercept[c_ind] -= gamma*g_sum_intercept[c_ind]*intercept_decay
-                              + g_change[c_ind]/n_samples;
-        }
-      }
+      if (fit_intercept)
+        family.FitIntercept(gamma, intercept_decay);
 
       // Gradient-average step
       if (nontrivial_prox) {
@@ -487,7 +489,7 @@ void Saga(const Features&        x,
                   s_ind,
                   n_features,
                   n_classes,
-                  g_change,
+                  family.gradient_change,
                   1.0/n_samples);
 
     } // Outer loop
@@ -511,13 +513,11 @@ void Saga(const Features&        x,
     if (debug) {
       double loss = EpochLoss(x,
                               w,
-                              intercept,
                               family,
                               alpha,
                               beta,
                               n_samples,
-                              n_features,
-                              n_classes);
+                              n_features);
       losses.push_back(loss);
     }
 
