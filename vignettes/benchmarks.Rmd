@@ -12,6 +12,7 @@ vignette: >
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
+  echo = FALSE,
   comment = "#>"
 )
 
@@ -26,6 +27,7 @@ plot_benchmarks <- function(data) {
               groups = package, 
               data = data,
               type = "l",
+              scales = list(relation = "free", draw = FALSE),
               auto.key = TRUE)
   useOuterStrips(p)
 }
@@ -35,13 +37,13 @@ This vignette contains benchmarks of **sgdnet** against other similar
 packages. The data has been precomputed from scripts that are
 available at <https://github.com/jolars/sgdnet/data-raw/>.
 
-The benchmarks were geneerated as follows:
+The benchmarks were generated as follows:
 
-* We fit ($\alpha = 1$) and ridge ($\alpha = 0$) regressions.
-* The regularization strength, $\lambda$, was set to $1\n$ for each fit.
+* We fit with ($\alpha = 1$) and ridge ($\alpha = 0$) penalties.
+* The regularization strength, $\lambda$, was set to $\frac1n$ for each fit.
 * A log-spaced sequence of tolerance thresholds were generated, which were
-selected after trial-and-error to ensure that the packages exhibited
-approximately the same behavior.
+selected after trial-and-error to ensure that the packages ran over
+approximately the same time frame.
 * The run times were recorded using `system.time()`.
 * The range of run times were clipped to remove "trailing" times to make sure
 that each the range of times for each package were constrained around the
@@ -56,7 +58,7 @@ ignore any sparsity.
 
 ## Gaussian least squares ordinary regression
 
-Name              Observations      Features   Density
+Name              Observations      Features     Density
 ----------    ----------------     ---------   ---------
 abalone                  4,177             8        100%
 cadata                  20,640             8        100%
@@ -73,7 +75,7 @@ plot_benchmarks(benchmarks$gaussian)
 
 In this section, we are going to look at the following datasets:
 
-Name              Observations      Features   Density
+Name              Observations      Features     Density
 ----------    ----------------     ---------   ---------
 adult                   32,561           123         11%
 icjnn1                  49,990            22        100%
@@ -93,11 +95,11 @@ plot_benchmarks(benchmarks$binomial)
 
 For the multinomial model, we have these data sets:
 
-Name              Observations   Classes   Features    Density
-----------    ----------------   -------   ---------   ---------
-vehicle                    846         4          18        100%  
-dna                      2,000         3         180         25%
-poker                   25,010        10          22        100%
+Name              Observations    Classes    Features     Density
+----------    ----------------   --------   ---------   ---------
+vehicle                    846          4          18        100%  
+dna                      2,000          3         180         25%
+poker                   25,010         10          22        100%
 
 Table: Benchmarking data sets for the multinomial model.
 
