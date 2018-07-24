@@ -76,7 +76,7 @@ inline void LaggedUpdate(const unsigned             k,
                          const Eigen::MatrixXd&     x,
                          const unsigned             s_ind,
                          const std::vector<double>& lag_scaling,
-                         const double               grad_scaling) {
+                         const double               grad_scaling) noexcept {
 
   for (unsigned f_ind = 0; f_ind < n_features; ++f_ind) {
     for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind) {
@@ -102,7 +102,7 @@ inline void LaggedUpdate(const unsigned                     k,
                          const Eigen::SparseMatrix<double>& x,
                          const unsigned                     s_ind,
                          const std::vector<double>&         lag_scaling,
-                         const double                       grad_scaling) {
+                         const double                       grad_scaling) noexcept {
 
   for (Eigen::SparseMatrix<double>::InnerIterator it(x, s_ind); it; ++it) {
     for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind) {
@@ -146,7 +146,7 @@ inline void LaggedProjection(const unsigned             k,
                              const std::vector<double>& lag_scaling,
                              const double               prox_scaling,
                              const double               grad_scaling,
-                             const Prox&                prox) {
+                             const Prox&                prox) noexcept {
 
   for (unsigned f_ind = 0; f_ind < n_features; ++f_ind) {
     for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind) {
@@ -176,7 +176,7 @@ inline void LaggedProjection(const unsigned                     k,
                              const std::vector<double>&         lag_scaling,
                              const double                       prox_scaling,
                              const double                       grad_scaling,
-                             const Prox&                        prox)  {
+                             const Prox&                        prox) noexcept {
 
   for (Eigen::SparseMatrix<double>::InnerIterator it(x, s_ind); it; ++it) {
     for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind) {
@@ -209,7 +209,7 @@ inline void AddWeighted(std::vector<double>&       a,
                         const unsigned             n_features,
                         const unsigned             n_classes,
                         const double               g_change,
-                        const double               scaling)  {
+                        const double               scaling) noexcept {
 
   for (unsigned f_ind = 0; f_ind < n_features; ++f_ind)
       a[f_ind] += g_change * scaling * x(f_ind, s_ind);
@@ -221,7 +221,7 @@ inline void AddWeighted(std::vector<double>&               a,
                         const unsigned                     n_features,
                         const unsigned                     n_classes,
                         const double                       g_change,
-                        const double                       scaling) {
+                        const double                       scaling) noexcept {
 
   for (Eigen::SparseMatrix<double>::InnerIterator it(x, s_ind); it; ++it)
       a[it.index()] += g_change * scaling * it.value();
@@ -233,7 +233,7 @@ inline void AddWeighted(std::vector<double>&       a,
                         const unsigned             n_features,
                         const unsigned             n_classes,
                         const std::vector<double>& g_change,
-                        const double               scaling)  {
+                        const double               scaling) noexcept {
 
   for (unsigned f_ind = 0; f_ind < n_features; ++f_ind)
     for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind)
@@ -246,7 +246,7 @@ inline void AddWeighted(std::vector<double>&               a,
                         const unsigned                     n_features,
                         const unsigned                     n_classes,
                         const std::vector<double>&         g_change,
-                        const double                       scaling) {
+                        const double                       scaling) noexcept {
 
   for (Eigen::SparseMatrix<double>::InnerIterator it(x, s_ind); it; ++it)
     for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind)
@@ -281,7 +281,7 @@ inline void Reset(const unsigned         k,
                   const double           prox_scaling,
                   const double           grad_scaling,
                   const bool             nontrivial_prox,
-                  const Prox&            prox) {
+                  const Prox&            prox) noexcept {
   for (unsigned f_ind = 0; f_ind < n_features; ++f_ind) {
     for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind) {
       unsigned idx = f_ind*n_classes + c_ind;
@@ -355,7 +355,7 @@ void Saga(const Features&        x,
           unsigned&              n_iter,
           std::vector<unsigned>& return_codes,
           std::vector<double>&   losses,
-          const bool             debug) {
+          const bool             debug) noexcept {
 
   using namespace std;
 
