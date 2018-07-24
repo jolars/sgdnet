@@ -160,3 +160,112 @@ benchmarks <- list(gaussian = benchmark_aggregated_gaussian,
                    multinomial = benchmark_aggregated_multinomial)
 
 usethis::use_data(benchmarks, overwrite = TRUE)
+
+# Multivariate gaussian ---------------------------------------------------
+
+# Student performance dataset
+tmp_file <- tempfile()
+tmp_dir <- tempdir()
+
+download.file(
+  "https://archive.ics.uci.edu/ml/machine-learning-databases/00320/student.zip",
+  tmp_file
+)
+
+unzip(tmp_file, exdir = tmp_dir)
+
+d1 <- read.table(file.path(tmp_dir, "student-mat.csv"), sep = ";", header = TRUE)
+d2 <- read.table(file.path(tmp_dir, "student-por.csv"), sep = ";", header = TRUE)
+d3 <- merge(d1, d2, by = c("school",
+                           "sex",
+                           "age",
+                           "address",
+                           "famsize",
+                           "Pstatus",
+                           "Medu",
+                           "Fedu",
+                           "Mjob",
+                           "Fjob",
+                           "reason",
+                           "nursery",
+                           "internet"),
+            suffixes = c("_math", "_port"))
+y <- with(d3, cbind(G3_math, G3_port))
+x1 <- subset(d3,
+  select = c(
+    "school",
+    "sex",
+    "age",
+    "address",
+    "famsize",
+    "Pstatus",
+    "Medu",
+    "Fedu",
+    "Mjob",
+    "Fjob",
+    "reason",
+    "nursery",
+    "internet"
+  )
+)
+x2 <- model.matrix(~ ., x1)[, -1]
+# Min-max scale
+x3 <- apply(x2, 2, function(x) (x - min(x))/(max(x) - min(x)))
+x4 <- Matrix::Matrix(x3)
+
+student <- list(x = x4, y = y)
+
+unlink(tmp_file)
+
+# Condition Based Maintenance of Naval Propulsion Plants Data Set
+tmp_file <- tempfile()
+tmp_dir <- tempdir()
+
+download.file(
+  "https://archive.ics.uci.edu/ml/machine-learning-databases/00316/UCI%20CBM%20Dataset.zip",
+  tmp_file
+)
+
+unzip(tmp_file, exdir = tmp_dir)
+
+d <- read.table(file.path(tmp_dir, "UCI CBM Dataset", "data.txt"),
+                header = FALSE)
+
+x1 <- d[, -c(17:18)]
+x2 <- scale(x1)
+y <- d[, 17:18]
+
+naval <- list(x = x2, y = y)
+
+# Bike sharing
+tmp_file <- tempfile()
+tmp_dir <- tempdir()
+
+download.file(
+  "https://archive.ics.uci.edu/ml/machine-learning-databases/00275/Bike-Sharing-Dataset.zip",
+  tmp_file
+)
+
+unzip(tmp_file, exdir = tmp_dir)
+
+d <- read.csv(file.path(tmp_dir, "day.csv"))
+x1 <- subset(d,
+             select = c("season",
+                        "yr",
+                        "mnth",
+                        "holiday",
+                        "weekday",
+                        "workingday",
+                        "weathersit",
+                        "temp",
+                        "atemp",
+                        "hum",
+                        "windspeed"))
+x2 <- x1
+x2[, 1:7] <- sapply(x2[, 1:7], as.factor)
+x3 <- model.matrix(~ ., data = x2)
+x4 <- Matrix::Matrix(x3[, -1])
+
+y <- as.matrix(subset(d, select = c("casual", "registered")))
+
+bikes <- list(x = x4, y = y)
