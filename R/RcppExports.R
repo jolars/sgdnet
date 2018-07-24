@@ -8,7 +8,7 @@
 #' regularization path using warm starts for successive iterations.
 #'
 #' @param x features
-#' @param y response
+#' @param response the model family
 #' @param is_sparse whether x is sparse or not
 #' @param control a list of control parameters
 #'
