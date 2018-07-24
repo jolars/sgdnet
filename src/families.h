@@ -20,40 +20,44 @@
 #include <memory>
 #include "math.h"
 #include "utils.h"
-
 namespace sgdnet {
 
 class Family {
 public:
   Family(const std::vector<double>& y,
-         const unsigned n_samples,
-         const unsigned n_classes,
-         const double L_scaling)
+         const unsigned             n_samples,
+         const unsigned             n_classes,
+         const double               L_scaling)
          : y(y),
            n_samples(n_samples),
            n_classes(n_classes),
-           L_scaling(L_scaling) {
-    // Initialize scaling and centering parameters for the response
-    y_center.resize(n_classes, 0.0);
-    y_scale.resize(n_classes, 1.0);
+           L_scaling(L_scaling),
+           y_center(n_classes),
+           y_scale(n_classes, 1.0),
+           y_mat_scale(n_classes, 1.0),
+           gradient_memory(n_classes*n_samples, 0.0) {
     y_mat.setZero(n_samples, n_classes);
-    y_mat_scale.resize(n_classes, 1.0);
   };
 
-  virtual double Link(const unsigned i) = 0;
+  double Loss(const unsigned i) noexcept;
 
-  virtual double Loss(const double prediction, const unsigned i) = 0;
+  void Gradient(const unsigned i) noexcept;
 
-  virtual double Loss(const std::vector<double>& prediction,
-                      const unsigned i) = 0;
+  void PreprocessResponse() noexcept;
 
-  virtual void Gradient(std::vector<double>&       g_i,
-                        const std::vector<double>& prediction,
-                        const unsigned             i) = 0;
+  double NullDeviance(const bool fit_intercept) noexcept;
 
-  virtual void PreprocessResponse() = 0;
+  void Predict(const std::vector<double>& w,
+               const double               wscale,
+               const unsigned             n_features,
+               const unsigned             s_ind,
+               const Eigen::MatrixXd&     x) noexcept;
 
-  virtual double NullDeviance(const bool fit_intercept) = 0;
+  void Predict(const std::vector<double>&         w,
+               const double                       wscale,
+               const unsigned                     n_features,
+               const unsigned                     s_ind,
+               const Eigen::SparseMatrix<double>& x);
 
   std::vector<double> StepSize(const double               max_squared_sum,
                                const std::vector<double>& alpha_scaled,
@@ -77,6 +81,7 @@ public:
   std::vector<double> y_scale;
   Eigen::MatrixXd y_mat;
   std::vector<double> y_mat_scale;
+  std::vector<double> gradient_memory;
   unsigned n_samples;
   unsigned n_classes;
   unsigned n_targets;
@@ -88,16 +93,16 @@ public:
 class Gaussian : public Family {
 public:
   Gaussian(const std::vector<double>& y,
-           const unsigned n_samples,
-           const unsigned n_classes)
+           const unsigned             n_samples,
+           const unsigned             n_classes)
            : Family(y, n_samples, n_classes, 1.0) {}
 
-  void PreprocessResponse() {
+  void PreprocessResponse() noexcept {
     y_center[0] = Mean(y);
     y_scale[0] = StandardDeviation(y, y_center[0]);
     y_mat_scale[0] = y_scale[0];
 
-    for (std::size_t i = 0; i < n_samples; ++i) {
+    for (unsigned i = 0; i < n_samples; ++i) {
       y[i] -= y_center[0];
       y[i] /= y_scale[0];
       y_mat(i, 0) = y[i];
@@ -106,51 +111,109 @@ public:
     lambda_scaling = y_scale[0];
   }
 
-  double Link(const unsigned i) { return y[i]; }
+  void Predict(const std::vector<double>& w,
+               const double               wscale,
+               const unsigned             n_features,
+               const unsigned             s_ind,
+               const Eigen::MatrixXd&     x) noexcept {
 
-  double Loss(const double prediction, const unsigned i) {
+    double inner_product = 0.0;
+    for (unsigned f_ind = 0; f_ind < n_features; ++f_ind)
+      inner_product += x(f_ind, s_ind) * w[f_ind];
+
+    prediction = wscale*inner_product + intercept;
+  }
+
+  void Predict(const std::vector<double>&         w,
+               const double                       wscale,
+               const unsigned                     n_features,
+               const unsigned                     s_ind,
+               const Eigen::SparseMatrix<double>& x) noexcept {
+
+    double inner_product = 0.0;
+    for (Eigen::SparseMatrix<double>::InnerIterator it(x, s_ind); it; ++it)
+      inner_product += it.value() * w[it.index()];
+
+    prediction = wscale*inner_product + intercept;
+  }
+
+  double Loss(const unsigned i) noexcept {
     return 0.5*(prediction - y[i])*(prediction - y[i]);
   }
 
-  double Loss(const std::vector<double>& prediction, const unsigned i) {
-    return Loss(prediction[0], i);
+  void Gradient(const unsigned i) noexcept {
+    gradient = prediction - y[i];
+    gradient_change = gradient - gradient_memory[i];
+    gradient_memory[i] = gradient;
   }
 
-  void Gradient(std::vector<double>&       g_i,
-                const std::vector<double>& prediction,
-                const unsigned             i) {
-    g_i[0] = prediction[0] - y[i];
+  void FitIntercept(const double gamma, const double intercept_decay) noexcept {
+    gradient_sum_intercept += gradient_change/n_samples;
+    intercept -=
+      gamma*gradient_sum_intercept*intercept_decay + gradient_change/n_samples;
   }
 
-  double NullDeviance(const bool fit_intercept) {
-    auto y_mu = Mean(y);
+  double NullDeviance(const bool fit_intercept) noexcept {
+    prediction = Mean(y);
 
     double loss = 0.0;
     for (unsigned i = 0; i < y.size(); ++i)
-      loss += Loss(y_mu, i);
+      loss += Loss(i);
 
     return 2.0 * loss;
   }
+
+  double gradient = 0.0;
+  double gradient_change = 0.0;
+  double gradient_sum_intercept = 0.0;
+  double prediction = 0.0;
+  double intercept = 0.0;
 };
 
 class Binomial : public Family {
 public:
   Binomial(const std::vector<double>& y,
-           const unsigned n_samples,
-           const unsigned n_classes)
+           const unsigned             n_samples,
+           const unsigned             n_classes)
            : Family(y, n_samples, n_classes, 0.25) {}
 
   void PreprocessResponse() {
     auto y_mu = Mean(y);
     auto y_sd = StandardDeviation(y, y_mu);
 
-    for (std::size_t i = 0; i < n_samples; ++i)
+    for (unsigned i = 0; i < n_samples; ++i)
       y_mat(i, 0) = (y[i] - y_mu)/y_sd;
 
     y_mat_scale[0] = y_sd;
   }
 
-  double Link(double y) {
+  void Predict(const std::vector<double>& w,
+               const double               wscale,
+               const unsigned             n_features,
+               const unsigned             s_ind,
+               const Eigen::MatrixXd&     x) noexcept {
+
+    double inner_product = 0.0;
+    for (unsigned f_ind = 0; f_ind < n_features; ++f_ind)
+      inner_product += x(f_ind, s_ind) * w[f_ind];
+
+    prediction = wscale*inner_product + intercept;
+  }
+
+  void Predict(const std::vector<double>&         w,
+               const double                       wscale,
+               const unsigned                     n_features,
+               const unsigned                     s_ind,
+               const Eigen::SparseMatrix<double>& x) noexcept {
+
+    double inner_product = 0.0;
+    for (Eigen::SparseMatrix<double>::InnerIterator it(x, s_ind); it; ++it)
+      inner_product += it.value() * w[it.index()];
+
+    prediction = wscale*inner_product + intercept;
+  }
+
+  double Link(double y) noexcept {
     // TODO(jolars): let the user set this.
     double pmin = 1e-9;
     double pmax = 1.0 - pmin;
@@ -159,43 +222,54 @@ public:
     return std::log(z / (1.0 - z));
   }
 
-  double Link(const unsigned i) {
-    return Link(y[i]);
-  }
-
-  double Loss(const double prediction, const unsigned i) {
+  double Loss(const unsigned i) noexcept {
     return std::log(1.0 + std::exp(prediction)) - y[i]*prediction;
   }
 
-  double Loss(const std::vector<double>& prediction, const unsigned i) {
-    return Loss(prediction[0], i);
+  void Gradient(const unsigned i) noexcept {
+    gradient = 1.0 - y[i] - 1.0/(1.0 + std::exp(prediction));
+    gradient_change = gradient - gradient_memory[i];
+    gradient_memory[i] = gradient;
   }
 
-  void Gradient(std::vector<double>&       g_i,
-                const std::vector<double>& prediction,
-                const unsigned             i) {
-    g_i[0] = 1.0 - y[i] - 1.0/(1.0 + std::exp(prediction[0]));
+  void FitIntercept(const double gamma, const double intercept_decay) noexcept {
+    gradient_sum_intercept += gradient_change/n_samples;
+    intercept -=
+      gamma*gradient_sum_intercept*intercept_decay + gradient_change/n_samples;
   }
 
-  double NullDeviance(const bool fit_intercept) {
-    double pred = fit_intercept ? Link(Mean(y)) : 0.0;
+  double NullDeviance(const bool fit_intercept) noexcept {
+    prediction = fit_intercept ? Link(Mean(y)) : 0.0;
 
     double loss = 0.0;
     for (unsigned i = 0; i < n_samples; ++i)
-      loss += Loss(pred, i);
+      loss += Loss(i);
 
     return 2.0 * loss;
   }
+
+  double gradient = 0.0;
+  double gradient_change = 0.0;
+  double gradient_sum_intercept = 0.0;
+  double prediction = 0.0;
+  double intercept = 0.0;
 };
 
 class Multinomial : public Family {
 public:
   Multinomial(const std::vector<double>& y,
-              const unsigned n_samples,
-              const unsigned n_classes)
-              : Family(y, n_samples, n_classes, 0.5) {}
+              const unsigned             n_samples,
+              const unsigned             n_classes)
+              : Family(y, n_samples, n_classes, 0.5) {
 
-  void PreprocessResponse() {
+    gradient.resize(n_classes);
+    gradient_change.resize(n_classes);
+    gradient_sum_intercept.resize(n_classes);
+    prediction.resize(n_classes);
+    intercept.resize(n_classes);
+  }
+
+  void PreprocessResponse() noexcept {
     std::vector<double> y_mu(n_classes);
     std::vector<double> y_var(n_classes);
 
@@ -222,65 +296,97 @@ public:
     }
   }
 
-  double Link(const unsigned i) {
-    return std::log(y[i] / (1.0 - y[i]));
-  }
-
-  double Loss(const double prediction, const unsigned i) {
-    // Not reasonable for multinomial model
-    return 0.0;
-  }
-
-  double Loss(const std::vector<double>& prediction, const unsigned i) {
-
-    unsigned y_class = std::round(y[i]);
-
-    return LogSumExp(prediction) - prediction[y_class];
-  }
-
-  void Gradient(std::vector<double>&       g_i,
-                const std::vector<double>& prediction,
-                const unsigned             i) {
-
-    auto lse = LogSumExp(prediction);
-    unsigned y_i = static_cast<unsigned>(y[i] + 0.5);
+  void Predict(const std::vector<double>& w,
+               const double               wscale,
+               const unsigned             n_features,
+               const unsigned             s_ind,
+               const Eigen::MatrixXd&     x) noexcept {
 
     for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind) {
-      g_i[c_ind] = std::exp(prediction[c_ind] - lse);
+      double inner_product = 0.0;
+      for (unsigned f_ind = 0; f_ind < n_features; ++f_ind)
+        inner_product += x(f_ind, s_ind) * w[f_ind*n_classes + c_ind];
 
-      if (c_ind == y_i)
-        g_i[c_ind] -= 1.0;
+      prediction[c_ind] = wscale*inner_product + intercept[c_ind];
     }
   }
 
-  double NullDeviance(const bool fit_intercept) {
-    std::vector<double> pred;
+  void Predict(const std::vector<double>&         w,
+               const double                       wscale,
+               const unsigned                     n_features,
+               const unsigned                     s_ind,
+               const Eigen::SparseMatrix<double>& x) noexcept {
 
+    for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind) {
+      double inner_product = 0.0;
+      for (Eigen::SparseMatrix<double>::InnerIterator it(x, s_ind); it; ++it)
+        inner_product += it.value() * w[it.index()*n_classes + c_ind];
+
+      prediction[c_ind] = wscale*inner_product + intercept[c_ind];
+    }
+  }
+
+  double Loss(const unsigned i) noexcept {
+    auto c = static_cast<unsigned>(y[i] + 0.5);
+    return LogSumExp(prediction) - prediction[c];
+  }
+
+  void Gradient(const unsigned i) noexcept {
+
+    auto lse = LogSumExp(prediction);
+    auto c = static_cast<unsigned>(y[i] + 0.5);
+
+    for (unsigned j = 0; j < n_classes; ++j) {
+      gradient[j] = std::exp(prediction[j] - lse);
+
+      if (j == c)
+        gradient[j] -= 1.0;
+
+      gradient_change[j] = gradient[j] - gradient_memory[i*n_classes + j];
+      gradient_memory[i*n_classes + j] = gradient[j];
+    }
+  }
+
+  void FitIntercept(const double gamma, const double intercept_decay) noexcept {
+    for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind) {
+      gradient_sum_intercept[c_ind] += gradient_change[c_ind]/n_samples;
+      intercept[c_ind] -= gamma*gradient_sum_intercept[c_ind]*intercept_decay
+        + gradient_change[c_ind]/n_samples;
+    }
+  }
+
+  double NullDeviance(const bool fit_intercept) noexcept {
     if (fit_intercept)
-      pred = Proportions(y, n_classes);
+      prediction = Proportions(y, n_classes);
     else
-      pred.resize(n_classes, 1.0/n_classes);
+      prediction.assign(n_classes, 1.0/n_classes);
 
-    double pred_sum_avg = 0.0;
+    double prediction_sum_avg = 0.0;
 
-    for (auto& pred_i : pred) {
-      pred_i = std::log(pred_i);
-      pred_sum_avg += pred_i/n_classes;
+    for (auto& prediction_i : prediction) {
+      prediction_i = std::log(prediction_i);
+      prediction_sum_avg += prediction_i/n_classes;
     }
 
-    for (auto& pred_i : pred)
-      pred_i -= pred_sum_avg;
+    for (auto& prediction_i : prediction)
+      prediction_i -= prediction_sum_avg;
 
     double loss = 0.0;
-    double lse = LogSumExp(pred);
+    double lse = LogSumExp(prediction);
 
-    for (unsigned i = 0; i < n_samples; ++i) {
-      unsigned y_class = static_cast<unsigned>(y[i] + 0.5);
-      loss += lse - pred[y_class];
+    for (const auto y_i : y) {
+      auto c = static_cast<unsigned>(y_i + 0.5);
+      loss += lse - prediction[c];
     }
 
     return 2.0 * loss;
   }
+
+  std::vector<double> gradient;
+  std::vector<double> gradient_change;
+  std::vector<double> gradient_sum_intercept;
+  std::vector<double> prediction;
+  std::vector<double> intercept;
 };
 
 } // namespace sgdnet

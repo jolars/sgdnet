@@ -30,7 +30,7 @@ namespace sgdnet {
 //' @keywords internal
 class Prox {
 public:
-  virtual double Evaluate(const double x, const double shrinkage) = 0;
+  double operator()(const double x, const double shrinkage) const;
 };
 
 //' Soft thresholding operator for L1-regularization
@@ -43,11 +43,11 @@ public:
 //' @keywords internal
 class SoftThreshold : public Prox {
 public:
-  double Evaluate(const double x, const double shrinkage) {
+  double operator()(const double x, const double shrinkage) const {
     return std::max(x - shrinkage, 0.0) - std::max(-x - shrinkage, 0.0);
   }
 };
 
-} // namespace sgdnet
+}
 
 #endif // SGDNET_PROX_
