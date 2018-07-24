@@ -95,7 +95,7 @@ For the multinomial model, we have these data sets:
 
 Name              Observations   Classes   Features    Density
 ----------    ----------------   -------   ---------   ---------
-segment                  2,310         7          19        100%  
+vehicle                    846         4          18        100%  
 dna                      2,000         3         180         25%
 poker                   25,010        10          22        100%
 
