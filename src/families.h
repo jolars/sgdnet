@@ -20,7 +20,6 @@
 #include <memory>
 #include "math.h"
 #include "utils.h"
-
 namespace sgdnet {
 
 class Family {
@@ -40,20 +39,17 @@ public:
     y_mat_scale.resize(n_classes, 1.0);
   };
 
-  virtual double Link(const unsigned i) = 0;
+  double Link(const unsigned i);
+  double Loss(const double prediction, const unsigned i);
+  double Loss(const std::vector<double>& prediction, const unsigned i);
 
-  virtual double Loss(const double prediction, const unsigned i) = 0;
+  void Gradient(std::vector<double>&       g_i,
+                const std::vector<double>& prediction,
+                const unsigned             i);
 
-  virtual double Loss(const std::vector<double>& prediction,
-                      const unsigned i) = 0;
+  void PreprocessResponse();
 
-  virtual void Gradient(std::vector<double>&       g_i,
-                        const std::vector<double>& prediction,
-                        const unsigned             i) = 0;
-
-  virtual void PreprocessResponse() = 0;
-
-  virtual double NullDeviance(const bool fit_intercept) = 0;
+  double NullDeviance(const bool fit_intercept);
 
   std::vector<double> StepSize(const double               max_squared_sum,
                                const std::vector<double>& alpha_scaled,
@@ -77,9 +73,9 @@ public:
   std::vector<double> y_scale;
   Eigen::MatrixXd y_mat;
   std::vector<double> y_mat_scale;
-  unsigned n_samples;
-  unsigned n_classes;
-  unsigned n_targets;
+  std::size_t n_samples;
+  std::size_t n_classes;
+  std::size_t n_targets;
   double null_deviance = 0.0;
   double L_scaling;
   double lambda_scaling = 1.0;

@@ -121,32 +121,32 @@ void PreprocessFeatures(Eigen::SparseMatrix<double>& x,
 //' @param family pointer to respone type family class object
 //'
 //' @return lambda, alpha and beta are updated.
-template <typename T>
-void RegularizationPath(std::vector<double>&                   lambda,
-                        const unsigned                         n_lambda,
-                        const double                           lambda_min_ratio,
-                        const double                           elasticnet_mix,
-                        const T&                               x,
-                        std::vector<double>&                   alpha,
-                        std::vector<double>&                   beta,
-                        const std::unique_ptr<sgdnet::Family>& family) {
-  double lambda_scaling = family->lambda_scaling;
+template <typename T, typename Family>
+void RegularizationPath(std::vector<double>& lambda,
+                        const unsigned       n_lambda,
+                        const double         lambda_min_ratio,
+                        const double         elasticnet_mix,
+                        const T&             x,
+                        std::vector<double>& alpha,
+                        std::vector<double>& beta,
+                        Family&              family) {
+  double lambda_scaling = family.lambda_scaling;
 
   if (lambda.empty()) {
-    Eigen::MatrixXd inner_products = family->y_mat.transpose() * x.transpose();
+    Eigen::MatrixXd inner_products = family.y_mat.transpose() * x.transpose();
 
     double max_coeff = 0.0;
 
     for (unsigned i = 0; i < inner_products.cols(); ++i) {
       for (unsigned j = 0; j < inner_products.rows(); ++j) {
         max_coeff =
-          std::max(std::abs(inner_products(j, i)*family->y_mat_scale[j]),
+          std::max(std::abs(inner_products(j, i)*family.y_mat_scale[j]),
                    max_coeff);
       }
     }
 
     double lambda_max =
-      max_coeff/(std::max(elasticnet_mix, 0.001)*family->n_samples);
+      max_coeff/(std::max(elasticnet_mix, 0.001)*family.n_samples);
 
     if (lambda_max != 0.0)
       lambda = LogSpace(lambda_max, lambda_max*lambda_min_ratio, n_lambda);
@@ -228,16 +228,16 @@ inline void PredictSample(std::vector<double>&               prediction,
 //' @return The loss of the current epoch is appended to `losses`.
 //'
 //' @noRd
-template <typename T>
-double EpochLoss(const T&                               x,
-                 const std::vector<double>&             w,
-                 const std::vector<double>&             intercept,
-                 const std::unique_ptr<sgdnet::Family>& family,
-                 const double                           alpha,
-                 const double                           beta,
-                 const unsigned                         n_samples,
-                 const unsigned                         n_features,
-                 const unsigned                         n_classes) {
+template <typename T, typename Family>
+double EpochLoss(const T&                   x,
+                 const std::vector<double>& w,
+                 const std::vector<double>& intercept,
+                 Family&                    family,
+                 const double               alpha,
+                 const double               beta,
+                 const unsigned             n_samples,
+                 const unsigned             n_features,
+                 const unsigned             n_classes) {
 
   double loss = 0.0;
   double l1_norm = 0.0;
@@ -260,7 +260,7 @@ double EpochLoss(const T&                               x,
                   x,
                   intercept);
 
-    loss += family->Loss(prediction, s_ind)/n_samples;
+    loss += family.Loss(prediction, s_ind)/n_samples;
   }
 
   return loss;
@@ -330,14 +330,14 @@ inline void AdaptiveTranspose(Eigen::MatrixXd& x) {
 //' @param family a pointer to the family object
 //'
 //' @return Returns the deviance.
-template <typename T>
-double Deviance(const T&                           x,
-                const std::vector<double>&         w,
-                const std::vector<double>&         intercept,
-                const unsigned                     n_samples,
-                const unsigned                     n_features,
-                const unsigned                     n_classes,
-                std::unique_ptr<sgdnet::Family>&   family) {
+template <typename T, typename Family>
+double Deviance(const T&                   x,
+                const std::vector<double>& w,
+                const std::vector<double>& intercept,
+                const unsigned             n_samples,
+                const unsigned             n_features,
+                const unsigned             n_classes,
+                Family&                    family) {
   double loss = 0.0;
   std::vector<double> prediction(n_classes);
 
@@ -351,7 +351,7 @@ double Deviance(const T&                           x,
                   x,
                   intercept);
 
-    loss += family->Loss(prediction, s_ind);
+    loss += family.Loss(prediction, s_ind);
   }
   return 2.0 * loss;
 }
