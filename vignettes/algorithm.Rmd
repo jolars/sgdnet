@@ -304,7 +304,7 @@ SoftThreshold(x, a) {
 }
 ```
 
-# Unstandardization
+## Unstandardization
 
 Coefficients from **sgdnet** are, irrespective of any internal standardizaton,
 always returned on the scale of the original data. Given our 
