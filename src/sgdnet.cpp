@@ -62,7 +62,7 @@
 //' regularization path using warm starts for successive iterations.
 //'
 //' @param x features
-//' @param y response
+//' @param response the model family
 //' @param is_sparse whether x is sparse or not
 //' @param control a list of control parameters
 //'
@@ -71,7 +71,7 @@
 //' @noRd
 //' @keywords internal
 template <typename T, typename Family>
-Rcpp::List SetupSgdnet(T&&               x,
+Rcpp::List SetupSgdnet(T                 x,
                        Family&&          family,
                        const bool        is_sparse,
                        const Rcpp::List& control) {
@@ -231,10 +231,10 @@ Rcpp::List SetupSgdnet(T&&               x,
 }
 
 template <typename T>
-Rcpp::List SetupFamily(T&&                   x,
-                       std::vector<double>&& y,
-                       const bool            is_sparse,
-                       const Rcpp::List&     control) {
+Rcpp::List SetupFamily(const T&                   x,
+                       const std::vector<double>& y,
+                       const bool                 is_sparse,
+                       const Rcpp::List&          control) {
 
   auto family_choice = Rcpp::as<std::string>(control["family"]);
   auto n_classes = Rcpp::as<unsigned>(control["n_classes"]);
@@ -243,26 +243,17 @@ Rcpp::List SetupFamily(T&&                   x,
   if (family_choice == "gaussian") {
 
     sgdnet::Gaussian family(y, n_samples, n_classes);
-    return SetupSgdnet(std::forward<T>(x),
-                       std::move(family),
-                       is_sparse,
-                       control);
+    return SetupSgdnet(x, std::move(family), is_sparse, control);
 
   } else if (family_choice == "binomial") {
 
     sgdnet::Binomial family(y, n_samples, n_classes);
-    return SetupSgdnet(std::forward<T>(x),
-                       std::move(family),
-                       is_sparse,
-                       control);
+    return SetupSgdnet(x, std::move(family), is_sparse, control);
 
   } else if (family_choice == "multinomial") {
 
     sgdnet::Multinomial family(y, n_samples, n_classes);
-    return SetupSgdnet(std::forward<T>(x),
-                       std::move(family),
-                       is_sparse,
-                       control);
+    return SetupSgdnet(x, std::move(family), is_sparse, control);
 
   } else {
 
@@ -295,15 +286,15 @@ Rcpp::List SetupFamily(T&&                   x,
 //' @keywords internal
 //' @noRd
 // [[Rcpp::export]]
-Rcpp::List SgdnetDense(Eigen::MatrixXd     x,
-                       std::vector<double> y,
-                       const Rcpp::List&   control) {
-  return SetupFamily(std::move(x), std::move(y), false, control);
+Rcpp::List SgdnetDense(const Eigen::MatrixXd&     x,
+                       const std::vector<double>& y,
+                       const Rcpp::List&          control) {
+  return SetupFamily(x, y, false, control);
 }
 
 // [[Rcpp::export]]
-Rcpp::List SgdnetSparse(Eigen::SparseMatrix<double> x,
+Rcpp::List SgdnetSparse(const Eigen::SparseMatrix<double>& x,
                         std::vector<double>         y,
                         const Rcpp::List&           control) {
-  return SetupFamily(std::move(x), std::move(y), true, control);
+  return SetupFamily(x, y, true, control);
 }
