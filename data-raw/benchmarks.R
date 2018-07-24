@@ -22,48 +22,33 @@ aggregate_benchmarks <- function(x) {
     ungroup() %>%
     mutate(normalized_loss = (loss - min_loss)/(max_loss - min_loss)) %>%
     group_by(dataset, penalty, package, time_cut) %>%
-    summarise(normalized_mean_loss = mean(normalized_loss)) %>%
+    summarise(normalized_median_loss = median(normalized_loss)) %>%
     mutate(time = as.numeric(time_cut)/20) %>%
     select(dataset = dataset,
            penalty = penalty,
            package = package,
            time = time,
-           loss = normalized_mean_loss)
+           loss = normalized_median_loss)
   x
 }
-#
-# # loss for the binomial case
-# binomial_loss <- function(fit, X, y, lambda, alpha) {
-#   # tidy up data
-#   n <- NROW(X)
-#   X <- t(X)
-#   y <- as.vector(as.numeric(y))
-#   y[y == min(y)] <- 0
-#   y[y > min(y)] <- 1
-#   beta <- fit$beta
-#   beta0 <- as.vector(fit$a0)
-#
-#   n <- length(y)
-#   # binomial loglikelihood
-#   cXb <- crossprod(X, beta)
-#   loglik <- sum(y*(beta0 + cXb) - log(1 + exp(beta0 + cXb)))
-#
-#   # compute penalty
-#   penalty <- 0.5*(1 - alpha)*sum(beta^2) + alpha*sum(abs(beta))
-#   -loglik/n + lambda*penalty
-# }
 
-benchmark <- function(datasets, family, n = 100) {
+benchmark <- function(datasets, family, n = 1000) {
   library(sgdnet)
   library(glmnet)
   library(SparseM)
   library(Matrix)
 
-  # setup tolerance sequence to iterate over
-  sgdnet_tol <- signif(exp(seq(log(0.1), log(1e-10), length.out = n)), 2)
-  glmnet_tol <- signif(exp(seq(log(0.1), log(1e-6), length.out = n)), 2)
+  glmnet.control(mnlam = 1)
 
-  # iter <- seq_len(n)
+  # setup tolerance sequence to iterate over
+  sgdnet_tol <- signif(exp(seq(log(0.9), log(1e-3), length.out = n)), 2)
+  glmnet_tol <- signif(exp(seq(log(0.9), log(1e-9), length.out = n)), 2)
+
+  data <-  data.frame(dataset = character(),
+                      package = character(),
+                      penalty = character(),
+                      time = double(),
+                      loss = double())
 
   for (i in seq_along(datasets)) {
     cat(names(datasets)[i], "\n")
@@ -72,12 +57,6 @@ benchmark <- function(datasets, family, n = 100) {
     n_obs <- nrow(X)
 
     lambda <- 1/n_obs
-
-    data <-  data.frame(dataset = character(),
-                        package = character(),
-                        penalty = character(),
-                        time = double(),
-                        loss = double())
 
     for (j in seq_len(n)) {
       set.seed(j*i)
@@ -89,14 +68,18 @@ benchmark <- function(datasets, family, n = 100) {
       for (penalty in c("ridge", "lasso")) {
         alpha <- ifelse(penalty == "ridge", 0, 1)
         glmnet_time <- system.time({
-          glmnet_fit <- glmnet::glmnet(X,
-                                       y,
-                                       family = family,
-                                       lambda = lambda,
-                                       alpha = alpha,
-                                       intercept = TRUE,
-                                       standardize = FALSE,
-                                       maxit = n)
+          tryCatch({
+            glmnet_fit <- glmnet::glmnet(X,
+                                         y,
+                                         family = family,
+                                         lambda = lambda,
+                                         alpha = alpha,
+                                         intercept = TRUE,
+                                         standardize = FALSE,
+                                         thresh = glmnet_tol[j],
+                                         maxit = 1e8)
+          },
+          error = NA)
         })
 
         sgdnet_time <- system.time({
@@ -107,19 +90,18 @@ benchmark <- function(datasets, family, n = 100) {
                                        alpha = alpha,
                                        intercept = TRUE,
                                        standardize = FALSE,
-                                       maxit = n)
+                                       thresh = sgdnet_tol[j],
+                                       maxit = 1e8)
         })
 
-        glmnet_loss <- glmnet_fit$dev.ratio
-        sgdnet_loss <- sgdnet_fit$dev.ratio
+        glmnet_loss <- deviance(glmnet_fit)
+        sgdnet_loss <- deviance(sgdnet_fit)
 
         data <- rbind(data,
                       data.frame(
                         dataset = names(datasets)[i],
                         package = c("glmnet", "sgdnet"),
                         time = c(glmnet_time[3], sgdnet_time[3]),
-                        time = c(0, 0),
-                        loss = c(0, 0),
                         loss = c(glmnet_loss, sgdnet_loss),
                         penalty = penalty
                       ))
@@ -133,19 +115,17 @@ benchmark <- function(datasets, family, n = 100) {
 
 library(libsvmdata) # https://github.com/jolars/libsvmdata/
 
-bodyfat <- getData("bodyfat", scaled = TRUE)
+abalone <- getData("abalone", scaled = TRUE)
 cadata <- getData("cadata")
 cadata$x <- scale(cadata$x)
 cpusmall <- getData("cpusmall", scaled = TRUE)
 
-gaussian_datasets <- list(bodyfat = bodyfat,
+gaussian_datasets <- list(abalone = abalone,
                           cadata = cadata,
                           cpusmall = cpusmall)
 
-d <- benchmark(gaussian_datasets, "gaussian")
-benchmarkdata_gaussian <- aggregate_benchmarks(d)
-
-usethis::use_data(benchmarkdata_gaussian, overwrite = TRUE, internal = TRUE)
+benchmark_gaussian <- benchmark(gaussian_datasets, "gaussian")
+benchmark_aggregated_gaussian <- aggregate_benchmarks(benchmark_gaussian)
 
 # Binomial ----------------------------------------------------------------
 
@@ -158,27 +138,25 @@ binomial_datasets <- list(mushrooms = mushrooms,
                           adult = a9a,
                           ijcnn1 = ijcnn1)
 
-d <- benchmark(binomial_datasets, "binomial")
-benchmarkdata_binomial <- aggregate_benchmarks(d)
-
-usethis::use_data(benchmarkdata_binomial, overwrite = TRUE, internal = TRUE)
+benchmark_binomial <- benchmark(binomial_datasets, "binomial")
+benchmark_aggregated_binomial <- aggregate_benchmarks(benchmark_binomial)
 
 # Multinomial -------------------------------------------------------------
 
+dna <- getData("dna", scaled = TRUE)
+vehicle <- getData("vehicle", scaled = TRUE)
 poker <- getData("poker", "training", scaled = FALSE)
 poker$x <- scale(poker$x)
-satimage <- getData("satimage", scaled = TRUE)
-pendigits <- getData("pendigits", "training")
 
-multinomial_datasets <- list(poker = poker,
-                             satimage = satimage,
-                             pendigits = pendigits)
+multinomial_datasets <- list(vehicle = vehicle,
+                             dna = dna,
+                             poker = poker)
 
-d <- benchmark(multinomial_datasets, "multinomial")
-benchmarkdata_multinomial <- aggregate_benchmarks(d)
+benchmark_multinomial <- benchmark(multinomial_datasets, "multinomial", 1000)
+benchmark_aggregated_multinomial <- aggregate_benchmarks(benchmark_multinomial)
 
-benchmarks <- list(gaussian = benchmarkdata_gaussian,
-                   binomial = benchmarkdata_binomial,
-                   multinomial = benchmarkdata_multinomial)
+benchmarks <- list(gaussian = benchmark_aggregated_gaussian,
+                   binomial = benchmark_aggregated_binomial,
+                   multinomial = benchmark_aggregated_multinomial)
 
-usethis::use_data(benchmarks, overwrite = TRUE, internal = TRUE)
+usethis::use_data(benchmarks, overwrite = TRUE)
