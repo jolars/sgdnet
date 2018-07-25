@@ -283,7 +283,7 @@ Rcpp::List SgdnetDense(const Eigen::MatrixXd&     x,
 
 // [[Rcpp::export]]
 Rcpp::List SgdnetSparse(const Eigen::SparseMatrix<double>& x,
-                        std::vector<double>         y,
-                        const Rcpp::List&           control) {
+                        const std::vector<double>&         y,
+                        const Rcpp::List&                  control) {
   return SetupFamily(x, y, true, control);
 }
