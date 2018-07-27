@@ -130,7 +130,7 @@ representation
 
 $$
 \text{Pr}(Y_i = c) = 
-  \frac{e^{\beta_{0_c}+\beta_c^\intercal \mathbf{x}_i}}{\sum_{k = 1}^m{e^{\beta_{0_k}+\beta_k^\intercal \mathbf{x}_i}}},
+  \frac{e^{\beta_{0_c}+\beta_c^\intercal \mathbf{x}_i}}{\sum_{k = 1}^K{e^{\beta_{0_k}+\beta_k^\intercal \mathbf{x}_i}}},
 $$
 
 which is the overspecified version of this model.  As in **glmnet**
@@ -142,10 +142,10 @@ this [@hastie2015, pp. 36-7].
 The objective for the multinomial logistic regression is then
 
 $$
-\min_{\{\beta_{0_k}, \beta_k\}_1^m}
+\min_{\{\beta_{0_k}, \beta_k\}_1^K}
 \left\{
-  -\frac1n \sum_{i=1}^n \left[\sum_{k=1}^m y_{i_k} (\beta_{0_k}+\beta_k^\intercal \mathbf{x}_i) -
-  \log \sum_{k=1}^m e^{\beta_{0_k}+\beta_k^\intercal \mathbf{x}_i}\right]
+  -\frac1n \sum_{i=1}^n \left[\sum_{k=1}^K y_{i_k} (\beta_{0_k}+\beta_k^\intercal \mathbf{x}_i) -
+  \log \sum_{k=1}^K e^{\beta_{0_k}+\beta_k^\intercal \mathbf{x}_i}\right]
   + \lambda \left[(1 - \alpha)||\beta||_F ^2 + \alpha\sum_{j=1}^p||\beta_j||_q \right]
 \right\}.
 $$
