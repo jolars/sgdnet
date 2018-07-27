@@ -25,7 +25,7 @@ introduced in
 @schmidt2017. SAGA handles both strongly and
 non-strongly convex objectives -- even in the composite case -- making it
 applicable to a wide range of problems such as generalized
-linear regression with elastic net regularization, which is the problem
+linear models with elastic net regularization, which is the problem
 that **sgdnet** is designed to handle.
 
 SAGA has a simple convergence proof and uses a step size that in fact
