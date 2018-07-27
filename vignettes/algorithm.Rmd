@@ -59,7 +59,7 @@ and divide by $n$ rather than $n-1$.
 ```{r}
 sgdnet_sd <- function(x) sqrt(sum((x - mean(x))^2)/length(x))
 n <- nrow(x)
-x_bar <- colSums(x)/n
+x_bar <- colMeans(x)
 x_sd <- apply(x, 2, sgdnet_sd)
 x <- scale(x, center = x_bar, scale = x_sd)
 ```
