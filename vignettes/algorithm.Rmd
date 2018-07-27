@@ -41,7 +41,7 @@ contributing to the development of the package.
 
 Before the algorithm is set loose on data, its parameters have to be set up 
 properly and its data (possibly) preprocessed. For illustrative purposes,
-we will proceed by example and use Gaussian univariate multiple regression
+we will proceed by example and use Gaussian univariate regression
 on the `trees` dataset. We will attempt to predict the volume of a tree based
 on girth and height.
 
