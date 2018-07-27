@@ -19,7 +19,7 @@ knitr::opts_chunk$set(
 
 ## Background and motivation
 
-**sgdnet** was developed as a Google Summer of Code 2018. Its goal was to be
+The goal of **sgdnet** is to be
 a one-stop solution for fitting elastic net-penalized generalized linear 
 models. This is of course not novel in and by itself. Several packages,
 such as the popular *glmnet* package [@friedman2010], already exists to serve this pupose.
@@ -125,5 +125,11 @@ xyplot(acc ~ fit$lambda, type = "l",
 Of course, the choice of $\lambda$ cannot be based only on our training data.
 In any real application we would do best to rely on cross-validation to
 pick a suitable value.
+
+## Acknowledgements
+
+Development on **sgdnet** begun as a Google Summer of Code project in
+2018 with the *R Project for Statistical Computing* as mentor organization.
+Michael Weylandt and Toby Dylan Hocking mentored the project.
 
 ## References
