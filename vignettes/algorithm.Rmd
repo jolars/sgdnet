@@ -105,7 +105,7 @@ alpha <- 0.5
 
 We then construct the $\lambda$ path to be a $\log_e$-spaced sequence starting
 at $\lambda_{\text{max}}$ and finishing at 
-$\frac{\lambda_{\text{max}}}{\lambda_{\text{min ratio}}}$. Thus we have
+$\lambda_{\text{max}} \times \lambda_{\text{min ratio}}$. Thus we have
 
 ```{r}
 lambda.min.ratio <- 0.01
