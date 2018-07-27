@@ -133,11 +133,14 @@ $$
   \frac{e^{\beta_{0_c}+\beta_c^\intercal \mathbf{x}_i}}{\sum_{k = 1}^K{e^{\beta_{0_k}+\beta_k^\intercal \mathbf{x}_i}}},
 $$
 
-which is the overspecified version of this model.  As in **glmnet**
-[@friedman2010],
-which much of this packages functionality is modeled after, however,
-we rely on the regularization of model to take care of
-this [@hastie2015, pp. 36-7].
+which is overspecified in its non-regularized form, lacking a unique
+solution since we can shift the coefficients by a constant and still
+yield the same class probabilities. However, as in **glmnet**
+[@friedman2010] --
+which much of this packages functionality is modeled after -- 
+we rely on the regularization to take are of
+this [@hastie2015, pp. 36-7]. This works because, with the added regularization,
+the solutions are no longer indifferent to a shift in the coefficients.
 
 The objective for the multinomial logistic regression is then
 
