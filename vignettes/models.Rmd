@@ -2,7 +2,9 @@
 title: "Model Families in sgdnet"
 author: "Johan Larsson"
 date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
+output:
+  rmarkdown::html_vignette:
+    toc: true
 bibliography: "sgdnet.bib"
 vignette: >
   %\VignetteIndexEntry{Model Families in sgdnet}
@@ -34,7 +36,7 @@ $\alpha$, is the elastic net mixing parameter [@zou2005], such that
 $\alpha = 1$ results in the lasso [@tibshirani1996] and $\alpha = 0$ the ridge
 penalty.
 
-## Gaussian
+## Gaussian regression
 
 For Gaussian (ordinary least squares) regression, we have
 the following objective
