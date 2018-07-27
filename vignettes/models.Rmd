@@ -135,7 +135,7 @@ $$
 
 which is the overspecified version of this model.  As in **glmnet**
 [@friedman2010],
-which much of this packages functinality is modeled after, however,
+which much of this packages functionality is modeled after, however,
 we rely on the regularization of model to take care of
 this [@hastie2015, pp. 36-7].
 
