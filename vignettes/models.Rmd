@@ -30,7 +30,7 @@ $$
 $$
 where $\mathcal{L}(\beta_0,\beta; \mathbf{y}, \mathbf{X})$ is the 
 log-likelihood of the model $\lambda$ is the regularization strength, and
-$\alpha$,is the elastic net mixing parameter, such that
+$\alpha$, is the elastic net mixing parameter, such that
 $\alpha = 1$ results in the lasso and $\alpha = 0$ the ridge penalty.
 
 ## Gaussian
