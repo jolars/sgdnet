@@ -32,11 +32,12 @@ test_that("predictions run smoothly for a range of combinations and options", {
   x2a <- mtcars$mpg
   x2b <- x2a
   x2b[1] <- NA
-  for (family in c("gaussian", "binomial", "multinomial")) {
+  for (family in c("gaussian", "binomial", "multinomial", "mgaussian")) {
     y <- switch(family,
                 gaussian = mtcars$drat,
                 binomial = mtcars$vs,
-                multinomial = mtcars$gear)
+                multinomial = mtcars$gear,
+                mgaussian = cbind(mtcars$hp, mtcars$disp))
 
     fit1a <- sgdnet(x1, y, family = family)
     fit1a <- sgdnet(x1, y, lambda = 0.0001, family = family)

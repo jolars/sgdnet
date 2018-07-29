@@ -11,7 +11,7 @@ test_that("wrong input to predict.sgdnet() return errors", {
   expect_error(predict(fit, x, s = -3))
   expect_error(predict(fit, x, type = "class"))
 
-  fit <- sgdnet(iris[, 1:2], iris[, 5], family = "multinomial")
+  fit <- sgdnet(iris[, 1:4], iris[, 5], family = "multinomial")
   expect_error(predict(fit, x, s = -3, type = "class"))
 })
 
@@ -37,6 +37,7 @@ test_that("wrong input to sgdnet() returns errors", {
   expect_error(sgdnet(x, y, family = "asdf"))
   expect_error(sgdnet(x, c(y, 1)))
   expect_error(sgdnet(matrix(NA, 3, 3), y, family = "gaussian"))
+  expect_error(sgdnet(x, y, family = "mgaussian"))
 
   y <- rbinom(nrow(x), 3, 0.5)
   expect_error(sgdnet(x, y, family = "binomial"))
@@ -47,4 +48,6 @@ test_that("wrong input to sgdnet() returns errors", {
   y <- c(0, 0, 1)
   x <- c(0.5, 0.5, 0.5)
   expect_error(sgdnet(x, y, family = "binomial"))
+
+
 })

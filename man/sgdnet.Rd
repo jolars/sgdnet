@@ -8,9 +8,10 @@
 sgdnet(x, ...)
 
 \method{sgdnet}{default}(x, y, family = c("gaussian", "binomial",
-  "multinomial"), alpha = 1, nlambda = 100, lambda.min.ratio = if (NROW(x)
-  < NCOL(x)) 0.01 else 1e-04, lambda = NULL, maxit = 1000,
-  standardize = TRUE, intercept = TRUE, thresh = 0.001, ...)
+  "multinomial", "mgaussian"), alpha = 1, nlambda = 100,
+  lambda.min.ratio = if (NROW(x) < NCOL(x)) 0.01 else 1e-04, lambda = NULL,
+  maxit = 1000, standardize = TRUE, intercept = TRUE, thresh = 0.001,
+  standardize.response = FALSE, ...)
 }
 \arguments{
 \item{x}{input matrix}
@@ -19,8 +20,8 @@ sgdnet(x, ...)
 
 \item{y}{response variable}
 
-\item{family}{reponse type, one of \code{'gaussian'}, \code{'binomial'}, or
-\code{'multinomial'}. See \strong{Supported families} for details.}
+\item{family}{reponse type, one of \code{'gaussian'}, \code{'binomial'},
+\code{'multinomial'}, or \code{'mgaussian'}. See \strong{Supported families} for details.}
 
 \item{alpha}{elastic net mixing parameter}
 
@@ -46,6 +47,12 @@ algorithm terminates when
   }{
     max(change in weights)/max(weights) < thresh.
   }}
+
+\item{standardize.response}{whether to standardize the response (\code{y}) --
+only applicable for \code{family = "mgaussian"}.}
+
+\item{standardize.response}{whether \code{y} should be standardized for
+\code{family = "mgaussian"}}
 }
 \value{
 An object of class \code{'sgdnet'}.
@@ -99,6 +106,18 @@ where \eqn{y_i \in \{0, 1\}}{y ~ {0, 1}}.
 where \eqn{q \in {1, 2}}{q = {1,2}} invokes the standard lasso and 2 the
 group lasso penalty respectively, \eqn{F} indicates the Frobenius norm,
 and \eqn{p} is the number of classes.
+
+\emph{Multivariate gaussian regression}:
+\deqn{
+  \frac{1}{2n} ||\mathbf{Y} -\mathbf{B}_0\mathbf{1} - \mathbf{B} \mathbf{X}||^2_F
+  + \lambda \left((1 - \alpha)/2||\mathbf{B}||_F^2 + \alpha ||\mathbf{B}||_{12}\right),
+}{
+  1/(2n) ||Y - B_01 - BX||_F^2 + \lambda (1 - \alpha)/2||B||_F^2 + \alpha ||B||_12),
+}
+where \eqn{\mathbf{1}}{1} is a vector of all zeros, \eqn{\mathbf{B}}{B} is a
+matrix of coefficients, and \eqn{||\dot||_{12}}{||.||_12} is the mixed
+\eqn{\ell_{1/2}}{L1/2} norm. Note, also, that Y is a matrix
+of responses in this form.
 }
 
 \section{Regularization Path}{

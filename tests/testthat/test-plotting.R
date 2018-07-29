@@ -36,4 +36,13 @@ test_that("we can produce plots for all out models", {
   expect_is(dont_plot(fit, "norm"), "trellis")
   expect_is(dont_plot(fit, "lambda"), "trellis")
   expect_is(dont_plot(fit, "dev"), "trellis")
+
+  y <- cbind(mtcars$hp, mtcars$drat)
+  x <- mtcars$disp
+
+  fit <- sgdnet(x, y, family = "mgaussian")
+
+  expect_is(dont_plot(fit, "norm"), "trellis")
+  expect_is(dont_plot(fit, "lambda"), "trellis")
+  expect_is(dont_plot(fit, "dev"), "trellis")
 })

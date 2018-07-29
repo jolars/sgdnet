@@ -6,6 +6,7 @@ test_that("non-penalized logistic regression has similar results as glm()", {
   x <- as.matrix(with(Puromycin, cbind(conc, rate)))
   y <- Puromycin$state
 
+  # with intercept
   sgdfit <- sgdnet(x, y, family = "binomial", lambda = 0, thresh = 1e-9)
   glmfit <- glm(y ~ x, family = "binomial")
 

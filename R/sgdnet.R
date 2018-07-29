@@ -62,6 +62,18 @@
 #' group lasso penalty respectively, \eqn{F} indicates the Frobenius norm,
 #' and \eqn{p} is the number of classes.
 #'
+#' *Multivariate gaussian regression*:
+#' \deqn{
+#'   \frac{1}{2n} ||\mathbf{Y} -\mathbf{B}_0\mathbf{1} - \mathbf{B} \mathbf{X}||^2_F
+#'   + \lambda \left((1 - \alpha)/2||\mathbf{B}||_F^2 + \alpha ||\mathbf{B}||_{12}\right),
+#' }{
+#'   1/(2n) ||Y - B_01 - BX||_F^2 + \lambda (1 - \alpha)/2||B||_F^2 + \alpha ||B||_12),
+#' }
+#' where \eqn{\mathbf{1}}{1} is a vector of all zeros, \eqn{\mathbf{B}}{B} is a
+#' matrix of coefficients, and \eqn{||\dot||_{12}}{||.||_12} is the mixed
+#' \eqn{\ell_{1/2}}{L1/2} norm. Note, also, that Y is a matrix
+#' of responses in this form.
+#'
 #' @section Regularization Path:
 #' The default regularization path is a sequence of `nlambda`
 #' log-spaced elements
@@ -77,8 +89,8 @@
 #'
 #' @param x input matrix
 #' @param y response variable
-#' @param family reponse type, one of `'gaussian'`, `'binomial'`, or
-#'   `'multinomial'`. See **Supported families** for details.
+#' @param family reponse type, one of `'gaussian'`, `'binomial'`,
+#'   `'multinomial'`, or `'mgaussian'`. See **Supported families** for details.
 #' @param alpha elastic net mixing parameter
 #' @param nlambda number of penalties in the regualrization path
 #' @param lambda.min.ratio the ratio between `lambda_max` (the smallest
@@ -88,6 +100,8 @@
 #' @param intercept whether to fit an intercept or not
 #' @param maxit maximum number of effective passes (epochs)
 #' @param standardize whether to standardize `x` or not
+#' @param standardize.response whether to standardize the response (`y`) --
+#'   only applicable for `family = "mgaussian"`.
 #' @param thresh tolerance level for termination of the algorithm. The
 #'   algorithm terminates when
 #'   \deqn{
@@ -96,6 +110,8 @@
 #'   }{
 #'     max(change in weights)/max(weights) < thresh.
 #'   }
+#' @param standardize.response whether `y` should be standardized for
+#'   `family = "mgaussian"`
 #' @param ... ignored
 #'
 #' @return An object of class `'sgdnet'`.
@@ -124,7 +140,10 @@ sgdnet <- function(x, ...) UseMethod("sgdnet")
 #' @rdname sgdnet
 sgdnet.default <- function(x,
                            y,
-                           family = c("gaussian", "binomial", "multinomial"),
+                           family = c("gaussian",
+                                      "binomial",
+                                      "multinomial",
+                                      "mgaussian"),
                            alpha = 1,
                            nlambda = 100,
                            lambda.min.ratio =
@@ -134,6 +153,7 @@ sgdnet.default <- function(x,
                            standardize = TRUE,
                            intercept = TRUE,
                            thresh = 0.001,
+                           standardize.response = FALSE,
                            ...) {
 
   # Collect the call so we can use it in update() later on
@@ -141,6 +161,7 @@ sgdnet.default <- function(x,
 
   n_samples <- NROW(x)
   n_features <- NCOL(x)
+  n_targets <- NCOL(y)
 
   # Convert sparse x to dgCMatrix class from package Matrix.
   if (is_sparse <- inherits(x, "sparseMatrix")) {
@@ -192,7 +213,7 @@ sgdnet.default <- function(x,
   if (maxit <= 0)
     stop("maximum number of iterations cannot be negative or zero.")
 
-  # TODO(jolars): implement group lasso penalty
+  # TODO(jolars): implement group lasso penalty for multinomial model
   type.multinomial <- "ungrouped"
   switch(
     type.multinomial,
@@ -203,7 +224,6 @@ sgdnet.default <- function(x,
 
   # Setup reponse type options and assert appropriate input
   family <- match.arg(family)
-  n_targets <- NCOL(y)
 
   switch(
     family,
@@ -256,25 +276,41 @@ sgdnet.default <- function(x,
         stop("one class only has ", min_class, " observations.")
 
       y <- as.numeric(y) - 1
+    },
+    mgaussian = {
+      if (n_targets == 1)
+        stop("response for multivariate Gaussian regression must not be one-dimensional; try family = 'gaussian'.")
+
+      if (!is.numeric(y))
+        stop("non-numeric response.")
+
+      class_names <- colnames(y)
+      grouped <- TRUE
+
+      n_classes <- n_targets
     }
   )
 
   # TODO(jolars): implement offset
   offset <- FALSE
 
-  control <- list(family = family,
+  y <- as.matrix(y)
+
+  control <- list(debug = debug,
+                  elasticnet_mix = alpha,
+                  family = family,
                   intercept = intercept,
                   is_sparse = is_sparse,
                   lambda = lambda,
-                  elasticnet_mix = alpha,
+                  lambda_min_ratio = lambda.min.ratio,
+                  max_iter = maxit,
                   n_lambda = nlambda,
                   n_classes = n_classes,
                   n_targets = n_targets,
-                  lambda_min_ratio = lambda.min.ratio,
                   standardize = standardize,
-                  max_iter = maxit,
+                  standardize_response = standardize.response,
                   tol = thresh,
-                  debug = debug)
+                  type_multinomial = type.multinomial)
 
   # Fit the model by calling the Rcpp routine.
   if (is_sparse) {
@@ -297,13 +333,15 @@ sgdnet.default <- function(x,
                            ncol = n_penalties,
                            dimnames = list(variable_names, path_names),
                            sparse = TRUE)
-  } else if (family == "multinomial") {
+  } else if (family %in% c("multinomial", "mgaussian")) {
     a0 <- matrix(unlist(res$a0, use.names = FALSE), ncol = n_penalties)
     colnames(a0) <- path_names
     rownames(a0) <- class_names
     tmp <- matrix(unlist(res$beta), nrow = n_classes)
     beta <- vector("list", n_classes)
-    names(beta) <- class_names
+    names(beta) <- switch(family,
+                          mgaussian = response_names,
+                          multinomial = class_names)
     for (i in seq_len(n_classes)) {
       beta[[i]] <- Matrix::Matrix(tmp[i, ],
                                   nrow = n_features,
