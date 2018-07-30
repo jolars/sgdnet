@@ -17,6 +17,8 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+
+library(lattice)
 ```
 
 ## Overview
@@ -35,6 +37,115 @@ log-likelihood of the model, $\lambda$ is the regularization strength, and
 $\alpha$, is the elastic net mixing parameter [@zou2005], such that
 $\alpha = 1$ results in the lasso [@tibshirani1996] and $\alpha = 0$ the ridge
 penalty.
+
+When the lasso penalty is in place, the regularization imposed on the
+coefficients takes the shape of an octahedron.
+
+```{r, echo = FALSE, fig.cap = "The constraint region for the lasso penalty."}
+# Lasso penalty (octahedron)
+h <- 1
+r <- 1
+n <- 40
+
+fx <- function(u, theta)
+  (h - u)/h * r*cos(theta)
+fy <- function(u, theta)
+  (h - u)/h * r*sin(theta)
+fz <- function(u, theta)
+  u
+
+u <- seq(0, h, length.out = 2)
+theta <- seq(0, 2*pi, length.out = 5)
+
+um <- matrix(u, length(u), length(theta))
+thetam <- matrix(theta, length(u), length(theta), byrow = TRUE)
+
+z <- fz(um, thetam)
+x <- fx(um, thetam)
+y <- fy(um, thetam)
+
+wireframe(cbind(-z, z) ~ cbind(x, x)*cbind(y, y),
+          scales = list(col = "black"),
+          col.regions = "lightblue2",
+          par.settings = list(axis.line = list(col = "transparent")),
+          xlab = expression(beta[1]),
+          ylab = expression(beta[2]),
+          zlab = expression(beta[3]))
+```
+
+Meanwhile, for ridge regression, this region has the shape of
+a ball.
+
+```{r, echo = FALSE, fig.cap = "Constraint region for the ridge penalty."}
+# Ridge penalty (sphere)
+h <- 1
+r <- 1
+
+theta <- seq(0, 2*pi, length.out = 30)
+u <- seq(-1, 1, length.out = 15)
+
+fx <- function(u, theta)
+  sqrt(r^2 - u^2)*cos(theta)
+fy <- function(u, theta)
+  sqrt(r^2 - u^2)*sin(theta)
+fz <- function(u, theta)
+  u
+
+um <- matrix(u, length(u), length(theta))
+thetam <- matrix(theta, length(u), length(theta), byrow = TRUE)
+
+trellis.par.set("axis.line",list(col=1,lty=1,lwd=1))
+
+wireframe(fz(um, thetam) ~ fx(um, thetam)*fy(um, thetam),
+          scales = list(col = "black"),
+          shade = FALSE,
+          drape = TRUE,
+          col.regions = "lightsalmon",
+          colorkey = FALSE,
+          par.settings = list(axis.line = list(col = "transparent")),
+          xlab = expression(beta[1]),
+          ylab = expression(beta[2]),
+          zlab = expression(beta[3]))
+```
+
+The shape of the elastic net "ball" varies between these two extremes.
+
+We can also use the so-called group lasso penalty on the coefficients. In 
+the following figure, we show the constraint region for the 
+group lasso penalty when $\beta_1$ and $\beta_1$ have been grouped.
+
+```{r, echo = FALSE, fig.cap = "Constraint region for the group lasso penalty."}
+
+# Group lasso penalty (cone)
+h <- 1
+r <- 1
+n <- 40
+
+fx <- function(u, theta)
+  (h - u)/h * r*cos(theta)
+fy <- function(u, theta)
+  (h - u)/h * r*sin(theta)
+fz <- function(u, theta)
+  u
+
+u <- seq(0, h, length.out = 2)
+theta <- seq(0, 2*pi, length.out = 30)
+
+um <- matrix(u, length(u), length(theta))
+thetam <- matrix(theta, length(u), length(theta), byrow = TRUE)
+
+z <- fz(um, thetam)
+x <- fx(um, thetam)
+y <- fy(um, thetam)
+
+wireframe(cbind(-z, z) ~ cbind(x, x)*cbind(y, y),
+          scales = list(col = "black"),
+          col.regions = "aquamarine",
+          par.settings = list(axis.line = list(col = "transparent")),
+          xlab = expression(beta[1]),
+          ylab = expression(beta[2]),
+          zlab = expression(beta[3]))
+```
 
 ## Gaussian regression
 
