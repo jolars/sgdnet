@@ -51,6 +51,9 @@ same values.
 * Both loss and run times were normalized and the latter were cut into
 intervals of 20 slices within which the run times were averaged.
 
+The benchmarks were run on a dedicated
+[Amazon EC2 m4.large instance](https://aws.amazon.com/ec2/instance-types/).
+
 Note that some of the data sets below are not strictly 100% dense,
 despite the specifications below. They are, however, stored in dense
 matrix form (the regular `matrix` class in R), which makes the packages
