@@ -48,9 +48,6 @@ algorithm terminates when
     max(change in weights)/max(weights) < thresh.
   }}
 
-\item{standardize.response}{whether to standardize the response (\code{y}) --
-only applicable for \code{family = "mgaussian"}.}
-
 \item{standardize.response}{whether \code{y} should be standardized for
 \code{family = "mgaussian"}}
 }
@@ -148,6 +145,9 @@ binom_fit <- sgdnet(heart$x,
 
 # Multinomial logistic regression with lasso
 multinom_fit <- sgdnet(wine$x, wine$y, family = "multinomial")
+
+# Multivariate gaussian regression
+mgaussian_fit <- sgdnet(student$x, student$y, family = "mgaussian")
 }
 \seealso{
 \code{\link[=predict.sgdnet]{predict.sgdnet()}}, \code{\link[=plot.sgdnet]{plot.sgdnet()}}, \code{\link[=coef.sgdnet]{coef.sgdnet()}},
