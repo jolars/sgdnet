@@ -47,7 +47,7 @@
 // OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 // DAMAGE.
 
-// #define EIGEN_NO_DEBUG
+#define EIGEN_NO_DEBUG
 
 #include <RcppEigen.h>
 #include "utils.h"

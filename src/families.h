@@ -38,7 +38,7 @@ public:
   void Gradient(const std::vector<double>& prediction,
                 const Eigen::MatrixXd&     y,
                 const unsigned             i,
-                std::vector<double>&       gradient) const noexcept;
+                Eigen::ArrayXd&            gradient) const noexcept;
 
   double NullDeviance(const Eigen::MatrixXd& y,
                       const bool             fit_intercept,
@@ -77,7 +77,7 @@ public:
   void Gradient(const std::vector<double>& prediction,
                 const Eigen::MatrixXd&     y,
                 const unsigned             i,
-                std::vector<double>&       gradient) const noexcept {
+                Eigen::ArrayXd&            gradient) const noexcept {
     gradient[0] = prediction[0] - y(0, i);
   }
 
@@ -131,7 +131,7 @@ public:
   void Gradient(const std::vector<double>& prediction,
                 const Eigen::MatrixXd&     y,
                 const unsigned             i,
-                std::vector<double>&       gradient) const noexcept {
+                Eigen::ArrayXd&            gradient) const noexcept {
     gradient[0] = 1.0 - y(0, i) - 1.0/(1.0 + std::exp(prediction[0]));
   }
 
@@ -193,7 +193,7 @@ public:
   void Gradient(const std::vector<double>& prediction,
                 const Eigen::MatrixXd&     y,
                 const unsigned             i,
-                std::vector<double>&       gradient) const noexcept {
+                Eigen::ArrayXd&            gradient) const noexcept {
 
     auto lse = LogSumExp(prediction);
     unsigned p = prediction.size();
@@ -313,7 +313,7 @@ public:
   void Gradient(const std::vector<double>& prediction,
                 const Eigen::MatrixXd&     y,
                 const unsigned             i,
-                std::vector<double>&       gradient) const noexcept {
+                Eigen::ArrayXd&            gradient) const noexcept {
 
     for (unsigned k = 0; k < n_classes; ++k)
       gradient[k] = prediction[k] - y(k, i);

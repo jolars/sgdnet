@@ -125,13 +125,13 @@ inline void LaggedUpdate(const unsigned                     k,
 //' @param scaling step size
 //'
 //' @return Updates `y` with `x` scaled.
-inline void AddWeighted(Eigen::ArrayXXd&           a,
-                        const Eigen::MatrixXd&     x,
-                        const unsigned             s_ind,
-                        const unsigned             n_features,
-                        const unsigned             n_classes,
-                        const std::vector<double>& g_change,
-                        const double               scaling) noexcept {
+inline void AddWeighted(Eigen::ArrayXXd&       a,
+                        const Eigen::MatrixXd& x,
+                        const unsigned         s_ind,
+                        const unsigned         n_features,
+                        const unsigned         n_classes,
+                        const Eigen::ArrayXd&  g_change,
+                        const double           scaling) noexcept {
 
   for (unsigned f_ind = 0; f_ind < n_features; ++f_ind)
     for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind)
@@ -143,7 +143,7 @@ inline void AddWeighted(Eigen::ArrayXXd&                   a,
                         const unsigned                     s_ind,
                         const unsigned                     n_features,
                         const unsigned                     n_classes,
-                        const std::vector<double>&         g_change,
+                        const Eigen::ArrayXd&              g_change,
                         const double                       scaling) noexcept {
 
   for (Eigen::SparseMatrix<double>::InnerIterator it(x, s_ind); it; ++it)
@@ -280,8 +280,8 @@ void Saga(const T&               x,
   penalty.setParameters(gamma, alpha, beta);
 
   // Setup gradient vectors
-  vector<double> g(n_classes);
-  vector<double> g_change(n_classes);
+  Eigen::ArrayXd g        = Eigen::ArrayXd::Zero(n_classes);
+  Eigen::ArrayXd g_change = Eigen::ArrayXd::Zero(n_classes);
 
   // Vector for storing current predictions
   vector<double> prediction(n_classes);
