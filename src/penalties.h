@@ -77,12 +77,6 @@ public:
       w.col(j).array() -= beta*gamma*scaling/w_scale*w.col(j).array()/norm;
     else
       w.col(j).setConstant(0.0);
-
-    // for (unsigned j = 0; j < n_classes; ++j) {
-    //   // scales[j] = std::max(1.0 - beta*gamma/(w_scale * norms[j]), 0.0);
-    //   // w(c_ind, f_ind) *= scales[j];
-    //   w(c_ind, f_ind) = prox(w(c_ind, f_ind), beta*gamma*lag/w_scale);
-    // }
   }
 
 private:
