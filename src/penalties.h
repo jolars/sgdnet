@@ -26,11 +26,11 @@ protected:
 
 class Ridge : public Penalty  {
 public:
-  void operator()(Eigen::MatrixXd&       w,
+  void operator()(Eigen::ArrayXXd&       w,
                   const unsigned         j,
                   const double           w_scale,
                   const double           scaling,
-                  const Eigen::MatrixXd& g_sum) const noexcept {
+                  const Eigen::ArrayXXd& g_sum) const noexcept {
     auto p = w.rows();
     for (decltype(p) k = 0; k < p; ++k)
       w(k, j) -= gamma/w_scale*scaling*g_sum(k, j);
@@ -39,11 +39,11 @@ public:
 
 class ElasticNet : public Penalty  {
 public:
-  void operator()(Eigen::MatrixXd&       w,
+  void operator()(Eigen::ArrayXXd&       w,
                   const unsigned         j,
                   const double           w_scale,
                   const double           scaling,
-                  const Eigen::MatrixXd& g_sum) const noexcept {
+                  const Eigen::ArrayXXd& g_sum) const noexcept {
     auto p = w.rows();
     for (decltype(p) k = 0; k < p; ++k) {
       w(k, j) -= gamma/w_scale*scaling*g_sum(k, j);
@@ -61,20 +61,20 @@ public:
              const unsigned n_features)
              : n_classes(n_classes), n_features(n_features) {}
 
-  void operator()(Eigen::MatrixXd&       w,
+  void operator()(Eigen::ArrayXXd&       w,
                   const unsigned         j,
                   const double           w_scale,
                   const double           scaling,
-                  const Eigen::MatrixXd& g_sum) const noexcept {
+                  const Eigen::ArrayXXd& g_sum) const noexcept {
 
     for (unsigned k = 0; k < n_classes; ++k) {
       w(k, j) -= gamma/w_scale*scaling*g_sum(k, j);
     }
 
-    auto norm = w.col(j).norm();
+    auto norm = w.matrix().col(j).norm();
 
     if (norm > beta*gamma*scaling)
-      w.col(j).array() -= beta*gamma*scaling/w_scale*w.col(j).array()/norm;
+      w.col(j) -= beta*gamma*scaling/w_scale*w.col(j)/norm;
     else
       w.col(j).setConstant(0.0);
   }

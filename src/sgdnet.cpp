@@ -151,14 +151,14 @@ Rcpp::List SetupSgdnet(T                 x,
   // vector<double> weights(n_features*n_classes);
   // vector<vector<double>> weights_archive;
 
-  Eigen::MatrixXd weights = Eigen::MatrixXd::Zero(n_classes, n_features);
-  vector<Eigen::MatrixXd> weights_archive;
+  Eigen::ArrayXXd weights = Eigen::ArrayXXd::Zero(n_classes, n_features);
+  vector<Eigen::ArrayXXd> weights_archive;
 
   // Initialize gradient trackers
   vector<double> g_sum_intercept(n_classes);
 
-  Eigen::MatrixXd g_memory = Eigen::MatrixXd::Zero(n_classes, n_samples);
-  Eigen::MatrixXd g_sum    = Eigen::MatrixXd::Zero(n_classes, n_features);
+  Eigen::ArrayXXd g_memory = Eigen::ArrayXXd::Zero(n_classes, n_samples);
+  Eigen::ArrayXXd g_sum    = Eigen::ArrayXXd::Zero(n_classes, n_features);
 
   // Keep keep track of successes for each penalty
   vector<unsigned> return_codes;

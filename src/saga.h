@@ -71,9 +71,9 @@
 //' @return Updates weights and lag.
 template <typename Penalty>
 inline void LaggedUpdate(const unsigned             k,
-                         Eigen::MatrixXd&           w,
+                         Eigen::ArrayXXd&           w,
                          const unsigned             n_features,
-                         const Eigen::MatrixXd&     g_sum,
+                         const Eigen::ArrayXXd&     g_sum,
                          std::vector<unsigned>&     lag,
                          const Eigen::MatrixXd&     x,
                          const unsigned             s_ind,
@@ -94,9 +94,9 @@ inline void LaggedUpdate(const unsigned             k,
 
 template <typename Penalty>
 inline void LaggedUpdate(const unsigned                     k,
-                         Eigen::MatrixXd&                   w,
+                         Eigen::ArrayXXd&                   w,
                          const unsigned                     n_features,
-                         const Eigen::MatrixXd&             g_sum,
+                         const Eigen::ArrayXXd&             g_sum,
                          std::vector<unsigned>&             lag,
                          const Eigen::SparseMatrix<double>& x,
                          const unsigned                     s_ind,
@@ -125,7 +125,7 @@ inline void LaggedUpdate(const unsigned                     k,
 //' @param scaling step size
 //'
 //' @return Updates `y` with `x` scaled.
-inline void AddWeighted(Eigen::MatrixXd&           a,
+inline void AddWeighted(Eigen::ArrayXXd&           a,
                         const Eigen::MatrixXd&     x,
                         const unsigned             s_ind,
                         const unsigned             n_features,
@@ -138,7 +138,7 @@ inline void AddWeighted(Eigen::MatrixXd&           a,
       a(c_ind, f_ind) += g_change[c_ind] * scaling * x(f_ind, s_ind);
 }
 
-inline void AddWeighted(Eigen::MatrixXd&                   a,
+inline void AddWeighted(Eigen::ArrayXXd&                   a,
                         const Eigen::SparseMatrix<double>& x,
                         const unsigned                     s_ind,
                         const unsigned                     n_features,
@@ -171,8 +171,8 @@ template <typename Penalty>
 inline
 double
 Reset(const unsigned         k,
-      Eigen::MatrixXd&       w,
-      const Eigen::MatrixXd& g_sum,
+      Eigen::ArrayXXd&       w,
+      const Eigen::ArrayXXd& g_sum,
       std::vector<double>&   lag_scaling,
       std::vector<unsigned>& lag,
       const unsigned         n_features,
@@ -187,7 +187,7 @@ Reset(const unsigned         k,
       penalty(w, j, wscale, lag_scaling[lagged_amount], g_sum);
   }
 
-  w.array() *= wscale;
+  w *= wscale;
 
   return 1.0;
 }
@@ -235,14 +235,14 @@ void Saga(const T&               x,
           std::vector<double>&   intercept,
           const bool             fit_intercept,
           const double           intercept_decay,
-          Eigen::MatrixXd&       w,
+          Eigen::ArrayXXd&       w,
           const Family&          family,
           Penalty&               penalty,
           const double           gamma,
           const double           alpha,
           const double           beta,
-          Eigen::MatrixXd&       g_memory,
-          Eigen::MatrixXd&       g_sum,
+          Eigen::ArrayXXd&       g_memory,
+          Eigen::ArrayXXd&       g_sum,
           std::vector<double>&   g_sum_intercept,
           const unsigned         n_samples,
           const unsigned         n_features,
@@ -287,7 +287,7 @@ void Saga(const T&               x,
   vector<double> prediction(n_classes);
 
   // Store previous weights for computing stopping criteria
-  Eigen::MatrixXd w_previous(w);
+  Eigen::ArrayXXd w_previous(w);
 
   // Outer loop
   unsigned it_outer = 0;

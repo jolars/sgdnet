@@ -22,7 +22,7 @@
 #include "math.h"
 
 inline void PredictSample(std::vector<double>&       prediction,
-                          const Eigen::MatrixXd&     w,
+                          const Eigen::ArrayXXd&     w,
                           const double               wscale,
                           const unsigned             n_features,
                           const unsigned             n_classes,
@@ -39,7 +39,7 @@ inline void PredictSample(std::vector<double>&       prediction,
 }
 
 inline void PredictSample(std::vector<double>&               prediction,
-                          const Eigen::MatrixXd&             w,
+                          const Eigen::ArrayXXd&             w,
                           const double                       wscale,
                           const unsigned                     n_features,
                           const unsigned                     n_classes,
@@ -200,7 +200,7 @@ void RegularizationPath(std::vector<double>&       lambda,
 template <typename T, typename Family>
 double EpochLoss(const T&                   x,
                  const Eigen::MatrixXd&     y,
-                 const Eigen::MatrixXd&     w,
+                 const Eigen::ArrayXXd&     w,
                  const std::vector<double>& intercept,
                  const Family&              family,
                  const double               alpha,
@@ -240,12 +240,12 @@ double EpochLoss(const T&                   x,
 //'   against the largest relative change.
 //'
 //' @return `true` if the algorithm converged, `false` otherwise.
-bool CheckConvergence(const Eigen::MatrixXd& w,
-                      Eigen::MatrixXd&       w_previous,
+bool CheckConvergence(const Eigen::ArrayXXd& w,
+                      Eigen::ArrayXXd&       w_previous,
                       const double           tol) {
 
-  double max_change = (w - w_previous).array().abs().maxCoeff();
-  double max_weight = w.array().abs().maxCoeff();
+  double max_change = (w - w_previous).abs().maxCoeff();
+  double max_weight = w.abs().maxCoeff();
 
   bool all_zero  = (max_weight == 0.0) && (max_change == 0.0);
   bool no_change = (max_weight != 0.0) && (max_change/max_weight <= tol);
@@ -292,7 +292,7 @@ inline void AdaptiveTranspose(Eigen::MatrixXd& x) {
 template <typename T, typename Family>
 double Deviance(const T&                   x,
                 const Eigen::MatrixXd&     y,
-                const Eigen::MatrixXd&     w,
+                const Eigen::ArrayXXd&     w,
                 const std::vector<double>& intercept,
                 const unsigned             n_samples,
                 const unsigned             n_features,
@@ -335,8 +335,8 @@ double Deviance(const T&                   x,
 //'
 //' @return `weights` and `intercept` are rescaled and stored in weights_archive
 //'   and intercept_archive.
-void Rescale(Eigen::MatrixXd                   weights,
-             std::vector<Eigen::MatrixXd>&     weights_archive,
+void Rescale(Eigen::ArrayXXd                   weights,
+             std::vector<Eigen::ArrayXXd>&     weights_archive,
              std::vector<double>               intercept,
              std::vector<std::vector<double>>& intercept_archive,
              const std::vector<double>&        x_center,
