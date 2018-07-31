@@ -75,5 +75,20 @@ test_that("linear interpolation succeeds", {
   expect_true(all(abs(as.vector(pred_two)) < abs(as.vector(pred_old))))
 })
 
+test_that("refitting works when exact = TRUE", {
+  set.seed(1)
+
+  fit <- sgdnet(trees$Girth, trees$Volume)
+  pred_exact <- predict(fit,
+                        trees$Girth,
+                        s = 0.001,
+                        exact = TRUE,
+                        x = trees$Girt,
+                        y = trees$Volume)
+  pred_approx <- predict(fit, trees$Girth, s = 0.001)
+
+  expect_equal(pred_exact, pred_approx, tolerance = 1e-4)
+})
+
 
 
