@@ -132,6 +132,9 @@
 #'
 #' # Multinomial logistic regression with lasso
 #' multinom_fit <- sgdnet(wine$x, wine$y, family = "multinomial")
+#'
+#' # Multivariate gaussian regression
+#' mgaussian_fit <- sgdnet(student$x, student$y, family = "mgaussian")
 sgdnet <- function(x, ...) UseMethod("sgdnet")
 
 #' @export

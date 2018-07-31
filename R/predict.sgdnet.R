@@ -337,6 +337,10 @@ interpolate_coefficients <- function(beta, s, lamlist) {
 #'         exact = TRUE,
 #'         type = "class")
 #'
+#' # Multivariate gaussian regression, predict nonzero coefficients
+#' fit_mgaussian <- sgdnet(student$x, student$y, family = "mgaussian")
+#' predict(fit_mgaussian, type = "nonzero")
+
 predict.sgdnet <- function(object,
                            newx = NULL,
                            s = NULL,

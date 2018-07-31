@@ -107,6 +107,9 @@ predict(fit_multinomial,
         exact = TRUE,
         type = "class")
 
+# Multivariate gaussian regression, predict nonzero coefficients
+fit_mgaussian <- sgdnet(student$x, student$y, family = "mgaussian")
+predict(fit_mgaussian, type = "nonzero")
 }
 \seealso{
 \code{\link[=sgdnet]{sgdnet()}}, \code{\link[=coef.sgdnet]{coef.sgdnet()}}
