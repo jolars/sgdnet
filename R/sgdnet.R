@@ -100,8 +100,6 @@
 #' @param intercept whether to fit an intercept or not
 #' @param maxit maximum number of effective passes (epochs)
 #' @param standardize whether to standardize `x` or not
-#' @param standardize.response whether to standardize the response (`y`) --
-#'   only applicable for `family = "mgaussian"`.
 #' @param thresh tolerance level for termination of the algorithm. The
 #'   algorithm terminates when
 #'   \deqn{
@@ -157,7 +155,7 @@ sgdnet.default <- function(x,
                            ...) {
 
   # Collect the call so we can use it in update() later on
-  ocall <- match.call(call = sys.call(1))
+  ocall <- match.call()
 
   n_samples <- NROW(x)
   n_features <- NCOL(x)
