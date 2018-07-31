@@ -360,6 +360,8 @@ Rcpp::List SgdnetDense(const Eigen::MatrixXd& x,
   return SetupFamily(x, y, false, control);
 }
 
+//' @keywords internal
+//' @noRd
 // [[Rcpp::export]]
 Rcpp::List SgdnetSparse(const Eigen::SparseMatrix<double>& x,
                         const Eigen::MatrixXd&             y,
