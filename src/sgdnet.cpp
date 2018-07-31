@@ -47,6 +47,8 @@
 // OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 // DAMAGE.
 
+// #define EIGEN_NO_DEBUG
+
 #include <RcppEigen.h>
 #include "utils.h"
 #include "families.h"
@@ -144,8 +146,8 @@ Rcpp::List SetupSgdnet(T                 x,
   // sgdnet::SoftThreshold prox;
 
   // Setup intercept vector
-  vector<double> intercept(n_classes);
-  vector<vector<double>> intercept_archive;
+  Eigen::ArrayXd intercept = Eigen::ArrayXd::Zero(n_classes);
+  vector<Eigen::ArrayXd> intercept_archive;
 
   // Setup weights matrix and weights archive
   // vector<double> weights(n_features*n_classes);

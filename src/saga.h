@@ -232,7 +232,7 @@ Reset(const unsigned         k,
 template <typename T, typename Family, typename Penalty>
 void Saga(const T&               x,
           const Eigen::MatrixXd& y,
-          std::vector<double>&   intercept,
+          Eigen::ArrayXd&        intercept,
           const bool             fit_intercept,
           const double           intercept_decay,
           Eigen::ArrayXXd&       w,
@@ -354,7 +354,7 @@ void Saga(const T&               x,
       if (fit_intercept) {
         for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind) {
           g_sum_intercept[c_ind] += g_change[c_ind]/n_samples;
-          intercept[c_ind] -= gamma*g_sum_intercept[c_ind]*intercept_decay
+          intercept(c_ind) -= gamma*g_sum_intercept[c_ind]*intercept_decay
                               + g_change[c_ind]/n_samples;
         }
       }

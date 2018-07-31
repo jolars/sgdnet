@@ -21,14 +21,14 @@
 #include "families.h"
 #include "math.h"
 
-inline void PredictSample(std::vector<double>&       prediction,
-                          const Eigen::ArrayXXd&     w,
-                          const double               wscale,
-                          const unsigned             n_features,
-                          const unsigned             n_classes,
-                          const unsigned             s_ind,
-                          const Eigen::MatrixXd&     x,
-                          const std::vector<double>& intercept) {
+inline void PredictSample(std::vector<double>&   prediction,
+                          const Eigen::ArrayXXd& w,
+                          const double           wscale,
+                          const unsigned         n_features,
+                          const unsigned         n_classes,
+                          const unsigned         s_ind,
+                          const Eigen::MatrixXd& x,
+                          const Eigen::ArrayXd   intercept) {
   for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind) {
     double inner_product = 0.0;
     for (unsigned f_ind = 0; f_ind < n_features; ++f_ind)
@@ -45,7 +45,7 @@ inline void PredictSample(std::vector<double>&               prediction,
                           const unsigned                     n_classes,
                           const unsigned                     s_ind,
                           const Eigen::SparseMatrix<double>& x,
-                          const std::vector<double>&         intercept) {
+                          const Eigen::ArrayXd&              intercept) {
   for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind) {
     double inner_product = 0.0;
     for (Eigen::SparseMatrix<double>::InnerIterator it(x, s_ind); it; ++it)
@@ -198,16 +198,16 @@ void RegularizationPath(std::vector<double>&       lambda,
 //'
 //' @noRd
 template <typename T, typename Family>
-double EpochLoss(const T&                   x,
-                 const Eigen::MatrixXd&     y,
-                 const Eigen::ArrayXXd&     w,
-                 const std::vector<double>& intercept,
-                 const Family&              family,
-                 const double               alpha,
-                 const double               beta,
-                 const unsigned             n_samples,
-                 const unsigned             n_features,
-                 const unsigned             n_classes) {
+double EpochLoss(const T&               x,
+                 const Eigen::MatrixXd& y,
+                 const Eigen::ArrayXXd& w,
+                 const Eigen::ArrayXd&  intercept,
+                 const Family&          family,
+                 const double           alpha,
+                 const double           beta,
+                 const unsigned         n_samples,
+                 const unsigned         n_features,
+                 const unsigned         n_classes) {
 
   std::vector<double> prediction(n_classes);
 
@@ -290,14 +290,14 @@ inline void AdaptiveTranspose(Eigen::MatrixXd& x) {
 //'
 //' @return Returns the deviance.
 template <typename T, typename Family>
-double Deviance(const T&                   x,
-                const Eigen::MatrixXd&     y,
-                const Eigen::ArrayXXd&     w,
-                const std::vector<double>& intercept,
-                const unsigned             n_samples,
-                const unsigned             n_features,
-                const unsigned             n_classes,
-                const Family&              family) {
+double Deviance(const T&               x,
+                const Eigen::MatrixXd& y,
+                const Eigen::ArrayXXd& w,
+                const Eigen::ArrayXd&  intercept,
+                const unsigned         n_samples,
+                const unsigned         n_features,
+                const unsigned         n_classes,
+                const Family&          family) {
   double loss = 0.0;
   std::vector<double> prediction(n_classes);
 
@@ -335,15 +335,15 @@ double Deviance(const T&                   x,
 //'
 //' @return `weights` and `intercept` are rescaled and stored in weights_archive
 //'   and intercept_archive.
-void Rescale(Eigen::ArrayXXd                   weights,
-             std::vector<Eigen::ArrayXXd>&     weights_archive,
-             std::vector<double>               intercept,
-             std::vector<std::vector<double>>& intercept_archive,
-             const std::vector<double>&        x_center,
-             const std::vector<double>&        x_scale,
-             const std::vector<double>&        y_center,
-             const std::vector<double>&        y_scale,
-             const bool                        fit_intercept) {
+void Rescale(Eigen::ArrayXXd               weights,
+             std::vector<Eigen::ArrayXXd>& weights_archive,
+             Eigen::ArrayXd                intercept,
+             std::vector<Eigen::ArrayXd>&  intercept_archive,
+             const std::vector<double>&    x_center,
+             const std::vector<double>&    x_scale,
+             const std::vector<double>&    y_center,
+             const std::vector<double>&    y_scale,
+             const bool                    fit_intercept) {
 
   auto m = weights.cols();
   auto p = weights.rows();
@@ -359,7 +359,7 @@ void Rescale(Eigen::ArrayXXd                   weights,
 
   if (fit_intercept) {
     for (decltype(p) k = 0; k < p; ++k)
-      intercept[k] = intercept[k]*y_scale[k] + y_center[k] - x_scale_prod[k];
+      intercept(k) = intercept(k)*y_scale[k] + y_center[k] - x_scale_prod[k];
   }
 
   weights_archive.emplace_back(std::move(weights));
