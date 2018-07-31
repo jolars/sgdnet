@@ -46,6 +46,8 @@ SgdnetDense <- function(x, y, control) {
     .Call(`_sgdnet_SgdnetDense`, x, y, control)
 }
 
+#' @keywords internal
+#' @noRd
 SgdnetSparse <- function(x, y, control) {
     .Call(`_sgdnet_SgdnetSparse`, x, y, control)
 }
