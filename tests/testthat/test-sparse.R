@@ -10,7 +10,7 @@ test_that("sparse and dense implementations return equivalent results", {
   p <- 2
 
   grid <- expand.grid(
-    family = c("gaussian", "binomial", "multinomial"),
+    family = c("gaussian", "binomial", "multinomial", "mgaussian"),
     intercept = c(TRUE, FALSE),
     alpha = c(0, 0.5, 1),
     standardize = FALSE,
@@ -32,7 +32,8 @@ test_that("sparse and dense implementations return equivalent results", {
     pars$y <- switch(pars$family,
                      gaussian = rnorm(n, 10, 2),
                      binomial = rbinom(n, 1, 0.8),
-                     multinomial = rbinom(n, 3, 0.5))
+                     multinomial = rbinom(n, 3, 0.5),
+                     mgaussian = cbind(rnorm(n, -10), rnorm(n, 10)))
 
     fit_dense <- do.call(sgdnet, modifyList(pars, list(x = x_dense)))
     fit_sparse <- do.call(sgdnet, modifyList(pars, list(x = x_sparse)))
