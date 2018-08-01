@@ -109,3 +109,17 @@ Table: Benchmarking data sets for the multinomial model.
 ```{r, fig.cap = "Benchmarking results for multinomial responses.", fig.width = 7, fig.height = 5}
 plot_benchmarks(benchmarks$multinomial)
 ```
+
+## Multivariate gaussian regression
+
+For the multivariate gaussian case, we have these data:
+
+Name              Observations    Responses    Features     Density
+----------    ----------------     --------   ---------   ---------
+violence                 1,901           18         100        100%  
+bikes                      731            2          29         28%
+naval                   11,934            2          15        100%
+
+```{r, fig.cap = "Benchmarking results for multivariate gaussian responses.", fig.width = 7, fig.height = 5}
+plot_benchmarks(benchmarks$mgaussian)
+```
