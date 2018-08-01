@@ -97,8 +97,8 @@ Rcpp::List SetupSgdnet(T                 x,
   auto n_features = x.cols();
 
   // Preprocess features
-  vector<double> x_center(n_features);
-  vector<double> x_scale(n_features, 1.0);
+  Eigen::ArrayXd x_center = Eigen::ArrayXd::Zero(n_features);
+  Eigen::ArrayXd x_scale  = Eigen::ArrayXd::Ones(n_features);
 
   if (standardize)
     PreprocessFeatures(x, x_center, x_scale);
@@ -108,8 +108,8 @@ Rcpp::List SetupSgdnet(T                 x,
                                              fit_intercept,
                                              n_classes);
 
-  std::vector<double> y_center(n_classes, 0.0);
-  std::vector<double> y_scale(n_classes, 1.0);
+  Eigen::ArrayXd y_center = Eigen::ArrayXd::Zero(n_classes);
+  Eigen::ArrayXd y_scale  = Eigen::ArrayXd::Ones(n_classes);
   family.Preprocess(y, y_center, y_scale);
 
   // Compute the lambda sequence
@@ -157,7 +157,7 @@ Rcpp::List SetupSgdnet(T                 x,
   vector<Eigen::ArrayXXd> weights_archive;
 
   // Initialize gradient trackers
-  vector<double> g_sum_intercept(n_classes);
+  Eigen::ArrayXd g_sum_intercept = Eigen::ArrayXd::Zero(n_classes);
 
   Eigen::ArrayXXd g_memory = Eigen::ArrayXXd::Zero(n_classes, n_samples);
   Eigen::ArrayXXd g_sum    = Eigen::ArrayXXd::Zero(n_classes, n_features);

@@ -31,9 +31,7 @@ public:
                   const double           w_scale,
                   const double           scaling,
                   const Eigen::ArrayXXd& g_sum) const noexcept {
-    auto p = w.rows();
-    for (decltype(p) k = 0; k < p; ++k)
-      w(k, j) -= gamma/w_scale*scaling*g_sum(k, j);
+    w.col(j) -= gamma/w_scale*scaling*g_sum.col(j);
   }
 };
 
@@ -67,9 +65,7 @@ public:
                   const double           scaling,
                   const Eigen::ArrayXXd& g_sum) const noexcept {
 
-    for (unsigned k = 0; k < n_classes; ++k) {
-      w(k, j) -= gamma/w_scale*scaling*g_sum(k, j);
-    }
+    w.col(j) -= gamma/w_scale*scaling*g_sum.col(j);
 
     auto norm = w.matrix().col(j).norm();
 
@@ -82,7 +78,6 @@ public:
 private:
   unsigned n_features;
   unsigned n_classes;
-  sgdnet::SoftThreshold prox{};
 };
 
 } // namespace sgdnet

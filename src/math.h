@@ -26,11 +26,8 @@ template <typename T>
 inline
 double
 LogSumExp(const T& x) {
-  auto x_max = *std::max_element(x.begin(), x.end());
-  auto exp_sum = 0.0;
-
-  for (auto x_i : x)
-    exp_sum += std::exp(x_i - x_max);
+  auto x_max = x.maxCoeff();
+  double exp_sum = (x - x_max).exp().sum();
 
   return std::log(exp_sum) + x_max;
 }
@@ -68,16 +65,15 @@ LogSpace(const double from, const double to, const unsigned n) {
 //' @noRd
 template <typename T>
 inline
-std::vector<double>
+Eigen::ArrayXd
 Mean(const T& x) {
   auto n = x.rows();
   auto m = x.cols();
 
-  std::vector<double> x_bar;
-  x_bar.reserve(m);
+  Eigen::ArrayXd x_bar(m);
 
   for (decltype(m) j = 0; j < m; ++j)
-    x_bar.emplace_back(x.col(j).sum()/n);
+    x_bar[j] = x.col(j).sum()/n;
 
   return x_bar;
 }
@@ -91,13 +87,13 @@ Mean(const T& x) {
 //'
 //' @noRd
 inline
-std::vector<double>
+Eigen::ArrayXd
 StandardDeviation(const Eigen::SparseMatrix<double>& x,
-                  const std::vector<double>&         x_bar) {
+                  const Eigen::ArrayXd&              x_bar) {
   auto n = x.rows();
   auto m = x.cols();
 
-  std::vector<double> x_std(m);
+  Eigen::ArrayXd x_std(m);
 
   for (decltype(m) j = 0; j < m; ++j) {
 
@@ -106,22 +102,22 @@ StandardDeviation(const Eigen::SparseMatrix<double>& x,
       var += std::pow(x_itr.value() - x_bar[j], 2)/n;
 
     auto n_zeros = n - x.col(j).nonZeros();
-    var += n_zeros*x_bar[j]*x_bar[j]/n;
+    var += n_zeros*x_bar(j)*x_bar(j)/n;
 
-    x_std[j] = (var == 0.0) ? 1.0 : std::sqrt(var);
+    x_std(j) = (var == 0.0) ? 1.0 : std::sqrt(var);
   }
 
   return x_std;
 }
 
 inline
-std::vector<double>
-StandardDeviation(const Eigen::MatrixXd&     x,
-                  const std::vector<double>& x_bar) {
+Eigen::ArrayXd
+StandardDeviation(const Eigen::MatrixXd& x,
+                  const Eigen::ArrayXd&  x_bar) {
   auto n = x.rows();
   auto m = x.cols();
 
-  std::vector<double> x_std(m);
+  Eigen::ArrayXd x_std(m);
 
   for (decltype(m) j = 0; j < m; ++j) {
     double var = (x.col(j).array() - x_bar[j]).square().sum()/n;
@@ -133,16 +129,15 @@ StandardDeviation(const Eigen::MatrixXd&     x,
 
 template <typename T>
 inline
-std::vector<double> StandardDeviation(const T& x) {
+Eigen::ArrayXd
+StandardDeviation(const T& x) {
   return StandardDeviation(x, Mean(x));
 }
 
 template <typename T>
 inline
 void
-Standardize(T&                         x,
-            const std::vector<double>& x_bar,
-            const std::vector<double>& x_std) {
+Standardize(T& x, const Eigen::ArrayXd& x_bar, const Eigen::ArrayXd& x_std) {
   auto m = x.cols();
 
   for (decltype(m) j = 0; j < m; ++j)
@@ -182,14 +177,14 @@ Clamp(const T& x, const T& min, const T& max) {
 //' @noRd
 template <typename T>
 inline
-std::vector<double>
+Eigen::ArrayXd
 Proportions(const T& y, const unsigned n_classes) {
-  std::vector<double> proportions(n_classes);
+  Eigen::ArrayXd proportions = Eigen::ArrayXd::Zero(n_classes);
   auto n = y.cols();
 
   for (decltype(n) i = 0; i < n; ++i) {
-    auto c = static_cast<unsigned>(y(0, i) + 0.5);
-    proportions[c] += 1.0/n;
+    auto c = static_cast<decltype(n)>(y(i) + 0.5);
+    proportions(c) += 1.0/n;
   }
 
   return proportions;

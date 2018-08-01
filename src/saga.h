@@ -132,10 +132,8 @@ inline void AddWeighted(Eigen::ArrayXXd&       a,
                         const unsigned         n_classes,
                         const Eigen::ArrayXd&  g_change,
                         const double           scaling) noexcept {
-
-  for (unsigned f_ind = 0; f_ind < n_features; ++f_ind)
-    for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind)
-      a(c_ind, f_ind) += g_change[c_ind] * scaling * x(f_ind, s_ind);
+  for (decltype(a.rows()) i = 0; i < a.rows(); ++i)
+    a.row(i) += x.col(s_ind).transpose().array()*g_change(i)*scaling;
 }
 
 inline void AddWeighted(Eigen::ArrayXXd&                   a,
@@ -243,7 +241,7 @@ void Saga(const T&               x,
           const double           beta,
           Eigen::ArrayXXd&       g_memory,
           Eigen::ArrayXXd&       g_sum,
-          std::vector<double>&   g_sum_intercept,
+          Eigen::ArrayXd&        g_sum_intercept,
           const unsigned         n_samples,
           const unsigned         n_features,
           const unsigned         n_classes,
@@ -284,7 +282,8 @@ void Saga(const T&               x,
   Eigen::ArrayXd g_change = Eigen::ArrayXd::Zero(n_classes);
 
   // Vector for storing current predictions
-  vector<double> prediction(n_classes);
+  // vector<double> prediction(n_classes);
+  Eigen::ArrayXd prediction(n_classes);
 
   // Store previous weights for computing stopping criteria
   Eigen::ArrayXXd w_previous(w);
@@ -310,22 +309,12 @@ void Saga(const T&               x,
                    wscale,
                    penalty);
 
-      PredictSample(prediction,
-                    w,
-                    wscale,
-                    n_features,
-                    n_classes,
-                    s_ind,
-                    x,
-                    intercept);
+      prediction = (w.matrix() * x.col(s_ind)).array()*wscale + intercept;
 
       family.Gradient(prediction, y, s_ind, g);
 
-      for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind) {
-        g_change[c_ind] = g[c_ind] - g_memory(c_ind, s_ind);
-        // Store current gradient
-        g_memory(c_ind, s_ind) = g[c_ind];
-      }
+      g_change = g - g_memory.col(s_ind);
+      g_memory.col(s_ind) = g;
 
       // Rescale and unlag weights whenever wscale becomes too small
       if (wscale < sgdnet::SMALL) {
@@ -352,11 +341,8 @@ void Saga(const T&               x,
                   -gamma/wscale);
 
       if (fit_intercept) {
-        for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind) {
-          g_sum_intercept[c_ind] += g_change[c_ind]/n_samples;
-          intercept(c_ind) -= gamma*g_sum_intercept[c_ind]*intercept_decay
-                              + g_change[c_ind]/n_samples;
-        }
+        g_sum_intercept += g_change/n_samples;
+        intercept -= gamma*g_sum_intercept*intercept_decay + g_change/n_samples;
       }
 
       // Gradient-average step
