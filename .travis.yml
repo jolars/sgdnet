@@ -8,27 +8,18 @@ warnings_are_errors: true
 matrix:
   include:
     - os: linux
-      r: release
-      compiler: clang
+      r: devel
+      compiler: gcc
       after_success:
         - Rscript -e 'covr::codecov()'
 
     - os: linux
-      r: oldrel
-      compiler: gcc
+      r: release
+      compiler: clang
 
     - os: linux
-      r: devel
+      r: oldrel
       compiler: gcc
-      latex: false
-      addons:
-        apt:
-          packages:
-            - valgrind
-      r_check_args: '--ignore-vignettes --use-valgrind'
-      r_build_args: '--no-build-vignettes'
-      env:
-        - VALGRIND_OPTS='--leak-check=full --track-origins=yes'
 
     - os: osx
       r: release
@@ -41,7 +32,4 @@ matrix:
       latex: false
       r_build_args: '--no-build-vignettes'
       r_check_args: '--ignore-vignettes --no-examples'
-
-
-
 
