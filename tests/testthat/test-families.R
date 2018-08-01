@@ -26,7 +26,8 @@ test_that("test that all combinations run without errors", {
       standardize = if (grid$sparse[i]) FALSE else grid$standardize[i],
       family = grid$family[i],
       intercept = grid$intercept[i],
-      alpha = grid$alpha[i]
+      alpha = grid$alpha[i],
+      nlambda = 20
     )
 
     pars$y <- switch(pars$family,

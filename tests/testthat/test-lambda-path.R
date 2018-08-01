@@ -7,7 +7,7 @@ test_that("lambda paths are computed as in glmnet", {
   # TODO(jolars): test for sparse features with standardization once in-place
   # centering has been implemented
 
-  n <- 1000
+  n <- 500
   p <- 2
   set.seed(1)
 
@@ -29,7 +29,8 @@ test_that("lambda paths are computed as in glmnet", {
       family = grid$family[i],
       intercept = grid$intercept[i],
       alpha = grid$alpha[i],
-      thresh = 1e-1 # we only care about the regularization paths
+      thresh = 1e-1, # we only care about the regularization paths
+      nlambda = 10
     )
 
     pars$y <- switch(pars$family,
