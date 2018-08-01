@@ -76,13 +76,16 @@
 //' @noRd
 //' @keywords internal
 template <typename T, typename Family, typename Penalty>
-Rcpp::List SetupSgdnet(T                 x,
-                       Eigen::MatrixXd   y,
-                       Family&&          family,
-                       Penalty&&         penalty,
-                       const bool        is_sparse,
-                       const Rcpp::List& control) {
+Rcpp::List
+SetupSgdnet(T                 x,
+            Eigen::MatrixXd   y,
+            Family&&          family,
+            Penalty&&         penalty,
+            const bool        is_sparse,
+            const Rcpp::List& control)
+{
   using namespace std;
+
   const bool     fit_intercept    = Rcpp::as<bool>(control["intercept"]);
   const double   elasticnet_mix   = Rcpp::as<double>(control["elasticnet_mix"]);
   vector<double> lambda           = Rcpp::as<vector<double>>(control["lambda"]);
@@ -249,12 +252,15 @@ Rcpp::List SetupSgdnet(T                 x,
 //' @param control a Rcpp::List of control parameters
 //'
 //' @return The final fitted object.
+//' @noRd
 template <typename T, typename Family>
-Rcpp::List SetupPenalty(const T&               x,
-                        const Eigen::MatrixXd& y,
-                        Family&&               family,
-                        const bool             is_sparse,
-                        const                  Rcpp::List& control) {
+Rcpp::List
+SetupPenalty(const T&               x,
+             const Eigen::MatrixXd& y,
+             Family&&               family,
+             const bool             is_sparse,
+             const                  Rcpp::List& control)
+{
   auto elasticnet_mix = Rcpp::as<double>(control["elasticnet_mix"]);
   auto family_choice = Rcpp::as<std::string>(control["family"]);
   auto type_multinomial = Rcpp::as<std::string>(control["type_multinomial"]);
@@ -303,12 +309,14 @@ Rcpp::List SetupPenalty(const T&               x,
 //' @param family Object of family class
 //' @param is_sparse whether or not x is sparse
 //' @param control a Rcpp::List of control parameters
+//' @noRd
 template <typename T>
-Rcpp::List SetupFamily(const T&               x,
-                       const Eigen::MatrixXd& y,
-                       const bool             is_sparse,
-                       const Rcpp::List&      control) {
-
+Rcpp::List
+SetupFamily(const T&               x,
+            const Eigen::MatrixXd& y,
+            const bool             is_sparse,
+            const Rcpp::List&      control)
+{
   auto family_choice = Rcpp::as<std::string>(control["family"]);
 
   if (family_choice == "gaussian") {
@@ -362,22 +370,22 @@ Rcpp::List SetupFamily(const T&               x,
 //'     converged, 1 means that `max_iter` was reached before the algorithm
 //'     converged.
 //
-//' @keywords internal
 //' @noRd
 // [[Rcpp::export]]
-Rcpp::List SgdnetDense(const Eigen::MatrixXd& x,
-                       const Eigen::MatrixXd& y,
-                       const Rcpp::List&      control) {
-
+Rcpp::List
+SgdnetDense(const Eigen::MatrixXd& x,
+            const Eigen::MatrixXd& y,
+            const Rcpp::List&      control)
+{
   return SetupFamily(x, y, false, control);
 }
 
-//' @keywords internal
 //' @noRd
 // [[Rcpp::export]]
-Rcpp::List SgdnetSparse(const Eigen::SparseMatrix<double>& x,
-                        const Eigen::MatrixXd&             y,
-                        const Rcpp::List&                  control) {
-
+Rcpp::List
+SgdnetSparse(const Eigen::SparseMatrix<double>& x,
+             const Eigen::MatrixXd&             y,
+             const Rcpp::List&                  control)
+{
   return SetupFamily(x, y, true, control);
 }
