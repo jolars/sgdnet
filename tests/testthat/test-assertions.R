@@ -1,6 +1,6 @@
 context("assertions")
 
-test_that("wrong input to predict.sgdnet() return errors", {
+test_that("assertions in predict.sgdnet() throw exceptions", {
   x <- with(trees, cbind(Girth, Volume))
   y <- trees$Height
 
@@ -13,9 +13,11 @@ test_that("wrong input to predict.sgdnet() return errors", {
 
   fit <- sgdnet(iris[, 1:4], iris[, 5], family = "multinomial")
   expect_error(predict(fit, x, s = -3, type = "class"))
+  expect_error(predict(fit))
 })
 
-test_that("wrong input to sgdnet() returns errors", {
+
+test_that("assertions in sgdnet() throw exceptions", {
   x <- with(trees, cbind(Girth, Volume))
   y <- trees$Height
   y_na <- y
@@ -48,6 +50,4 @@ test_that("wrong input to sgdnet() returns errors", {
   y <- c(0, 0, 1)
   x <- c(0.5, 0.5, 0.5)
   expect_error(sgdnet(x, y, family = "binomial"))
-
-
 })
