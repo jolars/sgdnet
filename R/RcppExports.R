@@ -32,6 +32,7 @@ NULL
 #' @param control a Rcpp::List of control parameters
 #'
 #' @return The final fitted object.
+#' @noRd
 NULL
 
 #' Setup family
@@ -44,6 +45,7 @@ NULL
 #' @param family Object of family class
 #' @param is_sparse whether or not x is sparse
 #' @param control a Rcpp::List of control parameters
+#' @noRd
 NULL
 
 #' Fit a Model with sgdnet
@@ -68,13 +70,11 @@ NULL
 #'     converged.
 NULL
 
-#' @keywords internal
 #' @noRd
 SgdnetDense <- function(x, y, control) {
     .Call(`_sgdnet_SgdnetDense`, x, y, control)
 }
 
-#' @keywords internal
 #' @noRd
 SgdnetSparse <- function(x, y, control) {
     .Call(`_sgdnet_SgdnetSparse`, x, y, control)
