@@ -286,13 +286,11 @@ public:
   void Preprocess(Eigen::MatrixXd& y,
                   Eigen::ArrayXd&  y_center,
                   Eigen::ArrayXd&  y_scale) const noexcept {
-    // TODO(jolars): setup preprocessing for multivariate family, and
-    // condition on user input
     if (standardize_response) {
-      y_center = Mean(y);
-      y_scale = StandardDeviation(y, y_center);
-
-      Standardize(y, y_center, y_scale);
+      // NOTE(jolars): this is the kind of standardization that glmnet does,
+      // i.e. it standardizes y but does not recover unstandardized versions
+      // of the coefficients.
+      Standardize(y);
     }
   }
 
@@ -320,15 +318,11 @@ public:
                       const bool             fit_intercept,
                       const unsigned         n_classes) const noexcept {
 
-    auto pred = Mean(y.transpose());
-    Eigen::ArrayXd conditional_mean(n_classes);
-
-    for (int i = 0; i < pred.size(); ++i)
-      conditional_mean[i] = pred[i];
+    auto cond_mean = Mean(y.transpose());
 
     double loss = 0.0;
     for (decltype(y.cols()) i = 0; i < y.cols(); ++i)
-      loss += Loss(conditional_mean, y, i);
+      loss += Loss(cond_mean, y, i);
 
     return 2.0 * loss;
   }
