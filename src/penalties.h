@@ -8,8 +8,6 @@ namespace sgdnet {
 
 class Penalty {
 public:
-  Penalty() : gamma(0.0), alpha(0.0), beta(0.0) {}
-
   void setParameters(const double gamma_in,
                      const double alpha_in,
                      const double beta_in) noexcept {
@@ -19,9 +17,9 @@ public:
   }
 
 protected:
-  double gamma; // step size
-  double alpha; // l1 penalty strength
-  double beta;  // l2 penalty strength
+  double gamma = 0.0; // step size
+  double alpha = 0.0; // l1 penalty strength
+  double beta  = 0.0; // l2 penalty strength
 };
 
 class Ridge : public Penalty  {
