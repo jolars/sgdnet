@@ -208,30 +208,6 @@ inline void AddWeighted(std::vector<double>&       a,
                         const unsigned             s_ind,
                         const unsigned             n_features,
                         const unsigned             n_classes,
-                        const double               g_change,
-                        const double               scaling) noexcept {
-
-  for (unsigned f_ind = 0; f_ind < n_features; ++f_ind)
-      a[f_ind] += g_change * scaling * x(f_ind, s_ind);
-}
-
-inline void AddWeighted(std::vector<double>&               a,
-                        const Eigen::SparseMatrix<double>& x,
-                        const unsigned                     s_ind,
-                        const unsigned                     n_features,
-                        const unsigned                     n_classes,
-                        const double                       g_change,
-                        const double                       scaling) noexcept {
-
-  for (Eigen::SparseMatrix<double>::InnerIterator it(x, s_ind); it; ++it)
-      a[it.index()] += g_change * scaling * it.value();
-}
-
-inline void AddWeighted(std::vector<double>&       a,
-                        const Eigen::MatrixXd&     x,
-                        const unsigned             s_ind,
-                        const unsigned             n_features,
-                        const unsigned             n_classes,
                         const std::vector<double>& g_change,
                         const double               scaling) noexcept {
 
@@ -336,26 +312,30 @@ inline void Reset(const unsigned         k,
 //'
 //' @return Updates `w`, `intercept`, `g_sum`, `g_sum_intercept`, `g`,
 //'   `n_iter`, `return_codes`, and possibly `losses`.
-template <typename Features, typename Family, typename Prox>
-void Saga(const Features&        x,
-          const bool             fit_intercept,
-          const double           intercept_decay,
-          std::vector<double>&   w,
-          Family&                family,
-          Prox&                  prox,
-          const double           gamma,
-          const double           alpha,
-          const double           beta,
-          std::vector<double>&   g_sum,
-          const unsigned         n_samples,
-          const unsigned         n_features,
-          const unsigned         n_classes,
-          const unsigned         max_iter,
-          const double           tol,
-          unsigned&              n_iter,
-          std::vector<unsigned>& return_codes,
-          std::vector<double>&   losses,
-          const bool             debug) noexcept {
+template <typename T, typename Family, typename Prox>
+void Saga(const T&                   x,
+          const std::vector<double>& y,
+          std::vector<double>&       intercept,
+          const bool                 fit_intercept,
+          const double               intercept_decay,
+          std::vector<double>&       w,
+          const Family&              family,
+          const Prox&                prox,
+          const double               gamma,
+          const double               alpha,
+          const double               beta,
+          std::vector<double>&       g_memory,
+          std::vector<double>&       g_sum,
+          std::vector<double>&       g_sum_intercept,
+          const unsigned             n_samples,
+          const unsigned             n_features,
+          const unsigned             n_classes,
+          const unsigned             max_iter,
+          const double               tol,
+          unsigned&                  n_iter,
+          std::vector<unsigned>&     return_codes,
+          std::vector<double>&       losses,
+          const bool                 debug) noexcept {
 
   using namespace std;
 
@@ -379,6 +359,13 @@ void Saga(const Features&        x,
     double tmp = lag_scaling.back() + geo_sum;
     lag_scaling.push_back(tmp);
   }
+
+  // Setup gradient vectors
+  vector<double> g(n_classes);
+  vector<double> g_change(n_classes);
+
+  // Vector for storing current predictions
+  vector<double> prediction(n_classes);
 
   // Store previous weights for computing stopping criteria
   vector<double> w_previous(w);
@@ -420,9 +407,22 @@ void Saga(const Features&        x,
                      -gamma / wscale);
       }
 
-      family.Predict(w, wscale, n_features, s_ind, x);
+      PredictSample(prediction,
+                    w,
+                    wscale,
+                    n_features,
+                    n_classes,
+                    s_ind,
+                    x,
+                    intercept);
 
-      family.Gradient(s_ind);
+      family.Gradient(prediction, y, s_ind, g);
+
+      for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind) {
+        g_change[c_ind] = g[c_ind] - g_memory[s_ind*n_classes + c_ind];
+        // Store current gradient
+        g_memory[s_ind*n_classes + c_ind] = std::move(g[c_ind]);
+      }
 
       // Rescale and unlag weights whenever wscale becomes too small
       if (wscale < sgdnet::SMALL) {
@@ -450,11 +450,16 @@ void Saga(const Features&        x,
                   s_ind,
                   n_features,
                   n_classes,
-                  family.gradient_change,
+                  g_change,
                   -gamma/wscale);
 
-      if (fit_intercept)
-        family.FitIntercept(gamma, intercept_decay);
+      if (fit_intercept) {
+        for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind) {
+          g_sum_intercept[c_ind] += g_change[c_ind]/n_samples;
+          intercept[c_ind] -= gamma*g_sum_intercept[c_ind]*intercept_decay
+                              + g_change[c_ind]/n_samples;
+        }
+      }
 
       // Gradient-average step
       if (nontrivial_prox) {
@@ -489,7 +494,7 @@ void Saga(const Features&        x,
                   s_ind,
                   n_features,
                   n_classes,
-                  family.gradient_change,
+                  g_change,
                   1.0/n_samples);
 
     } // Outer loop
@@ -512,12 +517,15 @@ void Saga(const Features&        x,
 
     if (debug) {
       double loss = EpochLoss(x,
+                              y,
                               w,
+                              intercept,
                               family,
                               alpha,
                               beta,
                               n_samples,
-                              n_features);
+                              n_features,
+                              n_classes);
       losses.push_back(loss);
     }
 
