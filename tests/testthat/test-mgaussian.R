@@ -26,3 +26,21 @@ test_that("we can approximate the closed form multivariate ridge regression solu
                     as.matrix(do.call(cbind, coef(sgdnet_fit))[-1, ]),
                     tolerance = 1e-6)
 })
+
+test_that("standardizing responses works", {
+  library(glmnet)
+  glmnet.control(fdev = 0)
+
+  y <- student$y
+  x <- student$x
+  n <- nrow(x)
+  sd2 <- function(x) sqrt(sum((x - mean(x))^2)/length(x))
+
+  y_standardized <- scale(y, scale = apply(y, 2, sd2))
+
+  sfit <- sgdnet(x, y, family = "mgaussian", standardize.response = TRUE)
+  gfit <- glmnet(x, y, family = "mgaussian", standardize.response = TRUE)
+
+  expect_equal(sfit$lambda, gfit$lambda)
+  expect_equivalent(coef(sfit), coef(gfit))
+})
