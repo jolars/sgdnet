@@ -41,8 +41,7 @@ public:
                 Eigen::ArrayXd&        gradient) const noexcept;
 
   double NullDeviance(const Eigen::MatrixXd& y,
-                      const bool             fit_intercept,
-                      const unsigned         n_classes) const noexcept;
+                      const bool             fit_intercept) const noexcept;
 
   template <typename T>
   double
@@ -82,8 +81,7 @@ public:
   }
 
   double NullDeviance(const Eigen::MatrixXd& y,
-                      const bool             fit_intercept,
-                      const unsigned         n_classes) const noexcept {
+                      const bool             fit_intercept) const noexcept {
     Eigen::ArrayXd linear_predictor = Mean(y.transpose());
 
     double loss = 0.0;
@@ -137,8 +135,7 @@ public:
   }
 
   double NullDeviance(const Eigen::MatrixXd& y,
-                      const bool             fit_intercept,
-                      const unsigned         n_classes) const noexcept {
+                      const bool             fit_intercept) const noexcept {
 
     Eigen::ArrayXd linear_predictor(1);
 
@@ -211,8 +208,7 @@ public:
   }
 
   double NullDeviance(const Eigen::MatrixXd& y,
-                      const bool             fit_intercept,
-                      const unsigned         n_classes) const noexcept {
+                      const bool             fit_intercept) const noexcept {
 
     Eigen::ArrayXd linear_predictor(n_classes);
 
@@ -298,8 +294,7 @@ public:
   }
 
   double NullDeviance(const Eigen::MatrixXd& y,
-                      const bool             fit_intercept,
-                      const unsigned         n_classes) const noexcept {
+                      const bool             fit_intercept) const noexcept {
 
     auto linear_predictor = Mean(y.transpose());
 

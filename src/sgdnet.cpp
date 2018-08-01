@@ -104,9 +104,7 @@ Rcpp::List SetupSgdnet(T                 x,
     PreprocessFeatures(x, x_center, x_scale);
 
   // Store null deviance here before processing response
-  double null_deviance = family.NullDeviance(y.transpose(),
-                                             fit_intercept,
-                                             n_classes);
+  double null_deviance = family.NullDeviance(y.transpose(), fit_intercept);
 
   Eigen::ArrayXd y_center = Eigen::ArrayXd::Zero(n_classes);
   Eigen::ArrayXd y_scale  = Eigen::ArrayXd::Ones(n_classes);
@@ -172,9 +170,7 @@ Rcpp::List SetupSgdnet(T                 x,
   unsigned n_iter = 0;
 
   // Null deviance on scaled y for computing deviance ratio
-  double null_deviance_scaled = family.NullDeviance(y,
-                                                    fit_intercept,
-                                                    n_classes);
+  double null_deviance_scaled = family.NullDeviance(y, fit_intercept);
 
   vector<double> deviance_ratio;
   deviance_ratio.reserve(n_lambda);
