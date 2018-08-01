@@ -152,7 +152,7 @@ multinomial_datasets <- list(vehicle = vehicle,
                              dna = dna,
                              poker = poker)
 
-benchmark_multinomial <- benchmark(multinomial_datasets, "multinomial", 1000)
+benchmark_multinomial <- benchmark(multinomial_datasets, "multinomial")
 benchmark_aggregated_multinomial <- aggregate_benchmarks(benchmark_multinomial)
 
 benchmarks <- list(gaussian = benchmark_aggregated_gaussian,
@@ -269,3 +269,17 @@ x4 <- Matrix::Matrix(x3[, -1])
 y <- as.matrix(subset(d, select = c("casual", "registered")))
 
 bikes <- list(x = x4, y = y)
+
+mgaussian_datasets <- list(student = student,
+                           bikes = bikes,
+                           naval = naval)
+
+benchmark_mgaussian <- benchmark(mgaussian_datasets, "mgaussian")
+benchmark_aggregated_mgaussian <- aggregate_benchmarks(benchmark_mgaussian)
+
+benchmarks <- list(gaussian = benchmark_aggregated_gaussian,
+                   binomial = benchmark_aggregated_binomial,
+                   multinomial = benchmark_aggregated_multinomial,
+                   mgaussian = benchmark_aggregated_mgaussian)
+
+usethis::use_data(benchmarks, overwrite = TRUE)
