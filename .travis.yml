@@ -11,7 +11,7 @@ matrix:
       r: devel
       compiler: gcc
       after_success:
-        - travis_wait 20 Rscript codecov.R
+        - travis_wait 30 Rscript codecov.R
 
     - os: linux
       r: release
