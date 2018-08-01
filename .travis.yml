@@ -11,7 +11,7 @@ matrix:
       r: devel
       compiler: gcc
       after_success:
-        - Rscript -e 'covr::codecov()'
+        - travis_wait 20 Rscript codecov.R
 
     - os: linux
       r: release
