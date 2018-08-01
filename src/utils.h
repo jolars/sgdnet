@@ -294,6 +294,7 @@ void Rescale(Eigen::ArrayXXd               weights,
              const Eigen::ArrayXd&         y_scale,
              const bool                    fit_intercept) {
 
+  auto m = weights.cols();
   auto p = weights.rows();
 
   Eigen::ArrayXd x_scale_prod = Eigen::ArrayXd::Zero(p);
