@@ -253,20 +253,12 @@ public:
     auto y_std = StandardDeviation(y_map, y_bar);
     Standardize(y_map, y_bar, y_std);
 
-    Eigen::MatrixXd inner_products = y_map.transpose() * x;
+    Eigen::ArrayXXd inner_products = x.transpose() * y_map;
 
-    double max_coeff = 0.0;
-    auto m = inner_products.cols();
-    auto p = inner_products.rows();
+    for (decltype(inner_products.cols()) k = 0; k < inner_products.cols(); ++k)
+      inner_products.col(k) *= y_std(k);
 
-    for (decltype(m) j = 0; j < m; ++j) {
-      for (decltype(p) k = 0; k < p; ++k) {
-        max_coeff = std::max(std::abs(inner_products(k, j)*y_std(k)),
-                             max_coeff);
-      }
-    }
-
-    return max_coeff/n;
+    return inner_products.abs().maxCoeff()/n;
   }
 
 private:
@@ -275,10 +267,8 @@ private:
 
 class MultivariateGaussian : public Family {
 public:
-  MultivariateGaussian(const unsigned n_classes,
-                       const bool standardize_response)
+  MultivariateGaussian(const bool standardize_response)
                        : Family(1.0),
-                         n_classes(n_classes),
                          standardize_response(standardize_response) {}
 
   void Preprocess(Eigen::MatrixXd& y,
@@ -296,11 +286,7 @@ public:
               const Eigen::MatrixXd& y,
               const unsigned         i) const noexcept {
 
-    double loss = 0.0;
-    for (unsigned k = 0; k < n_classes; ++k)
-      loss += 0.5*std::pow(linear_predictor(k) - y(k, i), 2);
-
-    return loss;
+    return 0.5*(linear_predictor - y.array().col(i)).square().sum();
   }
 
   void Gradient(const Eigen::ArrayXd&  linear_predictor,
@@ -308,8 +294,7 @@ public:
                 const unsigned         i,
                 Eigen::ArrayXd&        gradient) const noexcept {
 
-    for (unsigned k = 0; k < n_classes; ++k)
-      gradient(k) = linear_predictor(k) - y(k, i);
+    gradient = linear_predictor - y.array().col(i);
   }
 
   double NullDeviance(const Eigen::MatrixXd& y,
@@ -339,14 +324,13 @@ public:
 
     Eigen::ArrayXXd inner_products = x.transpose() * y_map;
 
-    for (unsigned k = 0; k < n_classes; ++k)
+    for (decltype(inner_products.cols()) k = 0; k < inner_products.cols(); ++k)
       inner_products.col(k) *= y_scale(k)*y_std(k);
 
     return inner_products.square().rowwise().sum().sqrt().maxCoeff()/y.rows();
   }
 
 private:
-  const unsigned n_classes;
   const bool standardize_response;
 };
 

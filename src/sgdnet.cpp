@@ -298,7 +298,6 @@ Rcpp::List SetupFamily(const T&               x,
                        const Rcpp::List&      control) {
 
   auto family_choice = Rcpp::as<std::string>(control["family"]);
-  auto n_classes = Rcpp::as<unsigned>(control["n_classes"]);
 
   if (family_choice == "gaussian") {
 
@@ -312,6 +311,8 @@ Rcpp::List SetupFamily(const T&               x,
 
   } else if (family_choice == "multinomial") {
 
+    auto n_classes = Rcpp::as<unsigned>(control["n_classes"]);
+
     sgdnet::Multinomial family{n_classes};
     return SetupPenalty(x, y, std::move(family), is_sparse, control);
 
@@ -319,7 +320,7 @@ Rcpp::List SetupFamily(const T&               x,
 
     auto standardize_response = Rcpp::as<bool>(control["standardize_response"]);
 
-    sgdnet::MultivariateGaussian family{n_classes, standardize_response};
+    sgdnet::MultivariateGaussian family{standardize_response};
     return SetupPenalty(x, y, std::move(family), is_sparse, control);
 
   }
