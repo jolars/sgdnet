@@ -159,9 +159,7 @@ inline void AddWeighted(Eigen::ArrayXXd&                   a,
 //' @param lag_scaling geometric sum for lagged updates
 //' @param lag iteration at which the features were last updated
 //' @param n_features number of features
-//' @param prox_scaling step size for the projection step
-//' @param grad_scaling step size for gradient step
-//' @param nontrivial_prox true if non-trivial (not L2) update
+//' @param wscale current scale of coefficients
 //' @param prox pointer to the proximal operator
 //'
 //' @return Unlags the coefficients by adding the lagged updates.
@@ -253,9 +251,6 @@ void Saga(const T&               x,
           const bool             debug) noexcept {
 
   using namespace std;
-
-  // Are we dealing with a nontrivial prox?
-  const bool nontrivial_prox = beta > 0.0;
 
   // Keep track of when each feature was last updated
   std::vector<unsigned> lag(n_features);
