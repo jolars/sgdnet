@@ -12,8 +12,8 @@
   exact = FALSE, newoffset = NULL, ...)
 
 \method{predict}{sgdnet_gaussian}(object, newx = NULL, s = NULL,
-  type = c("link", "response", "coefficients", "nonzero"), exact = FALSE,
-  newoffset = NULL, ...)
+  type = c("link", "response", "coefficients", "nonzero"),
+  exact = FALSE, newoffset = NULL, ...)
 
 \method{predict}{sgdnet_binomial}(object, newx = NULL, s = NULL,
   type = c("link", "response", "coefficients", "nonzero", "class"),
@@ -24,8 +24,8 @@
   exact = FALSE, newoffset = NULL, ...)
 
 \method{predict}{sgdnet_mgaussian}(object, newx = NULL, s = NULL,
-  type = c("link", "response", "coefficients", "nonzero"), exact = FALSE,
-  newoffset = NULL, ...)
+  type = c("link", "response", "coefficients", "nonzero"),
+  exact = FALSE, newoffset = NULL, ...)
 }
 \arguments{
 \item{object}{an object of class \code{'sgdnet'}.}

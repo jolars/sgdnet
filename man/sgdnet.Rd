@@ -9,9 +9,10 @@ sgdnet(x, ...)
 
 \method{sgdnet}{default}(x, y, family = c("gaussian", "binomial",
   "multinomial", "mgaussian"), alpha = 1, nlambda = 100,
-  lambda.min.ratio = if (NROW(x) < NCOL(x)) 0.01 else 1e-04, lambda = NULL,
-  maxit = 1000, standardize = TRUE, intercept = TRUE, thresh = 0.001,
-  standardize.response = FALSE, ...)
+  lambda.min.ratio = if (NROW(x) < NCOL(x)) 0.01 else 1e-04,
+  lambda = NULL, maxit = 1000, standardize = TRUE,
+  intercept = TRUE, thresh = 0.001, standardize.response = FALSE,
+  ...)
 }
 \arguments{
 \item{x}{input matrix}
