@@ -294,22 +294,17 @@ void Rescale(Eigen::ArrayXXd               weights,
              const Eigen::ArrayXd&         y_scale,
              const bool                    fit_intercept) {
 
-  auto m = weights.cols();
   auto p = weights.rows();
 
-  std::vector<double> x_scale_prod(p);
+  Eigen::ArrayXd x_scale_prod = Eigen::ArrayXd::Zero(p);
 
-  for (decltype(m) j = 0; j < m; ++j) {
-    for (decltype(p) k = 0; k < p; ++k) {
-      weights(k, j) *= y_scale[k]/x_scale[j];
-      x_scale_prod[k] += x_center[j]*weights(k, j);
-    }
+  for (decltype(p) j = 0; j < m; ++j) {
+    weights.col(j) *= y_scale/x_scale[j];
+    x_scale_prod += x_center[j]*weights.col(j);
   }
 
-  if (fit_intercept) {
-    for (decltype(p) k = 0; k < p; ++k)
-      intercept(k) = intercept(k)*y_scale[k] + y_center[k] - x_scale_prod[k];
-  }
+  if (fit_intercept)
+    intercept = intercept*y_scale + y_center - x_scale_prod;
 
   weights_archive.emplace_back(std::move(weights));
   intercept_archive.emplace_back(std::move(intercept));
