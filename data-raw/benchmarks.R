@@ -199,7 +199,7 @@ unzip(tmp_file, exdir = tmp_dir)
 d <- read.table(file.path(tmp_dir, "UCI CBM Dataset", "data.txt"),
                 header = FALSE)
 
-x1 <- d[, -c(17:18)]
+x1 <- d[, -c(9, 17, 18)]
 x2 <- scale(x1)
 y <- d[, 17:18]
 
