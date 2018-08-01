@@ -65,20 +65,20 @@ public:
 
     auto n = y.rows();
     for (decltype(n) i = 0; i < n; ++i)
-      y(i) = (y(i) - y_center[0])/y_scale[0];
+      y(i) = (y(i) - y_center(0))/y_scale(0);
   }
 
   double Loss(const Eigen::ArrayXd&  prediction,
               const Eigen::MatrixXd& y,
               const unsigned         i) const noexcept {
-    return 0.5*(prediction[0] - y(i))*(prediction[0] - y(i));
+    return 0.5*(prediction(0) - y(i))*(prediction(0) - y(i));
   }
 
   void Gradient(const Eigen::ArrayXd&  prediction,
                 const Eigen::MatrixXd& y,
                 const unsigned         i,
                 Eigen::ArrayXd&        gradient) const noexcept {
-    gradient[0] = prediction[0] - y(i);
+    gradient(0) = prediction(0) - y(i);
   }
 
   double NullDeviance(const Eigen::MatrixXd& y,
@@ -103,7 +103,7 @@ public:
   LambdaMax(const T&               x,
             const Eigen::MatrixXd& y,
             const Eigen::ArrayXd&  y_scale) const noexcept {
-    return y_scale[0]*(x.transpose() * y).cwiseAbs().maxCoeff()/x.rows();
+    return y_scale(0)*(x.transpose() * y).cwiseAbs().maxCoeff()/x.rows();
   }
 };
 
@@ -129,14 +129,14 @@ public:
   double Loss(const Eigen::ArrayXd&  prediction,
               const Eigen::MatrixXd& y,
               const unsigned         i) const noexcept {
-    return std::log(1.0 + std::exp(prediction[0])) - y(i)*prediction[0];
+    return std::log(1.0 + std::exp(prediction(0))) - y(i)*prediction(0);
   }
 
   void Gradient(const Eigen::ArrayXd&  prediction,
                 const Eigen::MatrixXd& y,
                 const unsigned         i,
                 Eigen::ArrayXd&        gradient) const noexcept {
-    gradient[0] = 1.0 - y(i) - 1.0/(1.0 + std::exp(prediction[0]));
+    gradient(0) = 1.0 - y(i) - 1.0/(1.0 + std::exp(prediction(0)));
   }
 
   double NullDeviance(const Eigen::MatrixXd& y,
@@ -147,9 +147,9 @@ public:
 
     if (fit_intercept) {
       auto y_bar = Mean(y.transpose());
-      prediction[0] = Link(y_bar[0]);
+      prediction(0) = Link(y_bar(0));
     } else {
-      prediction[0] = 0.0;
+      prediction(0) = 0.0;
     }
 
     double loss = 0.0;
@@ -173,9 +173,9 @@ public:
     auto y_std = StandardDeviation(y, y_bar);
 
     for (decltype(n) i = 0; i < n; ++i)
-      y_map(i) = (y(i) - y_bar[0])/y_std[0];
+      y_map(i) = (y(i) - y_bar(0))/y_std(0);
 
-    return y_std[0]*(x.transpose() * y_map).cwiseAbs().maxCoeff()/n;
+    return y_std(0)*(x.transpose() * y_map).cwiseAbs().maxCoeff()/n;
   }
 };
 
@@ -263,7 +263,7 @@ public:
 
     for (decltype(m) j = 0; j < m; ++j) {
       for (decltype(p) k = 0; k < p; ++k) {
-        max_coeff = std::max(std::abs(inner_products(k, j)*y_std[k]),
+        max_coeff = std::max(std::abs(inner_products(k, j)*y_std(k)),
                              max_coeff);
       }
     }
@@ -300,7 +300,7 @@ public:
 
     double loss = 0.0;
     for (unsigned k = 0; k < n_classes; ++k)
-      loss += 0.5*std::pow(prediction[k] - y(k, i), 2);
+      loss += 0.5*std::pow(prediction(k) - y(k, i), 2);
 
     return loss;
   }
@@ -311,7 +311,7 @@ public:
                 Eigen::ArrayXd&        gradient) const noexcept {
 
     for (unsigned k = 0; k < n_classes; ++k)
-      gradient[k] = prediction[k] - y(k, i);
+      gradient(k) = prediction(k) - y(k, i);
   }
 
   double NullDeviance(const Eigen::MatrixXd& y,
@@ -342,7 +342,7 @@ public:
     Eigen::ArrayXXd inner_products = x.transpose() * y_map;
 
     for (unsigned k = 0; k < n_classes; ++k)
-      inner_products.col(k) *= y_scale[k]*y_std[k];
+      inner_products.col(k) *= y_scale(k)*y_std(k);
 
     return inner_products.square().rowwise().sum().sqrt().maxCoeff()/y.rows();
   }

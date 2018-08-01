@@ -85,7 +85,7 @@ void PreprocessFeatures(Eigen::SparseMatrix<double>& x,
 
   for (decltype(m) j = 0; j < m; ++j) {
     for (Eigen::SparseMatrix<double>::InnerIterator x_it(x, j); x_it; ++x_it) {
-      x_it.valueRef() /= x_scale[j];
+      x_it.valueRef() /= x_scale(j);
     }
   }
 }
@@ -300,8 +300,8 @@ void Rescale(Eigen::ArrayXXd               weights,
   Eigen::ArrayXd x_scale_prod = Eigen::ArrayXd::Zero(p);
 
   for (decltype(p) j = 0; j < m; ++j) {
-    weights.col(j) *= y_scale/x_scale[j];
-    x_scale_prod += x_center[j]*weights.col(j);
+    weights.col(j) *= y_scale/x_scale(j);
+    x_scale_prod += x_center(j)*weights.col(j);
   }
 
   if (fit_intercept)

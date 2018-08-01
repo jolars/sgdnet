@@ -73,7 +73,7 @@ Mean(const T& x) {
   Eigen::ArrayXd x_bar(m);
 
   for (decltype(m) j = 0; j < m; ++j)
-    x_bar[j] = x.col(j).sum()/n;
+    x_bar(j) = x.col(j).sum()/n;
 
   return x_bar;
 }
@@ -99,7 +99,7 @@ StandardDeviation(const Eigen::SparseMatrix<double>& x,
 
     double var = 0.0;
     for (Eigen::SparseMatrix<double>::InnerIterator x_itr(x, j); x_itr; ++x_itr)
-      var += std::pow(x_itr.value() - x_bar[j], 2)/n;
+      var += std::pow(x_itr.value() - x_bar(j), 2)/n;
 
     auto n_zeros = n - x.col(j).nonZeros();
     var += n_zeros*x_bar(j)*x_bar(j)/n;
@@ -120,8 +120,8 @@ StandardDeviation(const Eigen::MatrixXd& x,
   Eigen::ArrayXd x_std(m);
 
   for (decltype(m) j = 0; j < m; ++j) {
-    double var = (x.col(j).array() - x_bar[j]).square().sum()/n;
-    x_std[j] = (var == 0.0) ? 1.0 : std::sqrt(var);
+    double var = (x.col(j).array() - x_bar(j)).square().sum()/n;
+    x_std(j) = (var == 0.0) ? 1.0 : std::sqrt(var);
   }
 
   return x_std;
@@ -141,7 +141,7 @@ Standardize(T& x, const Eigen::ArrayXd& x_bar, const Eigen::ArrayXd& x_std) {
   auto m = x.cols();
 
   for (decltype(m) j = 0; j < m; ++j)
-    x.col(j) = (x.col(j).array() - x_bar[j])/x_std[j];
+    x.col(j) = (x.col(j).array() - x_bar(j))/x_std(j);
 }
 
 template <typename T>
