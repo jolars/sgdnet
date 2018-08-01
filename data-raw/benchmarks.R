@@ -163,57 +163,25 @@ usethis::use_data(benchmarks, overwrite = TRUE)
 
 # Multivariate gaussian ---------------------------------------------------
 
-# Student performance dataset
+# Violent crimes
+
 tmp_file <- tempfile()
 tmp_dir <- tempdir()
 
 download.file(
-  "https://archive.ics.uci.edu/ml/machine-learning-databases/00320/student.zip",
+  "https://archive.ics.uci.edu/ml/machine-learning-databases/00211/CommViolPredUnnormalizedData.txt",
   tmp_file
 )
 
-unzip(tmp_file, exdir = tmp_dir)
+d <- read.csv(tmp_file, na.string = "?", header = FALSE)
 
-d1 <- read.table(file.path(tmp_dir, "student-mat.csv"), sep = ";", header = TRUE)
-d2 <- read.table(file.path(tmp_dir, "student-por.csv"), sep = ";", header = TRUE)
-d3 <- merge(d1, d2, by = c("school",
-                           "sex",
-                           "age",
-                           "address",
-                           "famsize",
-                           "Pstatus",
-                           "Medu",
-                           "Fedu",
-                           "Mjob",
-                           "Fjob",
-                           "reason",
-                           "nursery",
-                           "internet"),
-            suffixes = c("_math", "_port"))
-y <- with(d3, cbind(G3_math, G3_port))
-x1 <- subset(d3,
-  select = c(
-    "school",
-    "sex",
-    "age",
-    "address",
-    "famsize",
-    "Pstatus",
-    "Medu",
-    "Fedu",
-    "Mjob",
-    "Fjob",
-    "reason",
-    "nursery",
-    "internet"
-  )
-)
-x2 <- model.matrix(~ ., x1)[, -1]
-# Min-max scale
-x3 <- apply(x2, 2, function(x) (x - min(x))/(max(x) - min(x)))
-x4 <- Matrix::Matrix(x3)
+y1 <- d[, 130:147]
+keep <- apply(y1, 1, function(x) all(!is.na(x)))
 
-student <- list(x = x4, y = y)
+y1 <- y1[keep, ]
+x1 <- d[keep, c(6:30, 32:103, 121:123)]
+
+violence <- list(x = x1, y = y1)
 
 unlink(tmp_file)
 
@@ -270,7 +238,7 @@ y <- as.matrix(subset(d, select = c("casual", "registered")))
 
 bikes <- list(x = x4, y = y)
 
-mgaussian_datasets <- list(student = student,
+mgaussian_datasets <- list(violence = violence,
                            bikes = bikes,
                            naval = naval)
 
