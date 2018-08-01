@@ -28,31 +28,47 @@ test_that("prediction for gaussian models peform as expected", {
 })
 
 test_that("predictions run smoothly for a range of combinations and options", {
-  x1 <- cbind(mtcars$mpg, mtcars$hp)
-  x2a <- mtcars$mpg
-  x2b <- x2a
-  x2b[1] <- NA
-  for (family in c("gaussian", "binomial", "multinomial", "mgaussian")) {
+  set.seed(2)
+
+  n <- 100
+  p <- 2
+
+  x <- matrix(rnorm(n*p), n, p)
+
+  grid <- expand.grid(
+    family = c("gaussian", "binomial", "multinomial", "mgaussian"),
+    exact = c(TRUE, FALSE),
+    s = c(0, 1/n),
+    type = c("link", "response", "coefficients", "nonzero", "class"),
+    stringsAsFactors = FALSE
+  )
+
+  for (i in seq_len(nrow(grid))) {
+    family <- grid$family[i]
+    type   <- grid$type[i]
+    exact  <- grid$exact[i]
+    s      <- grid$s[i]
+
+    if (type == "class" && !(family %in% c("binomial", "multinomial")))
+      next
+
     y <- switch(family,
-                gaussian = mtcars$drat,
-                binomial = mtcars$vs,
-                multinomial = mtcars$gear,
-                mgaussian = cbind(mtcars$hp, mtcars$disp))
+                gaussian = rnorm(n, 10, 2),
+                binomial = rbinom(n, 1, 0.8),
+                multinomial = rbinom(n, 3, 0.5),
+                mgaussian = cbind(rnorm(n, -10), rnorm(n, 10)))
 
-    fit1a <- sgdnet(x1, y, family = family)
-    fit1a <- sgdnet(x1, y, lambda = 0.0001, family = family)
-    fit2a <- sgdnet(x2a, y, lambda = 0.0001, family = family)
+    fit <- sgdnet(x, y, family = family, maxit = 10, thresh = 1e-1)
 
-    for (type in c("link", "response", "coefficients", "nonzero", "class")) {
-      if (type == "class" && !(family %in% c("binomial", "multinomial")))
-        next
+    args <- list(object = fit,
+                 newx = x,
+                 s = s,
+                 exact = exact,
+                 x = x,
+                 y = y,
+                 family = family)
 
-      expect_error(predict(fit1a, newx = x1, type = type), NA)
-      expect_error(predict(fit1a, newx = x1, s = 0.001), NA)
-      expect_error(predict(fit2a, newx = x2a, type = type), NA)
-      expect_error(predict(fit2a, newx = x2a, s = 0.001), NA)
-      expect_error(predict(fit2b, newx = x2b))
-    }
+    expect_silent(do.call(predict, args))
   }
 })
 
@@ -90,5 +106,24 @@ test_that("refitting works when exact = TRUE", {
   expect_equal(pred_exact, pred_approx, tolerance = 1e-4)
 })
 
+test_that("NAs in new data are handled appropriately", {
+  set.seed(1)
+
+  # For univariate case
+  x <- trees$Girth
+  y <- trees$Volume
+
+  fit <- sgdnet(x, y)
+  x[1] <- NA
+  expect_silent(predict(fit, x))
+
+  # For multivariate case
+  x <- cbind(mtcars$hp, mtcars$drat)
+  y <- cbind(mtcars$disp, mtcars$vs)
+
+  fit <- sgdnet(x, y, family = "mgaussian")
+  x[10, ] <- NA
+  expect_silent(predict(fit, x))
+})
 
 
