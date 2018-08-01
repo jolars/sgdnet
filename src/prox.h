@@ -31,7 +31,9 @@ namespace sgdnet {
 //' @keywords internal
 struct SoftThreshold {
   template <typename T>
-  T operator()(const T& x, const T& shrinkage) const noexcept {
+  T
+  operator()(const T& x, const T& shrinkage) const noexcept
+  {
     return std::max(x - shrinkage, 0.0) - std::max(-x - shrinkage, 0.0);
   }
 };

@@ -89,7 +89,8 @@ Mean(const T& x) {
 inline
 Eigen::ArrayXd
 StandardDeviation(const Eigen::SparseMatrix<double>& x,
-                  const Eigen::ArrayXd&              x_bar) {
+                  const Eigen::ArrayXd&              x_bar)
+{
   auto n = x.rows();
   auto m = x.cols();
 
@@ -113,7 +114,8 @@ StandardDeviation(const Eigen::SparseMatrix<double>& x,
 inline
 Eigen::ArrayXd
 StandardDeviation(const Eigen::MatrixXd& x,
-                  const Eigen::ArrayXd&  x_bar) {
+                  const Eigen::ArrayXd&  x_bar)
+{
   auto n = x.rows();
   auto m = x.cols();
 
@@ -137,7 +139,10 @@ StandardDeviation(const T& x) {
 template <typename T>
 inline
 void
-Standardize(T& x, const Eigen::ArrayXd& x_bar, const Eigen::ArrayXd& x_std) {
+Standardize(T&                    x,
+            const Eigen::ArrayXd& x_bar,
+            const Eigen::ArrayXd& x_std)
+{
   auto m = x.cols();
 
   for (decltype(m) j = 0; j < m; ++j)
@@ -147,7 +152,8 @@ Standardize(T& x, const Eigen::ArrayXd& x_bar, const Eigen::ArrayXd& x_std) {
 template <typename T>
 inline
 void
-Standardize(T& x) {
+Standardize(T& x)
+{
   auto x_bar = Mean(x);
   auto x_std = StandardDeviation(x, x_bar);
   Standardize(x, x_bar, x_std);
@@ -178,7 +184,9 @@ Clamp(const T& x, const T& min, const T& max) {
 template <typename T>
 inline
 Eigen::ArrayXd
-Proportions(const T& y, const unsigned n_classes) {
+Proportions(const T&       y,
+            const unsigned n_classes)
+{
   Eigen::ArrayXd proportions = Eigen::ArrayXd::Zero(n_classes);
   auto n = y.cols();
 

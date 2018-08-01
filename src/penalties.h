@@ -8,9 +8,12 @@ namespace sgdnet {
 
 class Penalty {
 public:
-  void setParameters(const double gamma_in,
-                     const double alpha_in,
-                     const double beta_in) noexcept {
+  void
+  setParameters(const double gamma_in,
+                const double alpha_in,
+                const double beta_in)
+  noexcept
+  {
     gamma = gamma_in;
     alpha = alpha_in;
     beta = beta_in;
@@ -24,22 +27,27 @@ protected:
 
 class Ridge : public Penalty  {
 public:
-  void operator()(Eigen::ArrayXXd&       w,
-                  const unsigned         j,
-                  const double           w_scale,
-                  const double           scaling,
-                  const Eigen::ArrayXXd& g_sum) const noexcept {
+  void
+  operator()(Eigen::ArrayXXd&       w,
+             const unsigned         j,
+             const double           w_scale,
+             const double           scaling,
+             const Eigen::ArrayXXd& g_sum)
+  const noexcept
+  {
     w.col(j) -= gamma/w_scale*scaling*g_sum.col(j);
   }
 };
 
 class ElasticNet : public Penalty  {
 public:
-  void operator()(Eigen::ArrayXXd&       w,
-                  const unsigned         j,
-                  const double           w_scale,
-                  const double           scaling,
-                  const Eigen::ArrayXXd& g_sum) const noexcept {
+  void
+  operator()(Eigen::ArrayXXd&       w,
+             const unsigned         j,
+             const double           w_scale,
+             const double           scaling,
+             const Eigen::ArrayXXd& g_sum) const noexcept
+  {
     auto p = w.rows();
     for (decltype(p) k = 0; k < p; ++k) {
       w(k, j) -= gamma/w_scale*scaling*g_sum(k, j);
@@ -53,12 +61,13 @@ private:
 
 class GroupLasso : public Penalty  {
 public:
-  void operator()(Eigen::ArrayXXd&       w,
-                  const unsigned         j,
-                  const double           w_scale,
-                  const double           scaling,
-                  const Eigen::ArrayXXd& g_sum) const noexcept {
-
+  void
+  operator()(Eigen::ArrayXXd&       w,
+             const unsigned         j,
+             const double           w_scale,
+             const double           scaling,
+             const Eigen::ArrayXXd& g_sum) const noexcept
+  {
     w.col(j) -= gamma/w_scale*scaling*g_sum.col(j);
 
     auto norm = w.matrix().col(j).norm();

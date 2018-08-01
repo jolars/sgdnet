@@ -67,6 +67,7 @@
 //' @param x features
 //' @param y response
 //' @param family object of Family class
+//' @param penalty object of Penalty class
 //' @param is_sparse whether x is sparse or not
 //' @param control a list of control parameters
 //'
@@ -139,18 +140,11 @@ Rcpp::List SetupSgdnet(T                 x,
   // intercept updates are scaled to avoid oscillation
   double intercept_decay = is_sparse ? 0.01 : 1.0;
 
-  // Check if we need the nontrivial prox
-  // TODO(jolars): allow more proximal operators
-  // sgdnet::SoftThreshold prox;
-
-  // Setup intercept vector
+  // Intercept
   Eigen::ArrayXd intercept = Eigen::ArrayXd::Zero(n_classes);
   vector<Eigen::ArrayXd> intercept_archive;
 
-  // Setup weights matrix and weights archive
-  // vector<double> weights(n_features*n_classes);
-  // vector<vector<double>> weights_archive;
-
+  // Coefficients
   Eigen::ArrayXXd weights = Eigen::ArrayXXd::Zero(n_classes, n_features);
   vector<Eigen::ArrayXXd> weights_archive;
 
@@ -243,6 +237,18 @@ Rcpp::List SetupSgdnet(T                 x,
   );
 }
 
+//' Setup penalty
+//'
+//' This function serves as a portal to SetupSgdnet to provide
+//' a Penalty object to template on
+//'
+//' @param x predictor matrix
+//' @param y response matrix
+//' @param family Object of family class
+//' @param is_sparse whether or not x is sparse
+//' @param control a Rcpp::List of control parameters
+//'
+//' @return The final fitted object.
 template <typename T, typename Family>
 Rcpp::List SetupPenalty(const T&               x,
                         const Eigen::MatrixXd& y,
@@ -287,6 +293,16 @@ Rcpp::List SetupPenalty(const T&               x,
   return Rcpp::List::create();
 }
 
+//' Setup family
+//'
+//' This function serves as a portal to SetupSgdnet to provide
+//' a Family object to template but first passes the result on to SetupPenalty
+//'
+//' @param x predictor matrix
+//' @param y response matrix
+//' @param family Object of family class
+//' @param is_sparse whether or not x is sparse
+//' @param control a Rcpp::List of control parameters
 template <typename T>
 Rcpp::List SetupFamily(const T&               x,
                        const Eigen::MatrixXd& y,
@@ -337,7 +353,7 @@ Rcpp::List SetupFamily(const T&               x,
 //' @param control a list of control parameters
 //'
 //' @return A list of
-//'   * ao: the intercept,
+//'   * a0: the intercept,
 //'   * beta: the weights,
 //'   * losses: the loss at each outer iteration per fit,
 //'   * npasses: the number of effective passes (epochs) accumulated over,

@@ -66,21 +66,24 @@
 //' @param x the feature matrix. Sparse or dense Eigen object.
 //' @param s_ind the index of the current sample
 //' @param lag_scaling geometric sum for lagged updates
+//' @param wscale the current scale of the coefficients
 //' @param penalty object of Penalty class
 //'
 //' @return Updates weights and lag.
 template <typename Penalty>
-inline void LaggedUpdate(const unsigned             k,
-                         Eigen::ArrayXXd&           w,
-                         const unsigned             n_features,
-                         const Eigen::ArrayXXd&     g_sum,
-                         std::vector<unsigned>&     lag,
-                         const Eigen::MatrixXd&     x,
-                         const unsigned             s_ind,
-                         const std::vector<double>& lag_scaling,
-                         const double               wscale,
-                         const Penalty&             penalty) noexcept {
-
+inline
+void
+LaggedUpdate(const unsigned             k,
+             Eigen::ArrayXXd&           w,
+             const unsigned             n_features,
+             const Eigen::ArrayXXd&     g_sum,
+             std::vector<unsigned>&     lag,
+             const Eigen::MatrixXd&     x,
+             const unsigned             s_ind,
+             const std::vector<double>& lag_scaling,
+             const double               wscale,
+             const Penalty&             penalty) noexcept
+{
   for (unsigned j = 0; j < n_features; ++j) {
 
     auto lagged_amount = k - lag[j];
@@ -93,17 +96,19 @@ inline void LaggedUpdate(const unsigned             k,
 }
 
 template <typename Penalty>
-inline void LaggedUpdate(const unsigned                     k,
-                         Eigen::ArrayXXd&                   w,
-                         const unsigned                     n_features,
-                         const Eigen::ArrayXXd&             g_sum,
-                         std::vector<unsigned>&             lag,
-                         const Eigen::SparseMatrix<double>& x,
-                         const unsigned                     s_ind,
-                         const std::vector<double>&         lag_scaling,
-                         const double                       wscale,
-                         const Penalty&                     penalty) noexcept {
-
+inline
+void
+LaggedUpdate(const unsigned                     k,
+             Eigen::ArrayXXd&                   w,
+             const unsigned                     n_features,
+             const Eigen::ArrayXXd&             g_sum,
+             std::vector<unsigned>&             lag,
+             const Eigen::SparseMatrix<double>& x,
+             const unsigned                     s_ind,
+             const std::vector<double>&         lag_scaling,
+             const double                       wscale,
+             const Penalty&                     penalty) noexcept
+{
   for (Eigen::SparseMatrix<double>::InnerIterator it(x, s_ind); it; ++it) {
 
     auto j = it.index();
@@ -118,32 +123,38 @@ inline void LaggedUpdate(const unsigned                     k,
 
 //' Weighted addition
 //'
-//' Updates `y` with a weighted sample in `x`
+//' Updates `a` with a weighted sample in `x`
 //'
 //' @param a weights or gradient vector
 //' @param x the feature matrix. Sparse or dense Eigen object.
+//' @param s_ind the index of the sample
+//' @param n_classes number of classes
+//' @param g_change change in gradient
 //' @param scaling step size
 //'
-//' @return Updates `y` with `x` scaled.
-inline void AddWeighted(Eigen::ArrayXXd&       a,
-                        const Eigen::MatrixXd& x,
-                        const unsigned         s_ind,
-                        const unsigned         n_features,
-                        const unsigned         n_classes,
-                        const Eigen::ArrayXd&  g_change,
-                        const double           scaling) noexcept {
+//' @return Updates `a` with `x` scaled.
+inline
+void
+AddWeighted(Eigen::ArrayXXd&       a,
+            const Eigen::MatrixXd& x,
+            const unsigned         s_ind,
+            const unsigned         n_classes,
+            const Eigen::ArrayXd&  g_change,
+            const double           scaling) noexcept
+{
   for (decltype(a.rows()) i = 0; i < a.rows(); ++i)
     a.row(i) += x.col(s_ind).transpose().array()*g_change(i)*scaling;
 }
 
-inline void AddWeighted(Eigen::ArrayXXd&                   a,
-                        const Eigen::SparseMatrix<double>& x,
-                        const unsigned                     s_ind,
-                        const unsigned                     n_features,
-                        const unsigned                     n_classes,
-                        const Eigen::ArrayXd&              g_change,
-                        const double                       scaling) noexcept {
-
+inline
+void
+AddWeighted(Eigen::ArrayXXd&                   a,
+            const Eigen::SparseMatrix<double>& x,
+            const unsigned                     s_ind,
+            const unsigned                     n_classes,
+            const Eigen::ArrayXd&              g_change,
+            const double                       scaling) noexcept
+{
   for (Eigen::SparseMatrix<double>::InnerIterator it(x, s_ind); it; ++it)
     for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind)
       a(c_ind, it.index()) += g_change[c_ind] * scaling * it.value();
@@ -173,8 +184,8 @@ Reset(const unsigned         k,
       std::vector<unsigned>& lag,
       const unsigned         n_features,
       double                 wscale,
-      const Penalty&         penalty) noexcept {
-
+      const Penalty&         penalty) noexcept
+{
   for (unsigned j = 0; j < n_features; ++j) {
 
     auto lagged_amount = k - lag[j];
@@ -192,22 +203,22 @@ Reset(const unsigned         k,
 //'
 //' @param x the feature matrix
 //' @param y response vector or vectorized response matrix
+//' @param intercept the vector. Initialized to zero but will be stored
+//'   and continually updated along the regularization path to support
+//'   warm starts
 //' @param fit_intercept whether the intercept should be fit
 //' @param intercept_decay adjustment of learning rate for intercept,
 //'   which is lower for sparse features to guard against intercept
 //'   oscillation
-//' @param intercept the vector. Initialized to zero but will be stored
-//'   and continually updated along the regularization path to support
-//'   warm starts
 //' @param w weights. Updated in the same manner as `intercept`.
 //' @param family a pointer to the Family object
-//' @param prox a pointer to the Prox object
+//' @param penalty an object of class Penalty
 //' @param gamma step size
 //' @param alpha L2-regularization penalty strength
 //' @param beta L1-regularization penalty strength
+//' @param g_memory a storage for gradients
 //' @param g_sum gradient sum
 //' @param g_sum_intercept gradient sum for intercept
-//' @param g gradient memory
 //' @param n_samples number of samples
 //' @param n_features number of features
 //' @param n_classes number of classes
@@ -226,30 +237,31 @@ Reset(const unsigned         k,
 //' @return Updates `w`, `intercept`, `g_sum`, `g_sum_intercept`, `g`,
 //'   `n_iter`, `return_codes`, and possibly `losses`.
 template <typename T, typename Family, typename Penalty>
-void Saga(const T&               x,
-          const Eigen::MatrixXd& y,
-          Eigen::ArrayXd&        intercept,
-          const bool             fit_intercept,
-          const double           intercept_decay,
-          Eigen::ArrayXXd&       w,
-          const Family&          family,
-          Penalty&               penalty,
-          const double           gamma,
-          const double           alpha,
-          const double           beta,
-          Eigen::ArrayXXd&       g_memory,
-          Eigen::ArrayXXd&       g_sum,
-          Eigen::ArrayXd&        g_sum_intercept,
-          const unsigned         n_samples,
-          const unsigned         n_features,
-          const unsigned         n_classes,
-          const unsigned         max_iter,
-          const double           tol,
-          unsigned&              n_iter,
-          std::vector<unsigned>& return_codes,
-          std::vector<double>&   losses,
-          const bool             debug) noexcept {
-
+void
+Saga(const T&               x,
+     const Eigen::MatrixXd& y,
+     Eigen::ArrayXd&        intercept,
+     const bool             fit_intercept,
+     const double           intercept_decay,
+     Eigen::ArrayXXd&       w,
+     const Family&          family,
+     Penalty&               penalty,
+     const double           gamma,
+     const double           alpha,
+     const double           beta,
+     Eigen::ArrayXXd&       g_memory,
+     Eigen::ArrayXXd&       g_sum,
+     Eigen::ArrayXd&        g_sum_intercept,
+     const unsigned         n_samples,
+     const unsigned         n_features,
+     const unsigned         n_classes,
+     const unsigned         max_iter,
+     const double           tol,
+     unsigned&              n_iter,
+     std::vector<unsigned>& return_codes,
+     std::vector<double>&   losses,
+     const bool             debug) noexcept
+{
   using namespace std;
 
   // Keep track of when each feature was last updated
@@ -325,13 +337,7 @@ void Saga(const T&               x,
       wscale *= wscale_update;
 
       // Update coefficients (w) with sparse step (with L2 scaling)
-      AddWeighted(w,
-                  x,
-                  s_ind,
-                  n_features,
-                  n_classes,
-                  g_change,
-                  -gamma/wscale);
+      AddWeighted(w, x, s_ind, n_classes, g_change, -gamma/wscale);
 
       if (fit_intercept) {
         g_sum_intercept += g_change/n_samples;
@@ -351,13 +357,7 @@ void Saga(const T&               x,
                    penalty);
 
       // Update the gradient average
-      AddWeighted(g_sum,
-                  x,
-                  s_ind,
-                  n_features,
-                  n_classes,
-                  g_change,
-                  1.0/n_samples);
+      AddWeighted(g_sum, x, s_ind, n_classes, g_change, 1.0/n_samples);
 
     } // Outer loop
 
