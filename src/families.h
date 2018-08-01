@@ -84,11 +84,7 @@ public:
   double NullDeviance(const Eigen::MatrixXd& y,
                       const bool             fit_intercept,
                       const unsigned         n_classes) const noexcept {
-    auto pred = Mean(y.transpose());
-    Eigen::ArrayXd linear_predictor(n_classes);
-
-    for (auto i = 0; i < n_classes; ++i)
-      linear_predictor[i] = pred[i];
+    Eigen::ArrayXd linear_predictor = Mean(y.transpose());
 
     double loss = 0.0;
     auto n = y.cols();
