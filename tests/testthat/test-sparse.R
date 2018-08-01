@@ -17,9 +17,6 @@ test_that("sparse and dense implementations return equivalent results", {
     stringsAsFactors = FALSE
   )
 
-  x_sparse <- Matrix::rsparsematrix(n, p, density = 0.2)
-  x_dense <- as.matrix(x_sparse)
-
   for (i in seq_len(nrow(grid))) {
     pars <- list(
       standardize = grid$standardize[i],
@@ -31,7 +28,9 @@ test_that("sparse and dense implementations return equivalent results", {
 
     x_sparse <- Matrix::rsparsematrix(n, p, density = 0.2)
     if (pars$standardize) {
-      x_sparse <- Matrix::Matrix(apply(x_sparse, 2, function(x) x/sd2(x)),
+      x_sparse <- Matrix::Matrix(apply(x_sparse,
+                                       2,
+                                       function(x) x/sqrt(var(x)*(n - 1)/n)),
                                  sparse = TRUE)
     }
     x_dense <- as.matrix(x_sparse)
