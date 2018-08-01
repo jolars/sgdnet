@@ -31,11 +31,11 @@ public:
                   Eigen::ArrayXd&  y_center,
                   Eigen::ArrayXd&  y_scale) noexcept;
 
-  double Loss(const Eigen::ArrayXd&  prediction,
+  double Loss(const Eigen::ArrayXd&  linear_predictor,
               const Eigen::MatrixXd& y,
               const unsigned         i) const noexcept;
 
-  void Gradient(const Eigen::ArrayXd&  prediction,
+  void Gradient(const Eigen::ArrayXd&  linear_predictor,
                 const Eigen::MatrixXd& y,
                 const unsigned         i,
                 Eigen::ArrayXd&        gradient) const noexcept;
@@ -68,32 +68,32 @@ public:
       y(i) = (y(i) - y_center(0))/y_scale(0);
   }
 
-  double Loss(const Eigen::ArrayXd&  prediction,
+  double Loss(const Eigen::ArrayXd&  linear_predictor,
               const Eigen::MatrixXd& y,
               const unsigned         i) const noexcept {
-    return 0.5*(prediction(0) - y(i))*(prediction(0) - y(i));
+    return 0.5*(linear_predictor(0) - y(i))*(linear_predictor(0) - y(i));
   }
 
-  void Gradient(const Eigen::ArrayXd&  prediction,
+  void Gradient(const Eigen::ArrayXd&  linear_predictor,
                 const Eigen::MatrixXd& y,
                 const unsigned         i,
                 Eigen::ArrayXd&        gradient) const noexcept {
-    gradient(0) = prediction(0) - y(i);
+    gradient(0) = linear_predictor(0) - y(i);
   }
 
   double NullDeviance(const Eigen::MatrixXd& y,
                       const bool             fit_intercept,
                       const unsigned         n_classes) const noexcept {
     auto pred = Mean(y.transpose());
-    Eigen::ArrayXd prediction(n_classes);
+    Eigen::ArrayXd linear_predictor(n_classes);
 
     for (auto i = 0; i < n_classes; ++i)
-      prediction[i] = pred[i];
+      linear_predictor[i] = pred[i];
 
     double loss = 0.0;
     auto n = y.cols();
     for (decltype(n) i = 0; i < n; ++i)
-      loss += Loss(prediction, y, i);
+      loss += Loss(linear_predictor, y, i);
 
     return 2.0 * loss;
   }
@@ -126,35 +126,36 @@ public:
     return std::log(z / (1.0 - z));
   }
 
-  double Loss(const Eigen::ArrayXd&  prediction,
+  double Loss(const Eigen::ArrayXd&  linear_predictor,
               const Eigen::MatrixXd& y,
               const unsigned         i) const noexcept {
-    return std::log(1.0 + std::exp(prediction(0))) - y(i)*prediction(0);
+    return std::log(1.0 + std::exp(linear_predictor(0)))
+           - y(i)*linear_predictor(0);
   }
 
-  void Gradient(const Eigen::ArrayXd&  prediction,
+  void Gradient(const Eigen::ArrayXd&  linear_predictor,
                 const Eigen::MatrixXd& y,
                 const unsigned         i,
                 Eigen::ArrayXd&        gradient) const noexcept {
-    gradient(0) = 1.0 - y(i) - 1.0/(1.0 + std::exp(prediction(0)));
+    gradient(0) = 1.0 - y(i) - 1.0/(1.0 + std::exp(linear_predictor(0)));
   }
 
   double NullDeviance(const Eigen::MatrixXd& y,
                       const bool             fit_intercept,
                       const unsigned         n_classes) const noexcept {
 
-    Eigen::ArrayXd prediction(1);
+    Eigen::ArrayXd linear_predictor(1);
 
     if (fit_intercept) {
       auto y_bar = Mean(y.transpose());
-      prediction(0) = Link(y_bar(0));
+      linear_predictor(0) = Link(y_bar(0));
     } else {
-      prediction(0) = 0.0;
+      linear_predictor(0) = 0.0;
     }
 
     double loss = 0.0;
     for (unsigned i = 0; i < y.cols(); ++i)
-      loss += Loss(prediction, y, i);
+      loss += Loss(linear_predictor, y, i);
 
     return 2.0 * loss;
   }
@@ -189,24 +190,24 @@ public:
     // no preprocessing
   }
 
-  double Loss(const Eigen::ArrayXd&  prediction,
+  double Loss(const Eigen::ArrayXd&  linear_predictor,
               const Eigen::MatrixXd& y,
               const unsigned         i) const noexcept {
     auto c = static_cast<unsigned>(y(i) + 0.5);
-    return LogSumExp(prediction) - prediction[c];
+    return LogSumExp(linear_predictor) - linear_predictor[c];
   }
 
-  void Gradient(const Eigen::ArrayXd&  prediction,
+  void Gradient(const Eigen::ArrayXd&  linear_predictor,
                 const Eigen::MatrixXd& y,
                 const unsigned         i,
                 Eigen::ArrayXd&        gradient) const noexcept {
 
-    auto lse = LogSumExp(prediction);
-    unsigned p = prediction.size();
+    auto lse = LogSumExp(linear_predictor);
+    unsigned p = linear_predictor.size();
     auto c = static_cast<unsigned>(y(i) + 0.5);
 
     for (decltype(p) j = 0; j < p; ++j) {
-      gradient[j] = std::exp(prediction[j] - lse);
+      gradient[j] = std::exp(linear_predictor[j] - lse);
 
       if (j == c)
         gradient[j] -= 1.0;
@@ -217,21 +218,22 @@ public:
                       const bool             fit_intercept,
                       const unsigned         n_classes) const noexcept {
 
-    Eigen::ArrayXd cond_mean(n_classes);
+    Eigen::ArrayXd linear_predictor(n_classes);
 
     if (fit_intercept)
-      cond_mean = Proportions(y, n_classes);
+      linear_predictor = Proportions(y, n_classes);
     else
-      cond_mean.setConstant(1.0/n_classes);
+      linear_predictor.setConstant(1.0/n_classes);
 
-    cond_mean = cond_mean.log() - cond_mean.log().sum()/n_classes;
+    linear_predictor =
+      linear_predictor.log() - linear_predictor.log().sum()/n_classes;
 
-    auto lse = LogSumExp(cond_mean);
+    auto lse = LogSumExp(linear_predictor);
 
     auto loss = 0.0;
     for (decltype(y.cols()) i = 0; i < y.cols(); ++i) {
       auto c = static_cast<unsigned>(y(i) + 0.5);
-      loss += lse - cond_mean[c];
+      loss += lse - linear_predictor[c];
     }
 
     return 2.0 * loss;
@@ -294,35 +296,35 @@ public:
     }
   }
 
-  double Loss(const Eigen::ArrayXd&  prediction,
+  double Loss(const Eigen::ArrayXd&  linear_predictor,
               const Eigen::MatrixXd& y,
               const unsigned         i) const noexcept {
 
     double loss = 0.0;
     for (unsigned k = 0; k < n_classes; ++k)
-      loss += 0.5*std::pow(prediction(k) - y(k, i), 2);
+      loss += 0.5*std::pow(linear_predictor(k) - y(k, i), 2);
 
     return loss;
   }
 
-  void Gradient(const Eigen::ArrayXd&  prediction,
+  void Gradient(const Eigen::ArrayXd&  linear_predictor,
                 const Eigen::MatrixXd& y,
                 const unsigned         i,
                 Eigen::ArrayXd&        gradient) const noexcept {
 
     for (unsigned k = 0; k < n_classes; ++k)
-      gradient(k) = prediction(k) - y(k, i);
+      gradient(k) = linear_predictor(k) - y(k, i);
   }
 
   double NullDeviance(const Eigen::MatrixXd& y,
                       const bool             fit_intercept,
                       const unsigned         n_classes) const noexcept {
 
-    auto cond_mean = Mean(y.transpose());
+    auto linear_predictor = Mean(y.transpose());
 
     double loss = 0.0;
     for (decltype(y.cols()) i = 0; i < y.cols(); ++i)
-      loss += Loss(cond_mean, y, i);
+      loss += Loss(linear_predictor, y, i);
 
     return 2.0 * loss;
   }

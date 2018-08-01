@@ -277,13 +277,11 @@ void Saga(const T&               x,
 
   penalty.setParameters(gamma, alpha, beta);
 
-  // Setup gradient vectors
+  // Gradient vector and change in gradient vector
   Eigen::ArrayXd g        = Eigen::ArrayXd::Zero(n_classes);
   Eigen::ArrayXd g_change = Eigen::ArrayXd::Zero(n_classes);
 
-  // Vector for storing current predictions
-  // vector<double> prediction(n_classes);
-  Eigen::ArrayXd prediction(n_classes);
+  Eigen::ArrayXd linear_predictor(n_classes);
 
   // Store previous weights for computing stopping criteria
   Eigen::ArrayXXd w_previous(w);
@@ -309,9 +307,9 @@ void Saga(const T&               x,
                    wscale,
                    penalty);
 
-      prediction = (w.matrix() * x.col(s_ind)).array()*wscale + intercept;
+      linear_predictor = (w.matrix() * x.col(s_ind)).array()*wscale + intercept;
 
-      family.Gradient(prediction, y, s_ind, g);
+      family.Gradient(linear_predictor, y, s_ind, g);
 
       g_change = g - g_memory.col(s_ind);
       g_memory.col(s_ind) = g;

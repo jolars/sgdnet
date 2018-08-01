@@ -174,13 +174,13 @@ double EpochLoss(const T&               x,
                  const unsigned         n_features,
                  const unsigned         n_classes) {
 
-  Eigen::ArrayXd prediction(n_classes);
+  Eigen::ArrayXd linear_predictor(n_classes);
 
   double loss = 0.0;
 
   for (unsigned s_ind = 0; s_ind < n_samples; ++s_ind) {
-    prediction = (w.matrix() * x.col(s_ind)).array() + intercept;
-    loss += family.Loss(prediction, y, s_ind)/n_samples;
+    linear_predictor = (w.matrix() * x.col(s_ind)).array() + intercept;
+    loss += family.Loss(linear_predictor, y, s_ind)/n_samples;
   }
 
   return loss;
@@ -256,11 +256,11 @@ double Deviance(const T&               x,
                 const unsigned         n_classes,
                 const Family&          family) {
   double loss = 0.0;
-  Eigen::ArrayXd prediction(n_classes);
+  Eigen::ArrayXd linear_predictor(n_classes);
 
   for (unsigned s_ind = 0; s_ind < n_samples; ++s_ind) {
-    prediction = (w.matrix() * x.col(s_ind)).array() + intercept;
-    loss += family.Loss(prediction, y, s_ind);
+    linear_predictor = (w.matrix() * x.col(s_ind)).array() + intercept;
+    loss += family.Loss(linear_predictor, y, s_ind);
   }
   return 2.0 * loss;
 }
