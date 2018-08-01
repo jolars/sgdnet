@@ -85,7 +85,6 @@ Rcpp::List SetupSgdnet(T                 x,
   const double   elasticnet_mix   = Rcpp::as<double>(control["elasticnet_mix"]);
   vector<double> lambda           = Rcpp::as<vector<double>>(control["lambda"]);
   const unsigned n_lambda         = Rcpp::as<unsigned>(control["n_lambda"]);
-  const unsigned n_targets        = Rcpp::as<unsigned>(control["n_targets"]);
   const unsigned n_classes        = Rcpp::as<unsigned>(control["n_classes"]);
   const double   lambda_min_ratio = Rcpp::as<double>(control["lambda_min_ratio"]);
   const bool     standardize      = Rcpp::as<bool>(control["standardize"]);
@@ -271,10 +270,7 @@ Rcpp::List SetupPenalty(const T&               x,
                        control);
 
   } else if (group_lasso) {
-      unsigned n_features = x.cols();
-      unsigned n_classes = Rcpp::as<unsigned>(control["n_classes"]);
-
-      sgdnet::GroupLasso penalty{n_classes, n_features};
+      sgdnet::GroupLasso penalty;
       return SetupSgdnet(x,
                          y,
                          std::move(family),

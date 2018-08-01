@@ -55,10 +55,6 @@ private:
 
 class GroupLasso : public Penalty  {
 public:
-  GroupLasso(const unsigned n_classes,
-             const unsigned n_features)
-             : n_classes(n_classes), n_features(n_features) {}
-
   void operator()(Eigen::ArrayXXd&       w,
                   const unsigned         j,
                   const double           w_scale,
@@ -74,10 +70,6 @@ public:
     else
       w.col(j).setConstant(0.0);
   }
-
-private:
-  unsigned n_features;
-  unsigned n_classes;
 };
 
 } // namespace sgdnet
