@@ -7,26 +7,26 @@
 using namespace Rcpp;
 
 // SgdnetDense
-Rcpp::List SgdnetDense(Eigen::MatrixXd x, std::vector<double> y, const Rcpp::List& control);
+Rcpp::List SgdnetDense(const Eigen::MatrixXd& x, const std::vector<double>& y, const Rcpp::List& control);
 RcppExport SEXP _sgdnet_SgdnetDense(SEXP xSEXP, SEXP ySEXP, SEXP controlSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type x(xSEXP);
-    Rcpp::traits::input_parameter< std::vector<double> >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type y(ySEXP);
     Rcpp::traits::input_parameter< const Rcpp::List& >::type control(controlSEXP);
     rcpp_result_gen = Rcpp::wrap(SgdnetDense(x, y, control));
     return rcpp_result_gen;
 END_RCPP
 }
 // SgdnetSparse
-Rcpp::List SgdnetSparse(Eigen::SparseMatrix<double> x, std::vector<double> y, const Rcpp::List& control);
+Rcpp::List SgdnetSparse(const Eigen::SparseMatrix<double>& x, const std::vector<double>& y, const Rcpp::List& control);
 RcppExport SEXP _sgdnet_SgdnetSparse(SEXP xSEXP, SEXP ySEXP, SEXP controlSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type x(xSEXP);
-    Rcpp::traits::input_parameter< std::vector<double> >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const Eigen::SparseMatrix<double>& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type y(ySEXP);
     Rcpp::traits::input_parameter< const Rcpp::List& >::type control(controlSEXP);
     rcpp_result_gen = Rcpp::wrap(SgdnetSparse(x, y, control));
     return rcpp_result_gen;
