@@ -70,12 +70,12 @@ public:
   {
     w.col(j) -= gamma/w_scale*scaling*g_sum.col(j);
 
-    auto norm = w.matrix().col(j).norm();
+    auto factor = beta*gamma*scaling/w.matrix().col(j).norm();
 
-    if (norm > beta*gamma*scaling)
-      w.col(j) -= beta*gamma*scaling/w_scale*w.col(j)/norm;
+    if (factor < 1.0)
+      w.col(j) *= 1.0 - factor/w_scale;
     else
-      w.col(j).setConstant(0.0);
+      w.col(j) = 0.0;
   }
 };
 
