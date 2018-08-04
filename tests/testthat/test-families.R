@@ -7,28 +7,36 @@ test_that("test that all combinations run without errors", {
 
   n <- 1000
   p <- 2
-  set.seed(1)
 
   grid <- expand.grid(
     family = c("gaussian", "binomial", "multinomial", "mgaussian"),
-    intercept = TRUE,
-    sparse = FALSE,
+    intercept = TRUE, # glmnet behaves oddly when the intercept is missing
+    sparse = c(TRUE, FALSE),
     alpha = c(0, 0.5, 1),
-    standardize = TRUE,
+    standardize = c(TRUE, FALSE),
     stringsAsFactors = FALSE
   )
 
-  x <- Matrix::rsparsematrix(n, p, 0.5)
-
   for (i in seq_len(nrow(grid))) {
+    sparse <- grid$sparse[i]
+
     pars <- list(
-      x = if (grid$sparse[i]) x else as.matrix(x),
-      standardize = if (grid$sparse[i]) FALSE else grid$standardize[i],
+      standardize = grid$standardize[i],
       family = grid$family[i],
       intercept = grid$intercept[i],
       alpha = grid$alpha[i],
-      nlambda = 20
+      nlambda = 30,
+      thresh = 1e-4
     )
+
+    set.seed(i)
+
+    x <- Matrix::rsparsematrix(n, p, 0.2)
+
+    if (!sparse)
+      x <- as.matrix(x)
+
+    pars$x <- x
 
     pars$y <- switch(pars$family,
                      gaussian = rnorm(n, 10, 2),
@@ -61,8 +69,8 @@ test_that("test that all combinations run without errors", {
     if (pars$family %in% c("binomial", "multinomial")) {
       spred <- predict(sfit, x, type = "class")
       gpred <- predict(gfit, x, type = "class")
-      frac_correct <- sum(spred == gpred)/length(spred)
-      expect_gte(frac_correct, 0.98)
+      frac_correct <- sum(unlist(spred) == unlist(gpred))/length(unlist(spred))
+      expect_gte(frac_correct, 0.96)
     }
   }
 })
