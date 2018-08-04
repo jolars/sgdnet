@@ -80,15 +80,7 @@ double
 ColNormsMax(const Eigen::MatrixXd& x,
             const Eigen::ArrayXd&  x_center_scaled,
             const bool             standardize) {
-  // return x.colwise().squaredNorm().maxCoeff();
-  auto m = x.cols();
-
-  double norm_max = 0.0;
-  for (decltype(m) j = 0; j < m; ++j) {
-    norm_max = std::max(norm_max, x.col(j).squaredNorm());
-  }
-
-  return norm_max;
+  return x.colwise().squaredNorm().maxCoeff();
 }
 
 //' Preprocess data
