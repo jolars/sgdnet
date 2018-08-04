@@ -172,8 +172,6 @@ SetupSgdnet(T                 x,
   vector<double> deviance_ratio;
   deviance_ratio.reserve(n_lambda);
 
-  // Rcpp::stop("here");
-
   // Fit the path of penalty values
   for (unsigned lambda_ind = 0; lambda_ind < n_lambda; ++lambda_ind) {
     vector<double> losses;
