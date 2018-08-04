@@ -57,18 +57,38 @@ StepSize(const double               max_squared_sum,
 //' @param x A Eigen matrix of sparse or dense type.
 //'
 //' @return The maximum squared norm over columns (samples).
-template <typename T>
-inline
 double
-ColNormsMax(const T& x)
+ColNormsMax(const Eigen::SparseMatrix<double>& x,
+            const Eigen::ArrayXd&              x_center_scaled,
+            const bool                         standardize)
 {
   auto m = x.cols();
 
-  double cn_max = 0.0;
-  for (decltype(m) j = 0; j < m; ++j)
-    cn_max = std::max(cn_max, x.col(j).squaredNorm());
+  double norm_max = 0.0;
+  for (decltype(m) j = 0; j < m; ++j) {
+    double norm =
+      standardize ? (x.col(j) - x_center_scaled.matrix()).squaredNorm()
+                  : x.col(j).squaredNorm();
 
-  return cn_max;
+    norm_max = std::max(norm_max, norm);
+  }
+
+  return norm_max;
+}
+
+double
+ColNormsMax(const Eigen::MatrixXd& x,
+            const Eigen::ArrayXd&  x_center_scaled,
+            const bool             standardize) {
+  // return x.colwise().squaredNorm().maxCoeff();
+  auto m = x.cols();
+
+  double norm_max = 0.0;
+  for (decltype(m) j = 0; j < m; ++j) {
+    norm_max = std::max(norm_max, x.col(j).squaredNorm());
+  }
+
+  return norm_max;
 }
 
 //' Preprocess data
@@ -76,6 +96,8 @@ ColNormsMax(const T& x)
 //' @param x feature matrix, sparse or dense
 //' @param x_center a vector of offsets for each feature
 //' @param x_scale a vector of scaling factors (l2 norms) for each vector
+//' @param x_mod mean/stddev to be used for in-lace standardization in the
+//'   sparse implementation
 //'
 //' @return Modifies `x`, (possibly) `x_center`, and `x_scale`.
 void
@@ -94,15 +116,12 @@ PreprocessFeatures(Eigen::SparseMatrix<double>& x,
                    Eigen::ArrayXd&              x_center,
                    Eigen::ArrayXd&              x_scale)
 {
-  auto m = x.cols();
+  x_center = Mean(x);
+  x_scale = StandardDeviation(x, x_center);
 
-  x_scale = StandardDeviation(x);
-
-  for (decltype(m) j = 0; j < m; ++j) {
-    for (Eigen::SparseMatrix<double>::InnerIterator x_it(x, j); x_it; ++x_it) {
-      x_it.valueRef() /= x_scale(j);
-    }
-  }
+  for (decltype(x.cols()) j = 0; j < x.cols(); ++j)
+    for (Eigen::SparseMatrix<double>::InnerIterator it(x, j); it; ++it)
+      it.valueRef() /= x_scale(j);
 }
 
 //' Compute Regularization Path
@@ -217,21 +236,29 @@ EpochLoss(const T&               x,
 //'   against the largest relative change.
 //'
 //' @return `true` if the algorithm converged, `false` otherwise.
-bool
-CheckConvergence(const Eigen::ArrayXXd& w,
-                 Eigen::ArrayXXd&       w_previous,
-                 const double           tol)
-{
-  double max_change = (w - w_previous).abs().maxCoeff();
-  double max_weight = w.abs().maxCoeff();
+struct ConvergenceCheck {
 
-  bool all_zero  = (max_weight == 0.0) && (max_change == 0.0);
-  bool no_change = (max_weight != 0.0) && (max_change/max_weight <= tol);
+  ConvergenceCheck(const Eigen::ArrayXXd& w, const double tol)
+                   : w_prev(w), tol(tol) {}
 
-  w_previous = w;
+  bool
+  operator()(const Eigen::ArrayXXd& w_new)
+  {
+    double max_change = (w_new - w_prev).abs().maxCoeff();
+    double max_size   = w_new.abs().maxCoeff();
 
-  return all_zero || no_change;
-}
+    bool all_zero  = (max_size == 0.0) && (max_change == 0.0);
+    bool no_change = (max_size != 0.0) && (max_change/max_size <= tol);
+
+    w_prev = w_new;
+
+    return all_zero || no_change;
+  }
+
+private:
+  Eigen::ArrayXXd w_prev;
+  const double    tol;
+};
 
 //' Adapative transposing of feature matrix
 //'
@@ -291,6 +318,7 @@ Deviance(const T&               x,
     linear_predictor = (w.matrix() * x.col(s_ind)).array() + intercept;
     loss += family.Loss(linear_predictor, y, s_ind);
   }
+
   return 2.0 * loss;
 }
 
@@ -327,15 +355,17 @@ Rescale(Eigen::ArrayXXd               weights,
   auto m = weights.cols();
   auto p = weights.rows();
 
-  Eigen::ArrayXd x_scale_prod = Eigen::ArrayXd::Zero(p);
+  Eigen::ArrayXd x_bar_beta_sum = Eigen::ArrayXd::Zero(p);
+
+  // Rcpp::Rcout << intercept[0] << std::endl;
 
   for (decltype(p) j = 0; j < m; ++j) {
     weights.col(j) *= y_scale/x_scale(j);
-    x_scale_prod += x_center(j)*weights.col(j);
+    x_bar_beta_sum += x_center(j)*weights.col(j);
   }
 
   if (fit_intercept)
-    intercept = intercept*y_scale + y_center - x_scale_prod;
+    intercept = intercept*y_scale + y_center - x_bar_beta_sum;
 
   weights_archive.emplace_back(std::move(weights));
   intercept_archive.emplace_back(std::move(intercept));
