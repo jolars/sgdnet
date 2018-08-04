@@ -52,7 +52,7 @@ StepSize(const double               max_squared_sum,
 
 //' Computes the squared norm over samples
 //'
-//' These samples are expected to be in columns here.
+//' The samples are expected to be in columns here.
 //'
 //' @param x A Eigen matrix of sparse or dense type.
 //'
@@ -72,6 +72,9 @@ ColNormsMax(const T& x)
 }
 
 //' Preprocess data
+//'
+//' Note that we expect samples to have been stored by rows at the point
+//' of calling this function
 //'
 //' @param x feature matrix, sparse or dense
 //' @param x_center a vector of offsets for each feature
@@ -116,8 +119,8 @@ PreprocessFeatures(Eigen::SparseMatrix<double>& x,
 //' @param n_samples number of samples
 //' @param lambda_min_ratio smallest lambda_min_ratio
 //' @param elasticnet_mix ratio of l1 penalty to l2. Same as alpha in glmnet.
-//' @param x feature matrix
-//' @param y response matrix
+//' @param x feature matrix, samples stored in rows
+//' @param y response matrix, samples stored in rows
 //' @param y_scale scaling factor for the response matrix
 //' @param alpha l2-penalty
 //' @param beta l1-penalty
@@ -263,7 +266,7 @@ AdaptiveTranspose(Eigen::MatrixXd& x)
 //'
 //' Computes the deviance of the model given by `weights` and `intercept`.
 //'
-//' @param x a feature matrix (dense or sparse)
+//' @param x a feature matrix (dense or sparse), samples in columns
 //' @param weights a vector of coefficients
 //' @param intercept an intercept vector
 //' @param is_sparse whether x is sparse

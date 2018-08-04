@@ -28,28 +28,29 @@ public:
   Family(const double L_scaling) : L_scaling(L_scaling) {};
 
   void
-  Preprocess(Eigen::MatrixXd& y,
+  Preprocess(Eigen::MatrixXd& y, // samples in rows
              Eigen::ArrayXd&  y_center,
              Eigen::ArrayXd&  y_scale) noexcept;
 
   double
   Loss(const Eigen::ArrayXd&  linear_predictor,
-       const Eigen::MatrixXd& y,
+       const Eigen::MatrixXd& y, // samples in columns
        const unsigned         i) const noexcept;
 
   void
   Gradient(const Eigen::ArrayXd&  linear_predictor,
-           const Eigen::MatrixXd& y,
+           const Eigen::MatrixXd& y, // samples in columns
            const unsigned         i,
            Eigen::ArrayXd&        gradient) const noexcept;
 
   double
-  NullDeviance(const Eigen::MatrixXd& y,
+  NullDeviance(const Eigen::MatrixXd& y, // samples in rows
                const bool             fit_intercept) const noexcept;
+
 
   template <typename T>
   double
-  LambdaMax(const T&               x,
+  LambdaMax(const T&               x, // samples in rows
             const Eigen::MatrixXd& y,
             const Eigen::ArrayXd&  y_scale) const noexcept;
 
@@ -314,7 +315,6 @@ public:
        const Eigen::MatrixXd& y,
        const unsigned         i) const noexcept
   {
-
     return 0.5*(linear_predictor - y.array().col(i)).square().sum();
   }
 
