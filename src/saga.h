@@ -159,10 +159,9 @@ AddWeighted(Eigen::ArrayXXd&                   a,
             const bool                         standardize) noexcept
 {
   for (decltype(a.rows()) k = 0; k < a.rows(); ++k) {
+    a.row(k) += x.col(i)*g_change(k)*scaling;
     if (standardize)
-      a.row(k) += (x.col(i) - x_center_scaled.matrix())*g_change(k)*scaling;
-    else
-      a.row(k) += x.col(i)*g_change(k)*scaling;
+      a.row(k) -= x_center_scaled*g_change(k)*scaling;
   }
 }
 
@@ -322,13 +321,10 @@ Saga(const T&               x,
                    wscale,
                    penalty);
 
+      linear_predictor = (w.matrix() * x.col(s_ind)).array()*wscale + intercept;
+
       if (standardize)
-        linear_predictor =
-          (w.matrix() * (x.col(s_ind) - x_center_scaled.matrix())).array()*wscale
-          + intercept;
-      else
-        linear_predictor =
-          (w.matrix() * x.col(s_ind)).array()*wscale + intercept;
+        linear_predictor -= (w.matrix() * x_center_scaled.matrix()).array()*wscale;
 
       family.Gradient(linear_predictor, y, s_ind, g);
 
