@@ -47,10 +47,13 @@
 // OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 // DAMAGE.
 
+#define EIGEN_NO_DEBUG
+
 #include <RcppEigen.h>
 #include "utils.h"
 #include "families.h"
 #include "prox.h"
+#include "penalties.h"
 #include "saga.h"
 #include "math.h"
 #include <memory>
@@ -64,6 +67,7 @@
 //' @param x features
 //' @param y response
 //' @param family object of Family class
+//' @param penalty object of Penalty class
 //' @param is_sparse whether x is sparse or not
 //' @param control a list of control parameters
 //'
@@ -71,20 +75,21 @@
 //'
 //' @noRd
 //' @keywords internal
-template <typename T, typename Family>
-Rcpp::List SetupSgdnet(T                   x,
-                       std::vector<double> y,
-                       Family&&            family,
-                       const bool          is_sparse,
-                       const Rcpp::List&   control) {
+template <typename T, typename Family, typename Penalty>
+Rcpp::List
+SetupSgdnet(T                 x,
+            Eigen::MatrixXd   y,
+            Family&&          family,
+            Penalty&&         penalty,
+            const bool        is_sparse,
+            const Rcpp::List& control)
+{
   using namespace std;
-  using namespace sgdnet;
 
   const bool     fit_intercept    = Rcpp::as<bool>(control["intercept"]);
   const double   elasticnet_mix   = Rcpp::as<double>(control["elasticnet_mix"]);
   vector<double> lambda           = Rcpp::as<vector<double>>(control["lambda"]);
   const unsigned n_lambda         = Rcpp::as<unsigned>(control["n_lambda"]);
-  const unsigned n_targets        = Rcpp::as<unsigned>(control["n_targets"]);
   const unsigned n_classes        = Rcpp::as<unsigned>(control["n_classes"]);
   const double   lambda_min_ratio = Rcpp::as<double>(control["lambda_min_ratio"]);
   const bool     standardize      = Rcpp::as<bool>(control["standardize"]);
@@ -96,23 +101,17 @@ Rcpp::List SetupSgdnet(T                   x,
   auto n_features = x.cols();
 
   // Preprocess features
-  vector<double> x_center(n_features);
-  vector<double> x_scale(n_features, 1.0);
+  Eigen::ArrayXd x_center = Eigen::ArrayXd::Zero(n_features);
+  Eigen::ArrayXd x_scale  = Eigen::ArrayXd::Ones(n_features);
 
   if (standardize)
     PreprocessFeatures(x, x_center, x_scale);
 
-  // Transpose x for more efficient access of samples
-  AdaptiveTranspose(x);
-
   // Store null deviance here before processing response
-  double null_deviance = family.NullDeviance(y, fit_intercept, n_classes);
+  double null_deviance = family.NullDeviance(y.transpose(), fit_intercept);
 
-  // intercept updates are scaled to avoid oscillation
-  double intercept_decay = is_sparse ? 0.01 : 1.0;
-
-  std::vector<double> y_center(n_classes, 0.0);
-  std::vector<double> y_scale(n_classes, 1.0);
+  Eigen::ArrayXd y_center = Eigen::ArrayXd::Zero(n_classes);
+  Eigen::ArrayXd y_scale  = Eigen::ArrayXd::Ones(n_classes);
   family.Preprocess(y, y_center, y_scale);
 
   // Compute the lambda sequence
@@ -131,28 +130,32 @@ Rcpp::List SetupSgdnet(T                   x,
                      beta,
                      family);
 
+  // Transpose for more efficient access of samples
+  AdaptiveTranspose(x);
+  AdaptiveTranspose(y);
+
   vector<double> step_size = StepSize(ColNormsMax(x),
                                       alpha,
                                       fit_intercept,
                                       family.L_scaling,
                                       n_samples);
 
-  // Check if we need the nontrivial prox
-  // TODO(jolars): allow more proximal operators
-  sgdnet::SoftThreshold prox;
+  // intercept updates are scaled to avoid oscillation
+  double intercept_decay = is_sparse ? 0.01 : 1.0;
 
-  // Setup intercept vector
-  vector<double> intercept(n_classes);
-  vector<vector<double>> intercept_archive;
+  // Intercept
+  Eigen::ArrayXd intercept = Eigen::ArrayXd::Zero(n_classes);
+  vector<Eigen::ArrayXd> intercept_archive;
 
-  // Setup weights matrix and weights archive
-  vector<double> weights(n_features*n_classes);
-  vector<vector<double>> weights_archive;
+  // Coefficients
+  Eigen::ArrayXXd weights = Eigen::ArrayXXd::Zero(n_classes, n_features);
+  vector<Eigen::ArrayXXd> weights_archive;
 
   // Initialize gradient trackers
-  vector<double> g_memory(n_samples*n_classes);
-  vector<double> g_sum(n_features*n_classes);
-  vector<double> g_sum_intercept(n_classes);
+  Eigen::ArrayXd g_sum_intercept = Eigen::ArrayXd::Zero(n_classes);
+
+  Eigen::ArrayXXd g_memory = Eigen::ArrayXXd::Zero(n_classes, n_samples);
+  Eigen::ArrayXXd g_sum    = Eigen::ArrayXXd::Zero(n_classes, n_features);
 
   // Keep keep track of successes for each penalty
   vector<unsigned> return_codes;
@@ -160,13 +163,12 @@ Rcpp::List SetupSgdnet(T                   x,
   // Setup a vector of loss vectors to return upon exit
   vector<vector<double>> losses_archive;
 
-  // Keep track of number of iteratios per penalty
+  // Keep track of number of iterations per penalty
   unsigned n_iter = 0;
 
   // Null deviance on scaled y for computing deviance ratio
-  double null_deviance_scaled = family.NullDeviance(y,
-                                                    fit_intercept,
-                                                    n_classes);
+  double null_deviance_scaled = family.NullDeviance(y, fit_intercept);
+
   vector<double> deviance_ratio;
   deviance_ratio.reserve(n_lambda);
 
@@ -181,7 +183,7 @@ Rcpp::List SetupSgdnet(T                   x,
          intercept_decay,
          weights,
          family,
-         prox,
+         penalty,
          step_size[lambda_ind],
          alpha[lambda_ind],
          beta[lambda_ind],
@@ -218,8 +220,6 @@ Rcpp::List SetupSgdnet(T                   x,
             x_scale,
             y_center,
             y_scale,
-            n_features,
-            n_classes,
             fit_intercept);
 
     if (debug)
@@ -238,36 +238,113 @@ Rcpp::List SetupSgdnet(T                   x,
   );
 }
 
-template <typename T>
-Rcpp::List SetupFamily(const T&                   x,
-                       const std::vector<double>& y,
-                       const bool                 is_sparse,
-                       const Rcpp::List&          control) {
-
+//' Setup penalty
+//'
+//' This function serves as a portal to SetupSgdnet to provide
+//' a Penalty object to template on
+//'
+//' @param x predictor matrix
+//' @param y response matrix
+//' @param family Object of family class
+//' @param is_sparse whether or not x is sparse
+//' @param control a Rcpp::List of control parameters
+//'
+//' @return The final fitted object.
+//' @noRd
+template <typename T, typename Family>
+Rcpp::List
+SetupPenalty(const T&               x,
+             const Eigen::MatrixXd& y,
+             Family&&               family,
+             const bool             is_sparse,
+             const                  Rcpp::List& control)
+{
+  auto elasticnet_mix = Rcpp::as<double>(control["elasticnet_mix"]);
   auto family_choice = Rcpp::as<std::string>(control["family"]);
-  auto n_classes = Rcpp::as<unsigned>(control["n_classes"]);
-  auto n_samples = x.rows();
+  auto type_multinomial = Rcpp::as<std::string>(control["type_multinomial"]);
+
+  bool group_lasso =
+    family_choice == "mgaussian"
+    || (family_choice == "multinomial" && type_multinomial == "grouped");
+
+  if (elasticnet_mix == 0.0) {
+    sgdnet::Ridge penalty;
+    return SetupSgdnet(x,
+                       y,
+                       std::move(family),
+                       std::move(penalty),
+                       is_sparse,
+                       control);
+
+  } else if (group_lasso) {
+      sgdnet::GroupLasso penalty;
+      return SetupSgdnet(x,
+                         y,
+                         std::move(family),
+                         std::move(penalty),
+                         is_sparse,
+                         control);
+  } else {
+    sgdnet::ElasticNet penalty;
+    return SetupSgdnet(x,
+                       y,
+                       std::move(family),
+                       std::move(penalty),
+                       is_sparse,
+                       control);
+  }
+
+  return Rcpp::List::create();
+}
+
+//' Setup family
+//'
+//' This function serves as a portal to SetupSgdnet to provide
+//' a Family object to template but first passes the result on to SetupPenalty
+//'
+//' @param x predictor matrix
+//' @param y response matrix
+//' @param family Object of family class
+//' @param is_sparse whether or not x is sparse
+//' @param control a Rcpp::List of control parameters
+//' @noRd
+template <typename T>
+Rcpp::List
+SetupFamily(const T&               x,
+            const Eigen::MatrixXd& y,
+            const bool             is_sparse,
+            const Rcpp::List&      control)
+{
+  auto family_choice = Rcpp::as<std::string>(control["family"]);
 
   if (family_choice == "gaussian") {
 
     sgdnet::Gaussian family;
-    return SetupSgdnet(x, y, std::move(family), is_sparse, control);
+    return SetupPenalty(x, y, std::move(family), is_sparse, control);
 
   } else if (family_choice == "binomial") {
 
     sgdnet::Binomial family;
-    return SetupSgdnet(x, y, std::move(family), is_sparse, control);
+    return SetupPenalty(x, y, std::move(family), is_sparse, control);
 
   } else if (family_choice == "multinomial") {
 
-    sgdnet::Multinomial family;
-    return SetupSgdnet(x, y, std::move(family), is_sparse, control);
+    auto n_classes = Rcpp::as<unsigned>(control["n_classes"]);
 
-  } else {
+    sgdnet::Multinomial family{n_classes};
+    return SetupPenalty(x, y, std::move(family), is_sparse, control);
 
-    return Rcpp::List::create();
+  } else if (family_choice == "mgaussian") {
+
+    auto standardize_response = Rcpp::as<bool>(control["standardize_response"]);
+
+    sgdnet::MultivariateGaussian family{standardize_response};
+    return SetupPenalty(x, y, std::move(family), is_sparse, control);
 
   }
+
+  // return empty list, should not end up here
+  return Rcpp::List::create();
 }
 
 //' Fit a Model with sgdnet
@@ -282,7 +359,7 @@ Rcpp::List SetupFamily(const T&                   x,
 //' @param control a list of control parameters
 //'
 //' @return A list of
-//'   * ao: the intercept,
+//'   * a0: the intercept,
 //'   * beta: the weights,
 //'   * losses: the loss at each outer iteration per fit,
 //'   * npasses: the number of effective passes (epochs) accumulated over,
@@ -291,18 +368,22 @@ Rcpp::List SetupFamily(const T&                   x,
 //'     converged, 1 means that `max_iter` was reached before the algorithm
 //'     converged.
 //
-//' @keywords internal
 //' @noRd
 // [[Rcpp::export]]
-Rcpp::List SgdnetDense(const Eigen::MatrixXd&     x,
-                       const std::vector<double>& y,
-                       const Rcpp::List&          control) {
+Rcpp::List
+SgdnetDense(const Eigen::MatrixXd& x,
+            const Eigen::MatrixXd& y,
+            const Rcpp::List&      control)
+{
   return SetupFamily(x, y, false, control);
 }
 
+//' @noRd
 // [[Rcpp::export]]
-Rcpp::List SgdnetSparse(const Eigen::SparseMatrix<double>& x,
-                        const std::vector<double>&         y,
-                        const Rcpp::List&                  control) {
+Rcpp::List
+SgdnetSparse(const Eigen::SparseMatrix<double>& x,
+             const Eigen::MatrixXd&             y,
+             const Rcpp::List&                  control)
+{
   return SetupFamily(x, y, true, control);
 }
