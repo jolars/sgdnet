@@ -3,9 +3,6 @@ context("sparse and dense comparisons")
 test_that("sparse and dense implementations return equivalent results", {
   set.seed(1)
 
-  # TODO(jolars): test for sparse features with standardization once in-place
-  # centering has been implemented
-
   n <- 100
   p <- 2
 
@@ -23,27 +20,23 @@ test_that("sparse and dense implementations return equivalent results", {
       family = grid$family[i],
       intercept = grid$intercept[i],
       alpha = grid$alpha[i],
-      thresh = 1e-5
+      nlambda = 20
     )
 
     x_sparse <- Matrix::rsparsematrix(n, p, density = 0.2)
-    if (pars$standardize) {
-      x_sparse <- Matrix::Matrix(apply(x_sparse,
-                                       2,
-                                       function(x) x/sqrt(var(x)*(n - 1)/n)),
-                                 sparse = TRUE)
-    }
     x_dense <- as.matrix(x_sparse)
 
     pars$y <- switch(pars$family,
                      gaussian = rnorm(n, 10, 2),
                      binomial = rbinom(n, 1, 0.8),
                      multinomial = rbinom(n, 3, 0.5),
-                     mgaussian = cbind(rnorm(n, -10), rnorm(n, 10)))
+                     mgaussian = cbind(rnorm(n, -10, 5), rnorm(n, 100, 2)))
 
+    set.seed(i)
     fit_dense <- do.call(sgdnet, modifyList(pars, list(x = x_dense)))
+    set.seed(i)
     fit_sparse <- do.call(sgdnet, modifyList(pars, list(x = x_sparse)))
 
-    expect_equivalent(coef(fit_dense), coef(fit_sparse), tol = 1e-5)
+    expect_equivalent(coef(fit_sparse), coef(fit_dense), tol = 1e-3)
   }
 })
