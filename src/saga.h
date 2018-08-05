@@ -349,8 +349,8 @@ Saga(const T&               x,
       // Update coefficients (w) with sparse step (with L2 scaling)
       if (fit_intercept) {
         g_sum_intercept += g_change/n_samples;
-        intercept -= gamma*g_sum_intercept*intercept_decay
-                     + gamma*g_change/n_samples;
+        intercept -=
+          gamma*(g_sum_intercept*intercept_decay + g_change/n_samples);
       }
 
       AddWeighted(w,
