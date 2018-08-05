@@ -198,6 +198,7 @@ RegularizationPath(std::vector<double>&   lambda,
 template <typename T, typename Family>
 double
 EpochLoss(const T&               x,
+          const Eigen::ArrayXd&  x_center_scaled,
           const Eigen::MatrixXd& y,
           const Eigen::ArrayXXd& w,
           const Eigen::ArrayXd&  intercept,
@@ -206,7 +207,9 @@ EpochLoss(const T&               x,
           const double           beta,
           const unsigned         n_samples,
           const unsigned         n_features,
-          const unsigned         n_classes)
+          const unsigned         n_classes,
+          const bool             is_sparse,
+          const bool             standardize)
 {
   Eigen::ArrayXd linear_predictor(n_classes);
 
@@ -214,6 +217,8 @@ EpochLoss(const T&               x,
 
   for (unsigned s_ind = 0; s_ind < n_samples; ++s_ind) {
     linear_predictor = (w.matrix() * x.col(s_ind)).array() + intercept;
+    if (standardize && is_sparse)
+      linear_predictor -= (w.matrix() * x_center_scaled.matrix()).array();
     loss += family.Loss(linear_predictor, y, s_ind)/n_samples;
   }
 
@@ -298,24 +303,31 @@ AdaptiveTranspose(Eigen::MatrixXd& x)
 template <typename T, typename Family>
 double
 Deviance(const T&               x,
+         const Eigen::ArrayXd&  x_center_scaled,
          const Eigen::MatrixXd& y,
          const Eigen::ArrayXXd& w,
          const Eigen::ArrayXd&  intercept,
          const unsigned         n_samples,
          const unsigned         n_features,
          const unsigned         n_classes,
-         const Family&          family)
+         const Family&          family,
+         const bool             is_sparse,
+         const bool             standardize)
 {
   double loss = 0.0;
   Eigen::ArrayXd linear_predictor(n_classes);
 
   for (unsigned s_ind = 0; s_ind < n_samples; ++s_ind) {
     linear_predictor = (w.matrix() * x.col(s_ind)).array() + intercept;
+    if (standardize && is_sparse)
+      linear_predictor -= (w.matrix() * x_center_scaled.matrix()).array();
     loss += family.Loss(linear_predictor, y, s_ind);
   }
 
   return 2.0 * loss;
 }
+
+
 
 //' Rescale and store weights and intercept
 //'
@@ -351,8 +363,6 @@ Rescale(Eigen::ArrayXXd               weights,
   auto p = weights.rows();
 
   Eigen::ArrayXd x_bar_beta_sum = Eigen::ArrayXd::Zero(p);
-
-  // Rcpp::Rcout << intercept[0] << std::endl;
 
   for (decltype(p) j = 0; j < m; ++j) {
     weights.col(j) *= y_scale/x_scale(j);

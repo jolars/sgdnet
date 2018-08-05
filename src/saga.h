@@ -248,6 +248,7 @@ Saga(const T&               x,
      const Eigen::MatrixXd& y,
      Eigen::ArrayXd&        intercept,
      const bool             fit_intercept,
+     const bool             is_sparse,
      const bool             standardize,
      const double           intercept_decay,
      Eigen::ArrayXXd&       w,
@@ -399,6 +400,7 @@ Saga(const T&               x,
 
     if (debug) {
       double loss = EpochLoss(x,
+                              x_center_scaled,
                               y,
                               w,
                               intercept,
@@ -407,7 +409,9 @@ Saga(const T&               x,
                               beta,
                               n_samples,
                               n_features,
-                              n_classes);
+                              n_classes,
+                              is_sparse,
+                              standardize);
       losses.push_back(loss);
     }
 

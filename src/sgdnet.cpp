@@ -184,6 +184,7 @@ SetupSgdnet(T                 x,
          y,
          intercept,
          fit_intercept,
+         is_sparse,
          standardize,
          intercept_decay,
          weights,
@@ -206,13 +207,16 @@ SetupSgdnet(T                 x,
          debug);
 
     double deviance = Deviance(x,
+                               x_center_scaled,
                                y,
                                weights,
                                intercept,
                                n_samples,
                                n_features,
                                n_classes,
-                               family);
+                               family,
+                               is_sparse,
+                               standardize);
 
     deviance_ratio.emplace_back(1.0 - deviance/null_deviance_scaled);
 
