@@ -177,8 +177,41 @@ lambda_interpolate <- function(lambda, s) {
 refit <- function(object, s, ...) {
   if (!all(s %in% object$lambda)) {
     lambda <- unique(rev(sort(c(s, object$lambda))))
-    object <- stats::update(object, lambda = object$lambda, ...)
+
+    # TODO(jolars): should we require that the user specifies these arguments?
+    # check_dots(object, ...)
+    stats::update(object, lambda = lambda,...)
   }
+}
+
+#' Check that all the necessary arguments
+#'
+#' NOTE: Currently not used
+#'
+#' @param object fit from sgdnet()
+#' @param ... additional arguments
+#'
+#' @return Throws an exception if some arguments are missing from the call to
+#'   sgdnet.
+#'
+#' @author Jerome Friedman, Trevor Hastie, Rob Tibshirani, and Noah Simon
+#'
+#' @noRd
+#' @keywords internal
+check_dots <- function(object, ...) {
+  thiscall <- object$call
+  ncall <- names(thiscall)[-1]
+  needarg <- c("x", "y", "weights", "offset")
+  w <- match(ncall, needarg, 0)
+  needarg <- needarg[w]
+  nargs <- names(list(...))
+  w <- match(needarg, nargs, 0) > 0
+  if (!all(w)) {
+    margs <- needarg[!w]
+    stop("`exact = TRUE` requires that you provide these arguments from the call to sgdnet(): ",
+         paste(margs, collapse = ", "))
+  }
+  invisible()
 }
 
 #' Bind intercept with coefficients
@@ -304,6 +337,10 @@ interpolate_coefficients <- function(beta, s, lamlist) {
 #'         exact = TRUE,
 #'         type = "class")
 #'
+#' # Multivariate gaussian regression, predict nonzero coefficients
+#' fit_mgaussian <- sgdnet(student$x, student$y, family = "mgaussian")
+#' predict(fit_mgaussian, type = "nonzero")
+
 predict.sgdnet <- function(object,
                            newx = NULL,
                            s = NULL,
@@ -503,6 +540,26 @@ predict.sgdnet_multinomial <- function(object,
       apply(dp, 3, softmax)
     }
   )
+}
+
+#' @inherit predict.sgdnet
+#' @export
+#' @rdname predict.sgdnet
+predict.sgdnet_mgaussian <- function(object,
+                                     newx = NULL,
+                                     s = NULL,
+                                     type = c("link",
+                                              "response",
+                                              "coefficients",
+                                              "nonzero"),
+                                     exact = FALSE,
+                                     newoffset = NULL,
+                                     ...) {
+  type <- match.arg(type)
+  if (type == "response")
+    type <- "link"
+
+  predict.sgdnet_multinomial(object, newx, s, type, exact, newoffset, ...)
 }
 
 #' Extract Model Coefficients for sgdnet Model

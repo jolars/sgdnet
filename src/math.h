@@ -23,14 +23,13 @@
 //'
 //' @return `log(sum(exp(x)))` while avoiding over/underflow.
 template <typename T>
-inline double LogSumExp(const T& x) {
-  auto x_max = std::max_element(x.begin(), x.end());
-  double exp_sum = 0.0;
+inline
+double
+LogSumExp(const T& x) {
+  auto x_max = x.maxCoeff();
+  double exp_sum = (x - x_max).exp().sum();
 
-  for (auto x_i : x)
-    exp_sum += std::exp(x_i - (*x_max));
-
-  return std::log(exp_sum) + (*x_max);
+  return std::log(exp_sum) + x_max;
 }
 
 //' Log-spaced sequence
@@ -40,11 +39,12 @@ inline double LogSumExp(const T& x) {
 //' @param n number of elements
 //'
 //' @return a log-spaced sequence
-inline std::vector<double> LogSpace(const double from,
-                                    const double to,
-                                    const int    n) {
-  double log_from = std::log(from);
-  double step = (std::log(to) - log_from)/(n - 1);
+inline
+std::vector<double>
+LogSpace(const double from, const double to, const unsigned n) {
+
+  auto log_from = std::log(from);
+  auto step = (std::log(to) - log_from)/(n - 1);
 
   std::vector<double> out;
   out.reserve(n);
@@ -64,8 +64,18 @@ inline std::vector<double> LogSpace(const double from,
 //'
 //' @noRd
 template <typename T>
-inline double Mean(const T& x) {
-  return std::accumulate(x.begin(), x.end(), 0.0)/x.size();
+inline
+Eigen::ArrayXd
+Mean(const T& x) {
+  auto n = x.rows();
+  auto m = x.cols();
+
+  Eigen::ArrayXd x_bar(m);
+
+  for (decltype(m) j = 0; j < m; ++j)
+    x_bar(j) = x.col(j).sum()/n;
+
+  return x_bar;
 }
 
 //' Standard deviation
@@ -76,30 +86,77 @@ inline double Mean(const T& x) {
 //' @return The arithmetic mean.
 //'
 //' @noRd
-template <typename T>
-inline double StandardDeviation(const T& x, const double x_mean) {
-  double var = 0.0;
-  for (auto x_i : x)
-    var += std::pow(x_i - x_mean, 2)/x.size();
+inline
+Eigen::ArrayXd
+StandardDeviation(const Eigen::SparseMatrix<double>& x,
+                  const Eigen::ArrayXd&              x_bar)
+{
+  auto n = x.rows();
+  auto m = x.cols();
 
-  // Never return 0 standard deviation
-  return var == 0.0 ? 1.0 : std::sqrt(var);
+  Eigen::ArrayXd x_std(m);
+
+  for (decltype(m) j = 0; j < m; ++j) {
+
+    double var = 0.0;
+    for (Eigen::SparseMatrix<double>::InnerIterator x_itr(x, j); x_itr; ++x_itr)
+      var += std::pow(x_itr.value() - x_bar(j), 2)/n;
+
+    auto n_zeros = n - x.col(j).nonZeros();
+    var += n_zeros*x_bar(j)*x_bar(j)/n;
+
+    x_std(j) = (var == 0.0) ? 1.0 : std::sqrt(var);
+  }
+
+  return x_std;
+}
+
+inline
+Eigen::ArrayXd
+StandardDeviation(const Eigen::MatrixXd& x,
+                  const Eigen::ArrayXd&  x_bar)
+{
+  auto n = x.rows();
+  auto m = x.cols();
+
+  Eigen::ArrayXd x_std(m);
+
+  for (decltype(m) j = 0; j < m; ++j) {
+    double var = (x.col(j).array() - x_bar(j)).square().sum()/n;
+    x_std(j) = (var == 0.0) ? 1.0 : std::sqrt(var);
+  }
+
+  return x_std;
 }
 
 template <typename T>
-inline double StandardDeviation(const T& x) {
+inline
+Eigen::ArrayXd
+StandardDeviation(const T& x) {
   return StandardDeviation(x, Mean(x));
 }
 
 template <typename T>
-inline void Standardize(const T& x) {
-  auto x_mu = Mean(x);
-  auto x_sd = StandardDeviation(x, x_mu);
+inline
+void
+Standardize(T&                    x,
+            const Eigen::ArrayXd& x_bar,
+            const Eigen::ArrayXd& x_std)
+{
+  auto m = x.cols();
 
-  for (auto& x_i : x) {
-    x_i -= x_mu;
-    x_i /= x_sd;
-  }
+  for (decltype(m) j = 0; j < m; ++j)
+    x.col(j) = (x.col(j).array() - x_bar(j))/x_std(j);
+}
+
+template <typename T>
+inline
+void
+Standardize(T& x)
+{
+  auto x_bar = Mean(x);
+  auto x_std = StandardDeviation(x, x_bar);
+  Standardize(x, x_bar, x_std);
 }
 
 //' Clamp a value to [min, max]
@@ -108,7 +165,9 @@ inline void Standardize(const T& x) {
 //' @param max max
 //' @noRd
 template <typename T>
-inline T Clamp(const T& x, const T& min, const T& max) {
+inline
+T
+Clamp(const T& x, const T& min, const T& max) {
   return x > max ? max : (x < min ? min : x);
 }
 
@@ -123,20 +182,18 @@ inline T Clamp(const T& x, const T& min, const T& max) {
 //' @return A
 //' @noRd
 template <typename T>
-inline std::vector<double> Proportions(const T& x, const unsigned n_classes) {
-  std::vector<double> proportions(n_classes);
+inline
+Eigen::ArrayXd
+Proportions(const T&       y,
+            const unsigned n_classes)
+{
+  Eigen::ArrayXd proportions = Eigen::ArrayXd::Zero(n_classes);
+  auto n = y.cols();
 
-  // Count up all unique values
-  for (auto x_i : x) {
-    unsigned y_i = static_cast<unsigned>(x_i + 0.5);
-    proportions[y_i] += 1.0;
+  for (decltype(n) i = 0; i < n; ++i) {
+    auto c = static_cast<decltype(n)>(y(i) + 0.5);
+    proportions(c) += 1.0/n;
   }
-
-  // Turn into proportions
-  auto n = static_cast<double>(x.size());
-
-  for (auto& proportions_i : proportions)
-    proportions_i /= n;
 
   return proportions;
 }

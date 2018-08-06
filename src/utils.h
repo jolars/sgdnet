@@ -21,88 +21,90 @@
 #include "families.h"
 #include "math.h"
 
+//' Compute step size for SAGA
+//'
+//' @param max_squared_sum the maximum of the squared norm over samples
+//' @param alpha the amount of L1 regularization
+//' @param fit_intercept whether the intercept should be fit
+//' @param L_scaling scaling factor for the lipschitz constant (L)
+//' @param n_samples number of samples
+std::vector<double>
+StepSize(const double               max_squared_sum,
+         const std::vector<double>& alpha,
+         const bool                 fit_intercept,
+         const double               L_scaling,
+         const unsigned             n_samples)
+{
+  // Lipschitz constant approximation
+  std::vector<double> step_sizes;
+  step_sizes.reserve(alpha.size());
+
+  for (auto alpha_i : alpha) {
+    double L =
+      (max_squared_sum + static_cast<double>(fit_intercept))*L_scaling
+      + alpha_i;
+
+    double mu_n = 2.0*n_samples*alpha_i;
+    step_sizes.emplace_back(1.0 / (2.0*L + std::min(L, mu_n)));
+  }
+  return step_sizes;
+}
+
 //' Computes the squared norm over samples
 //'
-//' These samples are expected to be in columns here.
+//' The samples are expected to be in columns here.
 //'
 //' @param x A Eigen matrix of sparse or dense type.
 //'
 //' @return The maximum squared norm over columns (samples).
 template <typename T>
-inline double ColNormsMax(const T& x) {
-  double cn_max = 0.0;
+inline
+double
+ColNormsMax(const T& x)
+{
+  auto m = x.cols();
 
-  for (unsigned i = 0; i < x.cols(); ++i)
-    cn_max = std::max(cn_max, x.col(i).squaredNorm());
+  double cn_max = 0.0;
+  for (decltype(m) j = 0; j < m; ++j)
+    cn_max = std::max(cn_max, x.col(j).squaredNorm());
 
   return cn_max;
 }
 
 //' Preprocess data
 //'
+//' Note that we expect samples to have been stored by rows at the point
+//' of calling this function
+//'
 //' @param x feature matrix, sparse or dense
 //' @param x_center a vector of offsets for each feature
 //' @param x_scale a vector of scaling factors (l2 norms) for each vector
 //'
-//' @return Modifies `x_center` and `x_scale`.
-void PreprocessFeatures(Eigen::MatrixXd&     x,
-                        std::vector<double>& x_center,
-                        std::vector<double>& x_scale) {
+//' @return Modifies `x`, (possibly) `x_center`, and `x_scale`.
+void
+PreprocessFeatures(Eigen::MatrixXd& x,
+                   Eigen::ArrayXd&  x_center,
+                   Eigen::ArrayXd&  x_scale)
+{
+  x_center = Mean(x);
+  x_scale = StandardDeviation(x, x_center);
 
-  // Center feature matrix with mean
-  auto n_features = x.cols();
-  auto n_samples = x.rows();
-
-  for (unsigned f_ind = 0; f_ind < n_features; ++f_ind) {
-
-    double x_col_mu = x.col(f_ind).sum()/n_samples;
-
-    x_center[f_ind] = x_col_mu;
-
-    for (unsigned s_ind = 0; s_ind < n_samples; ++s_ind)
-      x.coeffRef(s_ind, f_ind) -= x_col_mu;
-
-    double var = 0.0;
-    for (unsigned s_ind = 0; s_ind < n_samples; ++s_ind)
-      var += x(s_ind, f_ind)*x(s_ind, f_ind)/n_samples;
-
-    double x_col_sd = std::sqrt(var);
-    if (x_col_sd == 0.0) x_col_sd = 1.0;
-
-    for (unsigned s_ind = 0; s_ind < n_samples; ++s_ind)
-      x.coeffRef(s_ind, f_ind) /= x_col_sd;
-
-    x_scale[f_ind] = x_col_sd;
-  }
+  Standardize(x, x_center, x_scale);
 }
 
-void PreprocessFeatures(Eigen::SparseMatrix<double>& x,
-                        std::vector<double>&         x_center,
-                        std::vector<double>&         x_scale) {
-  auto n_features = x.cols();
-  auto n_samples = x.rows();
+void
+PreprocessFeatures(Eigen::SparseMatrix<double>& x,
+                   Eigen::ArrayXd&              x_center,
+                   Eigen::ArrayXd&              x_scale)
+{
+  auto m = x.cols();
 
-  // Center feature matrix with mean
-  for (unsigned f_ind = 0; f_ind < n_features; ++f_ind) {
+  x_scale = StandardDeviation(x);
 
-    double x_col_mu = x.col(f_ind).sum()/n_samples;
-
-    // no centering for sparse matrices
-    x_center[f_ind] = 0.0;
-
-    double var = 0.0;
-    for (Eigen::SparseMatrix<double>::InnerIterator it(x, f_ind); it; ++it)
-      var += std::pow(it.value() - x_col_mu, 2)/n_samples;
-    auto n_zeros = n_samples - x.col(f_ind).nonZeros();
-    var += n_zeros*x_col_mu*x_col_mu/n_samples;
-
-    auto x_col_sd = std::sqrt(var);
-    if (x_col_sd == 0.0) x_col_sd = 1.0;
-
-    for (Eigen::SparseMatrix<double>::InnerIterator it(x, f_ind); it; ++it)
-      it.valueRef() /= x_col_sd;
-
-    x_scale[f_ind] = x_col_sd;
+  for (decltype(m) j = 0; j < m; ++j) {
+    for (Eigen::SparseMatrix<double>::InnerIterator x_it(x, j); x_it; ++x_it) {
+      x_it.valueRef() /= x_scale(j);
+    }
   }
 }
 
@@ -113,40 +115,36 @@ void PreprocessFeatures(Eigen::SparseMatrix<double>& x,
 //'
 //' @param lambda lambda values in input -- empty by default
 //' @param n_lambda required number of penalties
+//' @param n_classes number of classes
+//' @param n_samples number of samples
 //' @param lambda_min_ratio smallest lambda_min_ratio
 //' @param elasticnet_mix ratio of l1 penalty to l2. Same as alpha in glmnet.
-//' @param x feature matrix
+//' @param x feature matrix, samples stored in rows
+//' @param y response matrix, samples stored in rows
+//' @param y_scale scaling factor for the response matrix
 //' @param alpha l2-penalty
 //' @param beta l1-penalty
 //' @param family pointer to respone type family class object
 //'
 //' @return lambda, alpha and beta are updated.
 template <typename T, typename Family>
-void RegularizationPath(std::vector<double>& lambda,
-                        const unsigned       n_lambda,
-                        const double         lambda_min_ratio,
-                        const double         elasticnet_mix,
-                        const T&             x,
-                        std::vector<double>& alpha,
-                        std::vector<double>& beta,
-                        Family&              family) {
-  double lambda_scaling = family.lambda_scaling;
-
+void
+RegularizationPath(std::vector<double>&   lambda,
+                   const unsigned         n_lambda,
+                   const unsigned         n_classes,
+                   const unsigned         n_samples,
+                   const double           lambda_min_ratio,
+                   const double           elasticnet_mix,
+                   const T&               x,
+                   const Eigen::MatrixXd& y,
+                   const Eigen::ArrayXd&  y_scale,
+                   std::vector<double>&   alpha,
+                   std::vector<double>&   beta,
+                   const Family&          family)
+{
   if (lambda.empty()) {
-    Eigen::MatrixXd inner_products = family.y_mat.transpose() * x.transpose();
-
-    double max_coeff = 0.0;
-
-    for (unsigned i = 0; i < inner_products.cols(); ++i) {
-      for (unsigned j = 0; j < inner_products.rows(); ++j) {
-        max_coeff =
-          std::max(std::abs(inner_products(j, i)*family.y_mat_scale[j]),
-                   max_coeff);
-      }
-    }
-
     double lambda_max =
-      max_coeff/(std::max(elasticnet_mix, 0.001)*family.n_samples);
+      family.LambdaMax(x, y, y_scale)/std::max(elasticnet_mix, 0.001);
 
     if (lambda_max != 0.0)
       lambda = LogSpace(lambda_max, lambda_max*lambda_min_ratio, n_lambda);
@@ -157,13 +155,15 @@ void RegularizationPath(std::vector<double>& lambda,
   alpha.reserve(n_lambda);
   beta.reserve(n_lambda);
 
+  double max_scale = y_scale.maxCoeff();
+
   // The algorithm uses a different penalty construction than
   // glmnet, so convert lambda values to match alpha and beta from scikit-learn.
   for (double& lambda_i : lambda) {
     // Scaled L2 penalty
-    alpha.emplace_back((1.0 - elasticnet_mix)*lambda_i/lambda_scaling);
+    alpha.emplace_back((1.0 - elasticnet_mix)*lambda_i/max_scale);
     // Scaled L1 penalty
-    beta.emplace_back(elasticnet_mix*lambda_i/lambda_scaling);
+    beta.emplace_back(elasticnet_mix*lambda_i/max_scale);
     // Rescale lambda so to return to user on the scale of y
   }
 }
@@ -171,7 +171,8 @@ void RegularizationPath(std::vector<double>& lambda,
 //' Loss for the current epoch
 //'
 //' @param x feature matrix
-//' @param weights coefficients
+//' @param y response matrix
+//' @param w coefficients
 //' @param intercept the intercept
 //' @param family a Family class object for the current response type
 //' @param alpha scaled l2-penalty
@@ -179,33 +180,30 @@ void RegularizationPath(std::vector<double>& lambda,
 //' @param n_samples number of samples
 //' @param n_features number of features
 //' @param n_classes number of pseudo-classes
-//' @param losses loss vector, which the current loss vector will be
-//'   appended to
 //'
 //' @return The loss of the current epoch is appended to `losses`.
 //'
 //' @noRd
 template <typename T, typename Family>
-double EpochLoss(const T&                   x,
-                 const std::vector<double>& w,
-                 Family&                    family,
-                 const double               alpha,
-                 const double               beta,
-                 const unsigned             n_samples,
-                 const unsigned             n_features) {
+double
+EpochLoss(const T&               x,
+          const Eigen::MatrixXd& y,
+          const Eigen::ArrayXXd& w,
+          const Eigen::ArrayXd&  intercept,
+          const Family&          family,
+          const double           alpha,
+          const double           beta,
+          const unsigned         n_samples,
+          const unsigned         n_features,
+          const unsigned         n_classes)
+{
+  Eigen::ArrayXd linear_predictor(n_classes);
 
   double loss = 0.0;
-  double l1_norm = 0.0;
-  double l2_norm_squared = 0.0;
-
-  for (auto w_i : w) {
-    l1_norm += std::abs(w_i);
-    l2_norm_squared += w_i*w_i;
-  }
 
   for (unsigned s_ind = 0; s_ind < n_samples; ++s_ind) {
-    family.Predict(w, 1.0, n_features, s_ind, x);
-    loss += family.Loss(s_ind)/n_samples;
+    linear_predictor = (w.matrix() * x.col(s_ind)).array() + intercept;
+    loss += family.Loss(linear_predictor, y, s_ind)/n_samples;
   }
 
   return loss;
@@ -222,21 +220,18 @@ double EpochLoss(const T&                   x,
 //'   against the largest relative change.
 //'
 //' @return `true` if the algorithm converged, `false` otherwise.
-bool CheckConvergence(const std::vector<double>& w,
-                      std::vector<double>&       w_previous,
-                      const double               tol) {
-
-  double max_change = 0.0;
-  double max_weight = 0.0;
-
-  for (unsigned i = 0; i < w.size(); ++i) {
-    max_weight = std::max(max_weight, std::abs(w[i]));
-    max_change = std::max(max_change, std::abs(w[i] - w_previous[i]));
-    w_previous[i] = w[i];
-  }
+bool
+CheckConvergence(const Eigen::ArrayXXd& w,
+                 Eigen::ArrayXXd&       w_previous,
+                 const double           tol)
+{
+  double max_change = (w - w_previous).abs().maxCoeff();
+  double max_weight = w.abs().maxCoeff();
 
   bool all_zero  = (max_weight == 0.0) && (max_change == 0.0);
   bool no_change = (max_weight != 0.0) && (max_change/max_weight <= tol);
+
+  w_previous = w;
 
   return all_zero || no_change;
 }
@@ -253,11 +248,17 @@ bool CheckConvergence(const std::vector<double>& w,
 //'
 //' @keywords internal
 //' @noRd
-inline void AdaptiveTranspose(Eigen::SparseMatrix<double>& x) {
+inline
+void
+AdaptiveTranspose(Eigen::SparseMatrix<double>& x)
+{
   x = x.transpose().eval();
 }
 
-inline void AdaptiveTranspose(Eigen::MatrixXd& x) {
+inline
+void
+AdaptiveTranspose(Eigen::MatrixXd& x)
+{
   x.transposeInPlace();
 }
 
@@ -265,7 +266,7 @@ inline void AdaptiveTranspose(Eigen::MatrixXd& x) {
 //'
 //' Computes the deviance of the model given by `weights` and `intercept`.
 //'
-//' @param x a feature matrix (dense or sparse)
+//' @param x a feature matrix (dense or sparse), samples in columns
 //' @param weights a vector of coefficients
 //' @param intercept an intercept vector
 //' @param is_sparse whether x is sparse
@@ -276,19 +277,23 @@ inline void AdaptiveTranspose(Eigen::MatrixXd& x) {
 //'
 //' @return Returns the deviance.
 template <typename T, typename Family>
-double Deviance(const T&                   x,
-                const std::vector<double>& w,
-                const unsigned             n_samples,
-                const unsigned             n_features,
-                const unsigned             n_classes,
-                Family&                    family) {
+double
+Deviance(const T&               x,
+         const Eigen::MatrixXd& y,
+         const Eigen::ArrayXXd& w,
+         const Eigen::ArrayXd&  intercept,
+         const unsigned         n_samples,
+         const unsigned         n_features,
+         const unsigned         n_classes,
+         const Family&          family)
+{
   double loss = 0.0;
+  Eigen::ArrayXd linear_predictor(n_classes);
 
   for (unsigned s_ind = 0; s_ind < n_samples; ++s_ind) {
-    family.Predict(w, 1.0, n_features, s_ind, x);
-    loss += family.Loss(s_ind);
+    linear_predictor = (w.matrix() * x.col(s_ind)).array() + intercept;
+    loss += family.Loss(linear_predictor, y, s_ind);
   }
-
   return 2.0 * loss;
 }
 
@@ -311,63 +316,32 @@ double Deviance(const T&                   x,
 //'
 //' @return `weights` and `intercept` are rescaled and stored in weights_archive
 //'   and intercept_archive.
-void Rescale(std::vector<double>               weights,
-             std::vector<std::vector<double>>& weights_archive,
-             std::vector<double>               intercept,
-             std::vector<std::vector<double>>& intercept_archive,
-             const std::vector<double>&        x_center,
-             const std::vector<double>&        x_scale,
-             const std::vector<double>&        y_center,
-             const std::vector<double>&        y_scale,
-             const unsigned                    n_features,
-             const unsigned                    n_classes,
-             const bool                        fit_intercept) {
+void
+Rescale(Eigen::ArrayXXd               weights,
+        std::vector<Eigen::ArrayXXd>& weights_archive,
+        Eigen::ArrayXd                intercept,
+        std::vector<Eigen::ArrayXd>&  intercept_archive,
+        const Eigen::ArrayXd&         x_center,
+        const Eigen::ArrayXd&         x_scale,
+        const Eigen::ArrayXd&         y_center,
+        const Eigen::ArrayXd&         y_scale,
+        const bool                    fit_intercept)
+{
+  auto m = weights.cols();
+  auto p = weights.rows();
 
-  std::vector<double> x_scale_prod(n_classes);
-  for (unsigned f_ind = 0; f_ind < n_features; ++f_ind) {
-    for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind) {
-      unsigned idx = f_ind*n_classes + c_ind;
-      weights[idx] *= y_scale[c_ind]/x_scale[f_ind];
-      x_scale_prod[c_ind] += x_center[f_ind]*weights[idx];
-    }
+  Eigen::ArrayXd x_scale_prod = Eigen::ArrayXd::Zero(p);
+
+  for (decltype(p) j = 0; j < m; ++j) {
+    weights.col(j) *= y_scale/x_scale(j);
+    x_scale_prod += x_center(j)*weights.col(j);
   }
 
-  if (fit_intercept) {
-    for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind)
-      intercept[c_ind] =
-        intercept[c_ind]*y_scale[c_ind] + y_center[c_ind] - x_scale_prod[c_ind];
-  }
+  if (fit_intercept)
+    intercept = intercept*y_scale + y_center - x_scale_prod;
 
-  weights_archive.push_back(std::move(weights));
-  intercept_archive.push_back(std::move(intercept));
-}
-
-void Rescale(std::vector<double>               weights,
-             std::vector<std::vector<double>>& weights_archive,
-             double                            intercept,
-             std::vector<std::vector<double>>& intercept_archive,
-             const std::vector<double>&        x_center,
-             const std::vector<double>&        x_scale,
-             const std::vector<double>&        y_center,
-             const std::vector<double>&        y_scale,
-             const unsigned                    n_features,
-             const unsigned                    n_classes,
-             const bool                        fit_intercept) {
-
-  double x_scale_prod = 0.0;
-  for (unsigned f_ind = 0; f_ind < n_features; ++f_ind) {
-      weights[f_ind] *= y_scale[0]/x_scale[f_ind];
-      x_scale_prod += x_center[f_ind]*weights[f_ind];
-  }
-
-  if (fit_intercept) {
-    intercept = intercept*y_scale[0] + y_center[0] - x_scale_prod;
-  }
-
-  std::vector<double> intercept_vector(1, intercept);
-
-  weights_archive.push_back(std::move(weights));
-  intercept_archive.push_back(std::move(intercept_vector));
+  weights_archive.emplace_back(std::move(weights));
+  intercept_archive.emplace_back(std::move(intercept));
 }
 
 #endif // SGDNET_UTILS_

@@ -123,3 +123,84 @@ wine <- list(x = x, y = y)
 usethis::use_data(wine, overwrite = TRUE)
 
 
+# Student (multi-task) ----------------------------------------------------
+
+tmp_file <- tempfile()
+tmp_dir <- tempdir()
+
+download.file(
+  "https://archive.ics.uci.edu/ml/machine-learning-databases/00320/student.zip",
+  tmp_file
+)
+
+unzip(tmp_file, exdir = tmp_dir)
+
+d1 <-
+  read.table(file.path(tmp_dir, "student-mat.csv"), sep = ";", header = TRUE)
+d2 <-
+  read.table(file.path(tmp_dir, "student-por.csv"), sep = ";", header = TRUE)
+d3 <- merge(d1, d2, by = c("school",
+                           "sex",
+                           "age",
+                           "address",
+                           "famsize",
+                           "Pstatus",
+                           "Medu",
+                           "Fedu",
+                           "Mjob",
+                           "Fjob",
+                           "reason",
+                           "nursery",
+                           "internet"),
+            suffixes = c("_math", "_port"))
+y <- with(d3, cbind(G3_math, G3_port))
+x1 <- subset(d3,
+             select = c(
+               "school",
+               "sex",
+               "age",
+               "address",
+               "famsize",
+               "Pstatus",
+               "Medu",
+               "Fedu",
+               "Mjob",
+               "Fjob",
+               "reason",
+               "nursery",
+               "internet"
+             )
+)
+x1$famsize <- relevel(x1$famsize, ref = "LE3")
+x2 <- model.matrix(~ ., x1)[, -1]
+
+colnames(x2) <- c("school_ms",
+                  "sex",
+                  "age",
+                  "urban",
+                  "large_family",
+                  "cohabitation",
+                  "Medu",
+                  "Fedu",
+                  "Mjob_health",
+                  "Mjob_other",
+                  "Mjob_services",
+                  "Mjob_teacher",
+                  "Fjob_health",
+                  "Fjob_other",
+                  "Fjob_services",
+                  "Fjob_teacher",
+                  "reason_home",
+                  "reason_other",
+                  "reason_rep",
+                  "nusery",
+                  "internet")
+colnames(y) <- c("math", "portugese")
+
+student <- list(x = x2, y = y)
+
+usethis::use_data(student, overwrite = TRUE)
+
+unlink(tmp_file)
+
+

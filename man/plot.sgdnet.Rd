@@ -43,6 +43,9 @@ plot(bfit, xvar = "lambda", grid = TRUE)
 mfit <- sgdnet(iris[, 1:4], iris[, 5], family = "multinomial")
 plot(mfit, xvar = "dev", main = "Lassoing with sgdnet")
 
+# Multivariate gaussian regression
+mgfit <- sgdnet(student$x, student$y, family = "mgaussian")
+plot(mgfit, lty = 1:9, layout = c(1, 2))
 }
 \seealso{
 \code{\link[lattice:xyplot]{lattice::xyplot()}}, \code{\link[=sgdnet]{sgdnet()}}

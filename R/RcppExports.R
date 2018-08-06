@@ -8,7 +8,9 @@
 #' regularization path using warm starts for successive iterations.
 #'
 #' @param x features
-#' @param response the model family
+#' @param y response
+#' @param family object of Family class
+#' @param penalty object of Penalty class
 #' @param is_sparse whether x is sparse or not
 #' @param control a list of control parameters
 #'
@@ -16,6 +18,34 @@
 #'
 #' @noRd
 #' @keywords internal
+NULL
+
+#' Setup penalty
+#'
+#' This function serves as a portal to SetupSgdnet to provide
+#' a Penalty object to template on
+#'
+#' @param x predictor matrix
+#' @param y response matrix
+#' @param family Object of family class
+#' @param is_sparse whether or not x is sparse
+#' @param control a Rcpp::List of control parameters
+#'
+#' @return The final fitted object.
+#' @noRd
+NULL
+
+#' Setup family
+#'
+#' This function serves as a portal to SetupSgdnet to provide
+#' a Family object to template but first passes the result on to SetupPenalty
+#'
+#' @param x predictor matrix
+#' @param y response matrix
+#' @param family Object of family class
+#' @param is_sparse whether or not x is sparse
+#' @param control a Rcpp::List of control parameters
+#' @noRd
 NULL
 
 #' Fit a Model with sgdnet
@@ -30,7 +60,7 @@ NULL
 #' @param control a list of control parameters
 #'
 #' @return A list of
-#'   * ao: the intercept,
+#'   * a0: the intercept,
 #'   * beta: the weights,
 #'   * losses: the loss at each outer iteration per fit,
 #'   * npasses: the number of effective passes (epochs) accumulated over,
@@ -40,12 +70,12 @@ NULL
 #'     converged.
 NULL
 
-#' @keywords internal
 #' @noRd
 SgdnetDense <- function(x, y, control) {
     .Call(`_sgdnet_SgdnetDense`, x, y, control)
 }
 
+#' @noRd
 SgdnetSparse <- function(x, y, control) {
     .Call(`_sgdnet_SgdnetSparse`, x, y, control)
 }
