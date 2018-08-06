@@ -281,4 +281,42 @@ multinomial_fit <- sgdnet(wine$x, wine$y, family = "multinomial")
 plot(multinomial_fit, layout = c(3, 1))
 ```
 
+## Multivariate gaussian regression
+
+Multivariate gaussian models, fit using `family = "mgaussian"` in the call
+to `sgdnet()`, are useful when there are several correlated and numeric
+responses. The objective for this model is to minimize
+
+$$
+\frac{1}{2n} ||\mathbf{Y} -\mathbf{B}_0\mathbf{1} - \mathbf{B} \mathbf{X}||^2_F
+ + \lambda \left((1 - \alpha)/2||\mathbf{B}||_F^2 + \alpha ||\mathbf{B}||_{12}\right),
+$$
+where $\mathbf{Y}$ is a matrix of responses, $\mathbf{B}$ is a matrix
+of coefficients, and $\mathbf{1}$ is a matrix of all ones.
+
+$\alpha ||\mathbf{B}||_{12}$ in the penalty-part of the objective is
+the *group lasso*, which enables feature selection such that each column of
+coefficients in $\mathbf{B}$ each either in or out simultaneously. The 
+proximal operator for the group lasso is given by
+
+$$
+\beta_j \leftarrow \left( 1 - \frac{\gamma\lambda\alpha}{||\beta_j||_2} \right)_+\beta_j,
+$$
+where the subscript $+$ indicates the positive part of $(\cdot)$ and
+$\gamma$ is the step size. $\beta$ is the vector of coefficients corresponding
+to response $j$.
+
+Our example data set for this model comes in the shape of student
+performance data. We have two responses indicating the final grade
+of a student in maths and portugese respectively.
+
+```{r, fig.cap = "Multivariate Gaussian regression on the Student Performance Data Set.", fig.width = 7, fig.height = 3.5}
+mgaussian_fit <- sgdnet(student$x, student$y, family = "mgaussian", alpha = 0)
+plot(mgaussian_fit)
+```
+
+This family has an additional parameter, `standardize.response`, which
+enables us to standardize the response as well but, given that the
+responses are already on the same scale, we refrain.
+
 ## References
