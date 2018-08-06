@@ -54,7 +54,8 @@
 #include "families.h"
 #include "prox.h"
 #include "penalties.h"
-#include "saga.h"
+#include "saga-sparse.h"
+#include "saga-dense.h"
 #include "math.h"
 #include <memory>
 
@@ -143,9 +144,6 @@ SetupSgdnet(T                 x,
                             family.L_scaling,
                             n_samples);
 
-  // intercept updates are scaled to avoid oscillation
-  double intercept_decay = is_sparse ? 0.01 : 1.0;
-
   // Intercept
   Eigen::ArrayXd intercept = Eigen::ArrayXd::Zero(n_classes);
   vector<Eigen::ArrayXd> intercept_archive;
@@ -186,7 +184,6 @@ SetupSgdnet(T                 x,
          fit_intercept,
          is_sparse,
          standardize,
-         intercept_decay,
          weights,
          family,
          penalty,
