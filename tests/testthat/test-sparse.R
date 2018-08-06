@@ -22,9 +22,6 @@ test_that("sparse and dense implementations return equivalent results", {
       thresh = 1e-4
     )
 
-    # x_sparse <- Matrix::rsparsematrix(n, p, density = 0.2)
-    # x_dense <- as.matrix(x_sparse)
-
     d <- random_data(300, 3, grid$family[i], grid$intercept[i])
 
     pars$y <- d$y
