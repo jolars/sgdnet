@@ -351,6 +351,10 @@ sgdnet.default <- function(x,
     }
   }
 
+  # make sure that intercepts for the multinomial family sum to 0
+  if (family == "multinomial")
+    a0 <- t(t(a0) - colMeans(a0))
+
   out <- structure(list(a0 = a0,
                         beta = beta,
                         lambda = lambda,
