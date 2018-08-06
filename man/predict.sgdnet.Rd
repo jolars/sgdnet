@@ -5,14 +5,15 @@
 \alias{predict.sgdnet_gaussian}
 \alias{predict.sgdnet_binomial}
 \alias{predict.sgdnet_multinomial}
+\alias{predict.sgdnet_mgaussian}
 \title{Predictions for sgdnet Models}
 \usage{
 \method{predict}{sgdnet}(object, newx = NULL, s = NULL, type,
   exact = FALSE, newoffset = NULL, ...)
 
 \method{predict}{sgdnet_gaussian}(object, newx = NULL, s = NULL,
-  type = c("link", "response", "coefficients", "nonzero"), exact = FALSE,
-  newoffset = NULL, ...)
+  type = c("link", "response", "coefficients", "nonzero"),
+  exact = FALSE, newoffset = NULL, ...)
 
 \method{predict}{sgdnet_binomial}(object, newx = NULL, s = NULL,
   type = c("link", "response", "coefficients", "nonzero", "class"),
@@ -20,6 +21,10 @@
 
 \method{predict}{sgdnet_multinomial}(object, newx = NULL, s = NULL,
   type = c("link", "response", "coefficients", "nonzero", "class"),
+  exact = FALSE, newoffset = NULL, ...)
+
+\method{predict}{sgdnet_mgaussian}(object, newx = NULL, s = NULL,
+  type = c("link", "response", "coefficients", "nonzero"),
   exact = FALSE, newoffset = NULL, ...)
 }
 \arguments{
@@ -102,6 +107,9 @@ predict(fit_multinomial,
         exact = TRUE,
         type = "class")
 
+# Multivariate gaussian regression, predict nonzero coefficients
+fit_mgaussian <- sgdnet(student$x, student$y, family = "mgaussian")
+predict(fit_mgaussian, type = "nonzero")
 }
 \seealso{
 \code{\link[=sgdnet]{sgdnet()}}, \code{\link[=coef.sgdnet]{coef.sgdnet()}}

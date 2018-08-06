@@ -12,6 +12,7 @@ test_that("sgdnet options can be set and respected", {
   diagnostics <- attr(fit, "diagnostics")
   loss <- diagnostics$loss
   expect_is(loss, "list")
+  expect_true(all(unlist(lapply(loss, function(x) x > 0 & x < Inf))))
 
   options(opts)
 })

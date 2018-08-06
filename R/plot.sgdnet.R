@@ -49,6 +49,9 @@
 #' mfit <- sgdnet(iris[, 1:4], iris[, 5], family = "multinomial")
 #' plot(mfit, xvar = "dev", main = "Lassoing with sgdnet")
 #'
+#' # Multivariate gaussian regression
+#' mgfit <- sgdnet(student$x, student$y, family = "mgaussian")
+#' plot(mgfit, lty = 1:9, layout = c(1, 2))
 plot.sgdnet <- function(x, xvar = c("norm", "lambda", "dev"), ...) {
   lambda <- x$lambda
   beta <- x$beta

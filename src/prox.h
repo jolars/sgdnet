@@ -21,18 +21,6 @@
 
 namespace sgdnet {
 
-//' Base class for proximal operators
-//'
-//' @param x value
-//' @param shrinkage shrinkage
-//'
-//' @noRd
-//' @keywords internal
-class Prox {
-public:
-  double operator()(const double x, const double shrinkage) const;
-};
-
 //' Soft thresholding operator for L1-regularization
 //'
 //' Solves \f$ \argmin_{x} 0.5||x - y||^{2} + \alpha ||x||_{1} \f$.
@@ -41,9 +29,11 @@ public:
 //'
 //' @noRd
 //' @keywords internal
-class SoftThreshold : public Prox {
-public:
-  double operator()(const double x, const double shrinkage) const {
+struct SoftThreshold {
+  template <typename T>
+  T
+  operator()(const T& x, const T& shrinkage) const noexcept
+  {
     return std::max(x - shrinkage, 0.0) - std::max(-x - shrinkage, 0.0);
   }
 };
