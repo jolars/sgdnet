@@ -1,10 +1,8 @@
 context("sparse and dense comparisons")
+source("helpers.R")
 
 test_that("sparse and dense implementations return equivalent results", {
   set.seed(1)
-
-  n <- 100
-  p <- 2
 
   grid <- expand.grid(
     family = c("gaussian", "binomial", "multinomial", "mgaussian"),
@@ -20,23 +18,22 @@ test_that("sparse and dense implementations return equivalent results", {
       family = grid$family[i],
       intercept = grid$intercept[i],
       alpha = grid$alpha[i],
-      nlambda = 20
+      nlambda = 5,
+      thresh = 1e-4
     )
 
-    x_sparse <- Matrix::rsparsematrix(n, p, density = 0.2)
-    x_dense <- as.matrix(x_sparse)
+    # x_sparse <- Matrix::rsparsematrix(n, p, density = 0.2)
+    # x_dense <- as.matrix(x_sparse)
 
-    pars$y <- switch(pars$family,
-                     gaussian = rnorm(n, 10, 2),
-                     binomial = rbinom(n, 1, 0.8),
-                     multinomial = rbinom(n, 3, 0.5),
-                     mgaussian = cbind(rnorm(n, -10, 5), rnorm(n, 100, 2)))
+    d <- random_data(300, 3, grid$family[i], grid$intercept[i])
+
+    pars$y <- d$y
 
     set.seed(i)
-    fit_dense <- do.call(sgdnet, modifyList(pars, list(x = x_dense)))
+    fit_sparse <- do.call(sgdnet, modifyList(pars, list(x = d$x)))
     set.seed(i)
-    fit_sparse <- do.call(sgdnet, modifyList(pars, list(x = x_sparse)))
+    fit_dense <- do.call(sgdnet, modifyList(pars, list(x = as.matrix(d$x))))
 
-    expect_equivalent(coef(fit_sparse), coef(fit_dense), tol = 1e-3)
+    compare_predictions(fit_sparse, fit_dense, d$x, "coefficients", tol = 1e-1)
   }
 })
