@@ -64,8 +64,6 @@ compare_predictions <- function(f1,
         && type == "class")
       next
 
-    # s <- f1$lambda[floor(length(f1$lambda)/2)]
-
     c1 <- predict(f1, x, type = type)
     c2 <- predict(f2, x, type = type)
 
