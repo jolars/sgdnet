@@ -1,12 +1,11 @@
 context("general family tests")
-source("helpers.R")
 
-test_that("test that all combinations run without errors", {
+test_that("all combinations run without errors", {
 
   library(glmnet)
   glmnet.control(fdev = 0)
 
-  n <- 200
+  n <- 500
   p <- 2
 
   grid <- expand.grid(
@@ -25,8 +24,9 @@ test_that("test that all combinations run without errors", {
       family = grid$family[i],
       intercept = grid$intercept[i],
       alpha = grid$alpha[i],
-      nlambda = 20,
-      thresh = 1e-7
+      nlambda = 5,
+      thresh = 1e-8,
+      maxit = 100000
     )
 
     set.seed(i)
@@ -41,6 +41,6 @@ test_that("test that all combinations run without errors", {
     sfit <- do.call(sgdnet, pars)
     gfit <- do.call(glmnet, pars)
 
-    compare_predictions(sfit, gfit, x, tol = 1e-1)
+    compare_predictions(sfit, gfit, x, tol = 1e-3)
   }
 })
