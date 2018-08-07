@@ -80,6 +80,7 @@ double
 ColNormsMax(const Eigen::MatrixXd& x,
             const Eigen::ArrayXd&  x_center_scaled,
             const bool             standardize) {
+  // dense features are already scaled and centered (if required)
   return x.colwise().squaredNorm().maxCoeff();
 }
 
