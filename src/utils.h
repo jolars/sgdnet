@@ -91,7 +91,7 @@ ColNormsMax(const Eigen::MatrixXd& x,
 //' @param x feature matrix, sparse or dense
 //' @param x_center a vector of offsets for each feature
 //' @param x_scale a vector of scaling factors (l2 norms) for each vector
-//' @param x_mod mean/stddev to be used for in-lace standardization in the
+//' @param x_mod mean/stddev to be used for in-place standardization in the
 //'   sparse implementation
 //'
 //' @return Modifies `x`, (possibly) `x_center`, and `x_scale`.

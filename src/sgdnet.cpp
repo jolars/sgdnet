@@ -121,6 +121,8 @@ SetupSgdnet(T                 x,
   // Compute the lambda sequence
   vector<double> alpha, beta;
 
+  bool user_lambda = !lambda.empty();
+
   RegularizationPath(lambda,
                      n_lambda,
                      n_classes,
@@ -168,6 +170,7 @@ SetupSgdnet(T                 x,
   unsigned n_iter = 0;
 
   // Null deviance on scaled y for computing deviance ratio
+  family.FitNullModel(y, fit_intercept, intercept);
   double null_deviance_scaled = family.NullDeviance(y, fit_intercept);
 
   vector<double> deviance_ratio;
@@ -177,31 +180,33 @@ SetupSgdnet(T                 x,
   for (unsigned lambda_ind = 0; lambda_ind < n_lambda; ++lambda_ind) {
     vector<double> losses;
 
-    Saga(x,
-         x_center_scaled,
-         y,
-         intercept,
-         fit_intercept,
-         is_sparse,
-         standardize,
-         weights,
-         family,
-         penalty,
-         step_size[lambda_ind],
-         alpha[lambda_ind],
-         beta[lambda_ind],
-         g_memory,
-         g_sum,
-         g_sum_intercept,
-         n_samples,
-         n_features,
-         n_classes,
-         max_iter,
-         tol,
-         n_iter,
-         return_codes,
-         losses,
-         debug);
+    if (user_lambda || lambda_ind > 0)
+      Saga(x,
+           x_center_scaled,
+           y,
+           intercept,
+           fit_intercept,
+           is_sparse,
+           standardize,
+           intercept_decay,
+           weights,
+           family,
+           penalty,
+           step_size[lambda_ind],
+           alpha[lambda_ind],
+           beta[lambda_ind],
+           g_memory,
+           g_sum,
+           g_sum_intercept,
+           n_samples,
+           n_features,
+           n_classes,
+           max_iter,
+           tol,
+           n_iter,
+           return_codes,
+           losses,
+           debug);
 
     double deviance = Deviance(x,
                                x_center_scaled,
