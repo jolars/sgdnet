@@ -112,7 +112,34 @@
 #'   `family = "mgaussian"`
 #' @param ... ignored
 #'
-#' @return An object of class `'sgdnet'`.
+#' @return An object of class `'sgdnet'` with the following items:
+#' \tabular{ll}{
+#'   `a0`        \tab the intercept \cr
+#'   `beta`      \tab the coefficients stored in sparse matrix format
+#'                    "dgCMatrix". For the multivariate families, this is a
+#'                    list with one matrix of coefficients for each response or
+#'                    class. \cr
+#'   `nulldev`   \tab the deviance of the null (intercept-only model)\cr
+#'   `dev.ratio` \tab the fraction of deviance explained, where the deviance
+#'                    is two times the difference in loglikelihood between the
+#'                    saturated model and the null model \cr
+#'   `df`        \tab the number of nozero coefficients along the
+#'                    regularization path. For `family = "multinomial"`,
+#'                    this is the number of variables with
+#'                    a nonzero coefficient for any class. \cr
+#'   `dfmat`     \tab a matrix of the number of nonzero coefficients for
+#'                    any class (only available for multivariate models)\cr
+#'   `alpha`     \tab elastic net mixing parameter. See the description
+#'                    of the arguments. \cr
+#'   `lambda`    \tab the sequence of lambda values scaled to the
+#'                    original scale of the input data. \cr
+#'   `nobs`      \tab number of observations \cr
+#'   `npasses`   \tab accumulated number of outer iterations (epochs)
+#'                    for the entire regularization path \cr
+#'   `offset`    \tab a logical indicating whether an offset was used \cr
+#'   `grouped`   \tab a logical indicating if a group lasso penalty was used \cr
+#'   `call`      \tab the call that generated this fit
+#' }
 #'
 #' @seealso [predict.sgdnet()], [plot.sgdnet()], [coef.sgdnet()],
 #'   [sgdnet-package()]
