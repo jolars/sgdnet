@@ -87,6 +87,22 @@
 #' \deqn{\max_i \frac{1}{n}|\langle\mathbf{x}_i, y\rangle|.}{
 #'       max |<x, y>|/n.}
 #'
+#' @section Relationship with glmnet:
+#' **sgdnet** is modeled to resemble [glmnet][glmnet::glmnet-package] closely so that users
+#' can expect to receive more or less equivalent output regardless of whether
+#' [sgdnet()] or [glmnet::glmnet()] is called. Nevertheless, there are a
+#' few instances where we have decided to diverge from the behavior of
+#' [glmnet][glmnet::glmnet-package]:
+#' \itemize{
+#'   \item When the ridge penalty is used (`alpha = 0`), and a regularization
+#'         path (\eqn{\lambda~s}{lambdas}) is automatically generated,
+#'         [glmnet::glmnet()] fits the null model as the start of the path
+#'         (as if \eqn{\lambda = \infty}{lambda = inf})
+#'         even though the first \eqn{\lambda}{lambda} reported actually
+#'         doesn't yield this fit. In [sgdnet][sgdnet-package], we have opted
+#'         to fit the model so that it is true to the path that is returned.
+#' }
+#'
 #' @param x input matrix
 #' @param y response variable
 #' @param family reponse type, one of `'gaussian'`, `'binomial'`,

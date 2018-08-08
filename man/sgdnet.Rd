@@ -160,6 +160,24 @@ vector,
       max |<x, y>|/n.}
 }
 
+\section{Relationship with glmnet}{
+
+\strong{sgdnet} is modeled to resemble \link[glmnet:glmnet-package]{glmnet} closely so that users
+can expect to receive more or less equivalent output regardless of whether
+\code{\link[=sgdnet]{sgdnet()}} or \code{\link[glmnet:glmnet]{glmnet::glmnet()}} is called. Nevertheless, there are a
+few instances where we have decided to diverge from the behavior of
+\link[glmnet:glmnet-package]{glmnet}:
+\itemize{
+\item When the ridge penalty is used (\code{alpha = 0}), and a regularization
+path (\eqn{\lambda~s}{lambdas}) is automatically generated,
+\code{\link[glmnet:glmnet]{glmnet::glmnet()}} fits the null model as the start of the path
+(as if \eqn{\lambda = \infty}{lambda = inf})
+even though the first \eqn{\lambda}{lambda} reported actually
+doesn't yield this fit. In \link[=sgdnet-package]{sgdnet}, we have opted
+to fit the model so that it is true to the path that is returned.
+}
+}
+
 \examples{
 # Gaussian regression with sparse features with ridge penalty
 fit <- sgdnet(abalone$x, abalone$y, alpha = 0)
