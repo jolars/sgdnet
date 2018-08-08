@@ -47,6 +47,9 @@
 // OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 // DAMAGE.
 
+#ifndef SGDNET_SAGA_SPARSE_
+#define SGDNET_SAGA_SPARSE_
+
 #include <RcppEigen.h>
 #include "utils.h"
 #include "math.h"
@@ -70,31 +73,6 @@
 //' @param penalty object of Penalty class
 //'
 //' @return Updates weights and lag.
-template <typename Penalty>
-inline
-void
-LaggedUpdate(const unsigned             k,
-             Eigen::ArrayXXd&           w,
-             const unsigned             n_features,
-             const Eigen::ArrayXXd&     g_sum,
-             std::vector<unsigned>&     lag,
-             const Eigen::MatrixXd&     x,
-             const unsigned             s_ind,
-             const std::vector<double>& lag_scaling,
-             const double               wscale,
-             const Penalty&             penalty) noexcept
-{
-  for (unsigned j = 0; j < n_features; ++j) {
-
-    auto lagged_amount = k - lag[j];
-
-    if (lagged_amount != 0) {
-      penalty(w, j, wscale, lag_scaling[lagged_amount], g_sum);
-      lag[j] = k;
-    }
-  }
-}
-
 template <typename Penalty>
 inline
 void
@@ -135,20 +113,6 @@ LaggedUpdate(const unsigned                     k,
 //' @return Updates `a` with `x` scaled.
 inline
 void
-AddWeighted(Eigen::ArrayXXd&       a,
-            const Eigen::MatrixXd& x,
-            const Eigen::ArrayXd&  x_center_scaled,
-            const unsigned         i,
-            const unsigned         n_classes,
-            const Eigen::ArrayXd&  g_change,
-            const double           scaling,
-            const bool             standardize) noexcept
-{
-  a += g_change.rowwise()*x.col(i).transpose().array()*scaling;
-}
-
-inline
-void
 AddWeighted(Eigen::ArrayXXd&                   a,
             const Eigen::SparseMatrix<double>& x,
             const Eigen::ArrayXd&              x_center_scaled,
@@ -165,20 +129,6 @@ AddWeighted(Eigen::ArrayXXd&                   a,
   }
 }
 
-//' Reset weights and lag
-//'
-//' Scales and resets the weights and lag
-//'
-//' @param k current iteration
-//' @param w weights vector
-//' @param g_sum gradient sum
-//' @param lag_scaling geometric sum for lagged updates
-//' @param lag iteration at which the features were last updated
-//' @param n_features number of features
-//' @param wscale current scale of coefficients
-//' @param prox pointer to the proximal operator
-//'
-//' @return Unlags the coefficients by adding the lagged updates.
 template <typename Penalty>
 inline
 double
@@ -241,34 +191,33 @@ Reset(const unsigned         k,
 //'
 //' @return Updates `w`, `intercept`, `g_sum`, `g_sum_intercept`, `g`,
 //'   `n_iter`, `return_codes`, and possibly `losses`.
-template <typename T, typename Family, typename Penalty>
+template <typename Family, typename Penalty>
 void
-Saga(const T&               x,
-     const Eigen::ArrayXd&  x_center_scaled,
-     const Eigen::MatrixXd& y,
-     Eigen::ArrayXd&        intercept,
-     const bool             fit_intercept,
-     const bool             is_sparse,
-     const bool             standardize,
-     const double           intercept_decay,
-     Eigen::ArrayXXd&       w,
-     const Family&          family,
-     Penalty&               penalty,
-     const double           gamma,
-     const double           alpha,
-     const double           beta,
-     Eigen::ArrayXXd&       g_memory,
-     Eigen::ArrayXXd&       g_sum,
-     Eigen::ArrayXd&        g_sum_intercept,
-     const unsigned         n_samples,
-     const unsigned         n_features,
-     const unsigned         n_classes,
-     const unsigned         max_iter,
-     const double           tol,
-     unsigned&              n_iter,
-     std::vector<unsigned>& return_codes,
-     std::vector<double>&   losses,
-     const bool             debug) noexcept
+Saga(Penalty&                           penalty,
+     const Eigen::SparseMatrix<double>& x,
+     const Eigen::ArrayXd&              x_center_scaled,
+     const Eigen::MatrixXd&             y,
+     Eigen::ArrayXd&                    intercept,
+     const bool                         fit_intercept,
+     const bool                         is_sparse,
+     const bool                         standardize,
+     Eigen::ArrayXXd&                   w,
+     const Family&                      family,
+     const double                       gamma,
+     const double                       alpha,
+     const double                       beta,
+     Eigen::ArrayXXd&                   g_memory,
+     Eigen::ArrayXXd&                   g_sum,
+     Eigen::ArrayXd&                    g_sum_intercept,
+     const unsigned                     n_samples,
+     const unsigned                     n_features,
+     const unsigned                     n_classes,
+     const unsigned                     max_iter,
+     const double                       tol,
+     unsigned&                          n_iter,
+     std::vector<unsigned>&             return_codes,
+     std::vector<double>&               losses,
+     const bool                         debug) noexcept
 {
   using namespace std;
 
@@ -350,8 +299,8 @@ Saga(const T&               x,
       // Update coefficients (w) with sparse step (with L2 scaling)
       if (fit_intercept) {
         g_sum_intercept += g_change/n_samples;
-        intercept -=
-          gamma*(g_sum_intercept*intercept_decay + g_change/n_samples);
+        // The 0.01 factor is intercept decay to avoid intercept oscillation
+        intercept -= gamma*(g_sum_intercept*0.01 + g_change/n_samples);
       }
 
       AddWeighted(w,
@@ -432,4 +381,7 @@ Saga(const T&               x,
     return_codes.push_back(0);
   }
 }
+
+#endif /* SGDNET_SAGA-SPARSE_ */
+
 
