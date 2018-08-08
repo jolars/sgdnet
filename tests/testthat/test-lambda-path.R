@@ -188,11 +188,11 @@ test_that("refitting model with automatically generated path gives same fit", {
                      binomial = mtcars$vs,
                      multinomial = mtcars$gear,
                      mgaussian = cbind(mtcars$hp, mtcars$drat))
-    set.seed(1)
+    set.seed(i)
     fit1 <- do.call(sgdnet, pars)
-    set.seed(1)
+    set.seed(i)
     fit2 <- do.call(sgdnet, modifyList(pars, list(lambda = fit1$lambda)))
 
-    expect_equal(coef(fit1), coef(fit2))
+    compare_predictions(fit1, fit2, pars$x, type = "coefficients")
   }
 })

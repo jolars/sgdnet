@@ -47,6 +47,10 @@ public:
   NullDeviance(const Eigen::MatrixXd& y, // samples in rows
                const bool             fit_intercept) const noexcept;
 
+  void
+  FitNullModel(const Eigen::MatrixXd& y, // samples in rows
+               const bool             fit_intercept,
+               Eigen::ArrayXd&        intercept) const noexcept;
 
   template <typename T>
   double
@@ -103,6 +107,13 @@ public:
       loss += Loss(linear_predictor, y, i);
 
     return 2.0 * loss;
+  }
+
+  void
+  FitNullModel(const Eigen::MatrixXd& y,
+               const bool             fit_intercept,
+               Eigen::ArrayXd&        intercept) {
+    intercept = Mean(y.transpose());
   }
 
   template <typename T>
@@ -174,6 +185,19 @@ public:
       loss += Loss(linear_predictor, y, i);
 
     return 2.0 * loss;
+  }
+
+  void
+  FitNullModel(const Eigen::MatrixXd& y,
+               const bool             fit_intercept,
+               Eigen::ArrayXd&        intercept) {
+
+    if (fit_intercept) {
+      auto y_bar = Mean(y.transpose());
+      intercept(0) = Link(y_bar(0));
+    } else {
+      intercept(0) = 0.0;
+    }
   }
 
   template <typename T>
@@ -260,6 +284,19 @@ public:
     return 2.0 * loss;
   }
 
+  void
+  FitNullModel(const Eigen::MatrixXd& y,
+               const bool             fit_intercept,
+               Eigen::ArrayXd&        intercept) {
+
+    if (fit_intercept)
+      intercept = Proportions(y, n_classes);
+    else
+      intercept = 1.0/n_classes;
+
+    intercept = intercept.log() - intercept.log().sum()/n_classes;
+  }
+
   template <typename T>
   double
   LambdaMax(const T&               x,
@@ -338,6 +375,13 @@ public:
       loss += Loss(linear_predictor, y, i);
 
     return 2.0 * loss;
+  }
+
+  void
+  FitNullModel(const Eigen::MatrixXd& y,
+               const bool             fit_intercept,
+               Eigen::ArrayXd&        intercept) {
+    intercept = Mean(y.transpose());
   }
 
   template <typename T>

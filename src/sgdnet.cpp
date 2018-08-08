@@ -168,6 +168,7 @@ SetupSgdnet(T                 x,
   unsigned n_iter = 0;
 
   // Null deviance on scaled y for computing deviance ratio
+  family.FitNullModel(y, fit_intercept, intercept);
   double null_deviance_scaled = family.NullDeviance(y, fit_intercept);
 
   vector<double> deviance_ratio;
@@ -373,7 +374,6 @@ SetupFamily(const T&               x,
 //'   * return_codes: the convergence result. 0 means that the algorithm
 //'     converged, 1 means that `max_iter` was reached before the algorithm
 //'     converged.
-//
 //' @noRd
 // [[Rcpp::export]]
 Rcpp::List

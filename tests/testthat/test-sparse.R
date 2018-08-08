@@ -1,9 +1,6 @@
 context("sparse and dense comparisons")
-source("helpers.R")
 
 test_that("sparse and dense implementations return equivalent results", {
-  set.seed(1)
-
   grid <- expand.grid(
     family = c("gaussian", "binomial", "multinomial", "mgaussian"),
     intercept = c(TRUE, FALSE),
@@ -18,11 +15,13 @@ test_that("sparse and dense implementations return equivalent results", {
       family = grid$family[i],
       intercept = grid$intercept[i],
       alpha = grid$alpha[i],
-      nlambda = 5,
-      thresh = 1e-4
+      thresh = 1e-6,
+      nlambda = 5
     )
 
-    d <- random_data(300, 3, grid$family[i], grid$intercept[i])
+    set.seed(i)
+
+    d <- random_data(1000, 2, grid$family[i], grid$intercept[i])
 
     pars$y <- d$y
 
@@ -31,6 +30,6 @@ test_that("sparse and dense implementations return equivalent results", {
     set.seed(i)
     fit_dense <- do.call(sgdnet, modifyList(pars, list(x = as.matrix(d$x))))
 
-    compare_predictions(fit_sparse, fit_dense, d$x, "coefficients", tol = 1e-1)
+    compare_predictions(fit_sparse, fit_dense, d$x, "coefficients", tol = 1e-3)
   }
 })
