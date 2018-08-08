@@ -377,7 +377,6 @@ SetupFamily(const T&               x,
 //'   * return_codes: the convergence result. 0 means that the algorithm
 //'     converged, 1 means that `max_iter` was reached before the algorithm
 //'     converged.
-//
 //' @noRd
 // [[Rcpp::export]]
 Rcpp::List
