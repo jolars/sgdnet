@@ -59,6 +59,46 @@
 #include "math.h"
 #include <memory>
 
+//' Run Saga
+//'
+//' This function is here to template on the penalty
+//'
+//' @param control a list of control parameters
+//' @param args a parameter pack that is passed to the call to Saga()
+//'
+//' @return see Saga()
+//' @noRd
+template <typename... Args>
+inline
+void
+RunSaga(const Rcpp::List& control, Args&&... args)
+{
+  auto elasticnet_mix = Rcpp::as<double>(control["elasticnet_mix"]);
+  auto family_choice = Rcpp::as<std::string>(control["family"]);
+  auto type_multinomial = Rcpp::as<std::string>(control["type_multinomial"]);
+
+  bool group_lasso =
+    family_choice == "mgaussian"
+    || (family_choice == "multinomial" && type_multinomial == "grouped");
+
+  if (elasticnet_mix == 0.0) {
+
+    sgdnet::Ridge penalty;
+    Saga(penalty, args...);
+
+  } else if (group_lasso) {
+
+    sgdnet::GroupLasso penalty;
+    Saga(penalty, args...);
+
+  } else {
+
+    sgdnet::ElasticNet penalty;
+    Saga(penalty, args...);
+
+  }
+}
+
 //' Setup sgdnet Model Options
 //'
 //' Collect parameters from `control` and setup storage for coefficients,
@@ -76,12 +116,11 @@
 //'
 //' @noRd
 //' @keywords internal
-template <typename T, typename Family, typename Penalty>
+template <typename T, typename Family>
 Rcpp::List
 SetupSgdnet(T                 x,
             Eigen::MatrixXd   y,
             Family&&          family,
-            Penalty&&         penalty,
             const bool        is_sparse,
             const Rcpp::List& control)
 {
@@ -178,31 +217,31 @@ SetupSgdnet(T                 x,
   for (unsigned lambda_ind = 0; lambda_ind < n_lambda; ++lambda_ind) {
     vector<double> losses;
 
-    Saga(x,
-         x_center_scaled,
-         y,
-         intercept,
-         fit_intercept,
-         is_sparse,
-         standardize,
-         weights,
-         family,
-         penalty,
-         step_size[lambda_ind],
-         alpha[lambda_ind],
-         beta[lambda_ind],
-         g_memory,
-         g_sum,
-         g_sum_intercept,
-         n_samples,
-         n_features,
-         n_classes,
-         max_iter,
-         tol,
-         n_iter,
-         return_codes,
-         losses,
-         debug);
+    RunSaga(control,
+            x,
+            x_center_scaled,
+            y,
+            intercept,
+            fit_intercept,
+            is_sparse,
+            standardize,
+            weights,
+            family,
+            step_size[lambda_ind],
+            alpha[lambda_ind],
+            beta[lambda_ind],
+            g_memory,
+            g_sum,
+            g_sum_intercept,
+            n_samples,
+            n_features,
+            n_classes,
+            max_iter,
+            tol,
+            n_iter,
+            return_codes,
+            losses,
+            debug);
 
     double deviance = Deviance(x,
                                x_center_scaled,
@@ -245,65 +284,6 @@ SetupSgdnet(T                 x,
   );
 }
 
-//' Setup penalty
-//'
-//' This function serves as a portal to SetupSgdnet to provide
-//' a Penalty object to template on
-//'
-//' @param x predictor matrix
-//' @param y response matrix
-//' @param family Object of family class
-//' @param is_sparse whether or not x is sparse
-//' @param control a Rcpp::List of control parameters
-//'
-//' @return The final fitted object.
-//' @noRd
-template <typename T, typename Family>
-Rcpp::List
-SetupPenalty(const T&               x,
-             const Eigen::MatrixXd& y,
-             Family&&               family,
-             const bool             is_sparse,
-             const                  Rcpp::List& control)
-{
-  auto elasticnet_mix = Rcpp::as<double>(control["elasticnet_mix"]);
-  auto family_choice = Rcpp::as<std::string>(control["family"]);
-  auto type_multinomial = Rcpp::as<std::string>(control["type_multinomial"]);
-
-  bool group_lasso =
-    family_choice == "mgaussian"
-    || (family_choice == "multinomial" && type_multinomial == "grouped");
-
-  if (elasticnet_mix == 0.0) {
-    sgdnet::Ridge penalty;
-    return SetupSgdnet(x,
-                       y,
-                       std::move(family),
-                       std::move(penalty),
-                       is_sparse,
-                       control);
-
-  } else if (group_lasso) {
-      sgdnet::GroupLasso penalty;
-      return SetupSgdnet(x,
-                         y,
-                         std::move(family),
-                         std::move(penalty),
-                         is_sparse,
-                         control);
-  } else {
-    sgdnet::ElasticNet penalty;
-    return SetupSgdnet(x,
-                       y,
-                       std::move(family),
-                       std::move(penalty),
-                       is_sparse,
-                       control);
-  }
-
-  return Rcpp::List::create();
-}
-
 //' Setup family
 //'
 //' This function serves as a portal to SetupSgdnet to provide
@@ -327,26 +307,26 @@ SetupFamily(const T&               x,
   if (family_choice == "gaussian") {
 
     sgdnet::Gaussian family;
-    return SetupPenalty(x, y, std::move(family), is_sparse, control);
+    return SetupSgdnet(x, y, std::move(family), is_sparse, control);
 
   } else if (family_choice == "binomial") {
 
     sgdnet::Binomial family;
-    return SetupPenalty(x, y, std::move(family), is_sparse, control);
+    return SetupSgdnet(x, y, std::move(family), is_sparse, control);
 
   } else if (family_choice == "multinomial") {
 
     auto n_classes = Rcpp::as<unsigned>(control["n_classes"]);
 
     sgdnet::Multinomial family{n_classes};
-    return SetupPenalty(x, y, std::move(family), is_sparse, control);
+    return SetupSgdnet(x, y, std::move(family), is_sparse, control);
 
   } else if (family_choice == "mgaussian") {
 
     auto standardize_response = Rcpp::as<bool>(control["standardize_response"]);
 
     sgdnet::MultivariateGaussian family{standardize_response};
-    return SetupPenalty(x, y, std::move(family), is_sparse, control);
+    return SetupSgdnet(x, y, std::move(family), is_sparse, control);
 
   }
 

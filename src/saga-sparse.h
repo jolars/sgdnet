@@ -193,7 +193,8 @@ Reset(const unsigned         k,
 //'   `n_iter`, `return_codes`, and possibly `losses`.
 template <typename Family, typename Penalty>
 void
-Saga(const Eigen::SparseMatrix<double>& x,
+Saga(Penalty&                           penalty,
+     const Eigen::SparseMatrix<double>& x,
      const Eigen::ArrayXd&              x_center_scaled,
      const Eigen::MatrixXd&             y,
      Eigen::ArrayXd&                    intercept,
@@ -202,7 +203,6 @@ Saga(const Eigen::SparseMatrix<double>& x,
      const bool                         standardize,
      Eigen::ArrayXXd&                   w,
      const Family&                      family,
-     Penalty&                           penalty,
      const double                       gamma,
      const double                       alpha,
      const double                       beta,
