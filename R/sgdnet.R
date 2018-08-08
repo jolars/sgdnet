@@ -376,6 +376,9 @@ sgdnet.default <- function(x,
                            ncol = n_penalties,
                            dimnames = list(variable_names, path_names),
                            sparse = TRUE)
+
+    df <- colSums(as.matrix(beta != 0))
+
   } else if (family %in% c("multinomial", "mgaussian")) {
     a0 <- matrix(unlist(res$a0, use.names = FALSE), ncol = n_penalties)
     colnames(a0) <- path_names
@@ -392,6 +395,11 @@ sgdnet.default <- function(x,
                                   dimnames = list(variable_names, path_names),
                                   sparse = TRUE)
     }
+
+    df <- colSums(as.matrix(Reduce("+", beta) != 0))
+
+    dfmat <- lapply(beta, function(x) apply(x, 2, function(x) sum(abs(x) > 0)))
+    dfmat <- do.call(rbind, dfmat)
   }
 
   # make sure that intercepts for the multinomial family sum to 0
@@ -402,6 +410,7 @@ sgdnet.default <- function(x,
                         beta = beta,
                         lambda = lambda,
                         dev.ratio = res$dev.ratio,
+                        df = df,
                         nulldev = res$nulldev,
                         npasses = res$npasses,
                         alpha = alpha,
@@ -411,6 +420,10 @@ sgdnet.default <- function(x,
                         call = ocall,
                         nobs = n_samples),
                    class = c(paste0("sgdnet_", family), "sgdnet"))
+
+  if (family %in% c("multinomial", "mgaussian"))
+    out$dfmat <- dfmat
+
   if (debug)
     attr(out, "diagnostics") <- list(loss = res$losses)
   out
