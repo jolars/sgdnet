@@ -68,8 +68,6 @@ NULL
 #'   * return_codes: the convergence result. 0 means that the algorithm
 #'     converged, 1 means that `max_iter` was reached before the algorithm
 #'     converged.
-NULL
-
 #' @noRd
 SgdnetDense <- function(x, y, control) {
     .Call(`_sgdnet_SgdnetDense`, x, y, control)

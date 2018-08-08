@@ -11,8 +11,7 @@ public:
   void
   setParameters(const double gamma_in,
                 const double alpha_in,
-                const double beta_in)
-  noexcept
+                const double beta_in) noexcept
   {
     gamma = gamma_in;
     alpha = alpha_in;

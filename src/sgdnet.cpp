@@ -107,6 +107,9 @@ SetupSgdnet(T                 x,
   if (standardize)
     PreprocessFeatures(x, x_center, x_scale);
 
+  Eigen::ArrayXd x_center_scaled = is_sparse ? (x_center/x_scale).eval()
+                                             : Eigen::ArrayXd::Zero(n_features);
+
   // Store null deviance here before processing response
   double null_deviance = family.NullDeviance(y.transpose(), fit_intercept);
 
@@ -134,11 +137,11 @@ SetupSgdnet(T                 x,
   AdaptiveTranspose(x);
   AdaptiveTranspose(y);
 
-  vector<double> step_size = StepSize(ColNormsMax(x),
-                                      alpha,
-                                      fit_intercept,
-                                      family.L_scaling,
-                                      n_samples);
+  auto step_size = StepSize(ColNormsMax(x, x_center_scaled, standardize),
+                            alpha,
+                            fit_intercept,
+                            family.L_scaling,
+                            n_samples);
 
   // intercept updates are scaled to avoid oscillation
   double intercept_decay = is_sparse ? 0.01 : 1.0;
@@ -167,6 +170,7 @@ SetupSgdnet(T                 x,
   unsigned n_iter = 0;
 
   // Null deviance on scaled y for computing deviance ratio
+  family.FitNullModel(y, fit_intercept, intercept);
   double null_deviance_scaled = family.NullDeviance(y, fit_intercept);
 
   vector<double> deviance_ratio;
@@ -177,9 +181,12 @@ SetupSgdnet(T                 x,
     vector<double> losses;
 
     Saga(x,
+         x_center_scaled,
          y,
          intercept,
          fit_intercept,
+         is_sparse,
+         standardize,
          intercept_decay,
          weights,
          family,
@@ -201,13 +208,16 @@ SetupSgdnet(T                 x,
          debug);
 
     double deviance = Deviance(x,
+                               x_center_scaled,
                                y,
                                weights,
                                intercept,
                                n_samples,
                                n_features,
                                n_classes,
-                               family);
+                               family,
+                               is_sparse,
+                               standardize);
 
     deviance_ratio.emplace_back(1.0 - deviance/null_deviance_scaled);
 
@@ -367,7 +377,6 @@ SetupFamily(const T&               x,
 //'   * return_codes: the convergence result. 0 means that the algorithm
 //'     converged, 1 means that `max_iter` was reached before the algorithm
 //'     converged.
-//
 //' @noRd
 // [[Rcpp::export]]
 Rcpp::List

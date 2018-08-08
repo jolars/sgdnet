@@ -137,27 +137,32 @@ inline
 void
 AddWeighted(Eigen::ArrayXXd&       a,
             const Eigen::MatrixXd& x,
-            const unsigned         s_ind,
+            const Eigen::ArrayXd&  x_center_scaled,
+            const unsigned         i,
             const unsigned         n_classes,
             const Eigen::ArrayXd&  g_change,
-            const double           scaling) noexcept
+            const double           scaling,
+            const bool             standardize) noexcept
 {
-  for (decltype(a.rows()) i = 0; i < a.rows(); ++i)
-    a.row(i) += x.col(s_ind).transpose().array()*g_change(i)*scaling;
+  a += g_change.rowwise()*x.col(i).transpose().array()*scaling;
 }
 
 inline
 void
 AddWeighted(Eigen::ArrayXXd&                   a,
             const Eigen::SparseMatrix<double>& x,
-            const unsigned                     s_ind,
+            const Eigen::ArrayXd&              x_center_scaled,
+            const unsigned                     i,
             const unsigned                     n_classes,
             const Eigen::ArrayXd&              g_change,
-            const double                       scaling) noexcept
+            const double                       scaling,
+            const bool                         standardize) noexcept
 {
-  for (Eigen::SparseMatrix<double>::InnerIterator it(x, s_ind); it; ++it)
-    for (unsigned c_ind = 0; c_ind < n_classes; ++c_ind)
-      a(c_ind, it.index()) += g_change[c_ind] * scaling * it.value();
+  for (decltype(a.rows()) k = 0; k < a.rows(); ++k) {
+    a.row(k) += x.col(i)*g_change(k)*scaling;
+    if (standardize)
+      a.row(k) -= x_center_scaled*g_change(k)*scaling;
+  }
 }
 
 //' Reset weights and lag
@@ -239,9 +244,12 @@ Reset(const unsigned         k,
 template <typename T, typename Family, typename Penalty>
 void
 Saga(const T&               x,
+     const Eigen::ArrayXd&  x_center_scaled,
      const Eigen::MatrixXd& y,
      Eigen::ArrayXd&        intercept,
      const bool             fit_intercept,
+     const bool             is_sparse,
+     const bool             standardize,
      const double           intercept_decay,
      Eigen::ArrayXXd&       w,
      const Family&          family,
@@ -290,8 +298,8 @@ Saga(const T&               x,
 
   Eigen::ArrayXd linear_predictor(n_classes);
 
-  // Store previous weights for computing stopping criteria
-  Eigen::ArrayXXd w_previous(w);
+  // Setup functor for checking convergence
+  ConvergenceCheck convergence_check{w, tol};
 
   // Outer loop
   unsigned it_outer = 0;
@@ -316,6 +324,9 @@ Saga(const T&               x,
 
       linear_predictor = (w.matrix() * x.col(s_ind)).array()*wscale + intercept;
 
+      if (standardize)
+        linear_predictor -= (w.matrix() * x_center_scaled.matrix()).array()*wscale;
+
       family.Gradient(linear_predictor, y, s_ind, g);
 
       g_change = g - g_memory.col(s_ind);
@@ -337,12 +348,20 @@ Saga(const T&               x,
       wscale *= wscale_update;
 
       // Update coefficients (w) with sparse step (with L2 scaling)
-      AddWeighted(w, x, s_ind, n_classes, g_change, -gamma/wscale);
-
       if (fit_intercept) {
         g_sum_intercept += g_change/n_samples;
-        intercept -= gamma*g_sum_intercept*intercept_decay + g_change/n_samples;
+        intercept -=
+          gamma*(g_sum_intercept*intercept_decay + g_change/n_samples);
       }
+
+      AddWeighted(w,
+                  x,
+                  x_center_scaled,
+                  s_ind,
+                  n_classes,
+                  g_change,
+                  -gamma/wscale,
+                  standardize);
 
       // Gradient-average step
       LaggedUpdate(it_inner + 1,
@@ -357,7 +376,14 @@ Saga(const T&               x,
                    penalty);
 
       // Update the gradient average
-      AddWeighted(g_sum, x, s_ind, n_classes, g_change, 1.0/n_samples);
+      AddWeighted(g_sum,
+                  x,
+                  x_center_scaled,
+                  s_ind,
+                  n_classes,
+                  g_change,
+                  1.0/n_samples,
+                  standardize);
 
     } // Outer loop
 
@@ -374,6 +400,7 @@ Saga(const T&               x,
 
     if (debug) {
       double loss = EpochLoss(x,
+                              x_center_scaled,
                               y,
                               w,
                               intercept,
@@ -382,11 +409,14 @@ Saga(const T&               x,
                               beta,
                               n_samples,
                               n_features,
-                              n_classes);
+                              n_classes,
+                              is_sparse,
+                              standardize);
       losses.push_back(loss);
     }
 
-    converged = CheckConvergence(w, w_previous, tol);
+    converged = convergence_check(w);
+
     ++it_outer;
 
   } while (!converged && it_outer < max_iter); // outer loop

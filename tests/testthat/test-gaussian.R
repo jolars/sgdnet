@@ -8,14 +8,10 @@ test_that("we can approximately reproduce the OLS solution", {
   y <- airquality$Ozone
 
   sgd_fit <- sgdnet(x, y, lambda = 0, maxit = 1000, thresh = 0.0001)
-  sgd_fit2 <- sgdnet(x, y, lambda = 0, maxit = 1000, thresh = 0.0001,
-                     standardize = FALSE)
-  glm_fit2 <- glmnet::glmnet(x, y, lambda = 0, maxit = 1000, thresh = 0.0001,
-                             standardize = FALSE)
   ols_fit <- lm(y ~ x)
 
   expect_equivalent(coef(ols_fit), as.vector(coef(sgd_fit)),
-                    tolerance = 0.01)
+                    tolerance = 0.001)
 })
 
 test_that("all weights are zero when lambda > lambda_max", {
@@ -34,8 +30,6 @@ test_that("all weights are zero when lambda > lambda_max", {
   lambda_max <- max(abs(crossprod(yy, xx)) * sy)/NROW(x)
 
   fit <- sgdnet(x, y, maxit = 1000, thresh = 0.0001)
-
-  max(fit$lambda)
 
   expect_equal(max(fit$lambda), lambda_max)
   expect_equivalent(as.matrix(fit$beta[, 1]), cbind(rep(0, 3)))

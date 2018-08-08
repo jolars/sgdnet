@@ -1,68 +1,42 @@
 context("general family tests")
 
-test_that("test that all combinations run without errors", {
-
-  library(glmnet)
-  glmnet.control(fdev = 0)
-
-  n <- 1000
+test_that("all combinations run without errors", {
+  n <- 500
   p <- 2
-  set.seed(1)
 
   grid <- expand.grid(
     family = c("gaussian", "binomial", "multinomial", "mgaussian"),
-    intercept = TRUE,
-    sparse = FALSE,
+    intercept = TRUE, # glmnet behaves oddly when the intercept is missing
     alpha = c(0, 0.5, 1),
-    standardize = TRUE,
+    standardize = c(TRUE, FALSE),
     stringsAsFactors = FALSE
   )
 
-  x <- Matrix::rsparsematrix(n, p, 0.5)
-
   for (i in seq_len(nrow(grid))) {
+    sparse <- grid$sparse[i]
+
     pars <- list(
-      x = if (grid$sparse[i]) x else as.matrix(x),
-      standardize = if (grid$sparse[i]) FALSE else grid$standardize[i],
+      standardize = grid$standardize[i],
       family = grid$family[i],
       intercept = grid$intercept[i],
       alpha = grid$alpha[i],
-      nlambda = 20
+      nlambda = 5,
+      thresh = 1e-8,
+      maxit = 100000
     )
 
-    pars$y <- switch(pars$family,
-                     gaussian = rnorm(n, 10, 2),
-                     binomial = rbinom(n, 1, 0.8),
-                     multinomial = rbinom(n, 3, 0.5),
-                     mgaussian = matrix(rnorm(n*2), n, 2))
+    set.seed(i)
+
+    d <- random_data(n, p, grid$family[i], grid$intercept[i])
+
+    x <- as.matrix(d$x)
+
+    pars$y <- d$y
+    pars$x <- x
 
     sfit <- do.call(sgdnet, pars)
     gfit <- do.call(glmnet, pars)
 
-    for (type in c("link", "response", "coefficients")) {
-      spred <- predict(sfit, x, type = type)
-      gpred <- predict(gfit, x, type = type)
-      expect_equivalent(spred, gpred, tolerance = 0.01)
-    }
-
-    # treat nonzero predictions and classes separately
-    spred <- predict(sfit, x, type = "nonzero")
-    gpred <- predict(gfit, x, type = "nonzero")
-
-    gpred <- lapply(gpred, function(x) if (is.null(x)) NA else x)
-    spred <- lapply(spred, function(x) if (is.null(x)) NA else x)
-
-    f1 <- function(a, b) all(a == b)
-    f2 <- function(x, y) mapply(f1, x, y)
-    res <- mapply(f2, spred, gpred)
-    frac_correct <- sum(unlist(res[!is.na(res)]))/length(unlist(res))
-    expect_gte(frac_correct, 0.75)
-
-    if (pars$family %in% c("binomial", "multinomial")) {
-      spred <- predict(sfit, x, type = "class")
-      gpred <- predict(gfit, x, type = "class")
-      frac_correct <- sum(spred == gpred)/length(spred)
-      expect_gte(frac_correct, 0.98)
-    }
+    compare_predictions(sfit, gfit, x, tol = 1e-3)
   }
 })
