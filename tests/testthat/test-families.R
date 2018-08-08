@@ -1,10 +1,6 @@
 context("general family tests")
 
 test_that("all combinations run without errors", {
-
-  library(glmnet)
-  glmnet.control(fdev = 0)
-
   n <- 500
   p <- 2
 

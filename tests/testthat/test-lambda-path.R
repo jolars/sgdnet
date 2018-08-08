@@ -171,10 +171,6 @@ test_that("the first lasso fit is sparse", {
 
 
 test_that("refitting model with automatically generated path gives same fit", {
-  # notice that this is not strictly true for the coefficients of the first
-  # fit on the automatically generated lambda path when alpha = 0, where the
-  # internal behavior is instead to fit the null model
-
   grid <- expand.grid(
     family = c("gaussian", "binomial", "multinomial", "mgaussian"),
     standardize = c(TRUE, FALSE),
@@ -182,9 +178,7 @@ test_that("refitting model with automatically generated path gives same fit", {
   )
 
   pars <- list(y = NULL,
-               x = subset(mtcars, select = c("cyl", "disp", "hp", "am")),
-               tresh = 1e-4,
-               maxit = 10000)
+               x = subset(mtcars, select = c("cyl", "disp", "hp", "am")))
 
   for (i in seq_len(nrow(grid))) {
     pars <- modifyList(pars, list(family = grid$family[i],
@@ -194,19 +188,11 @@ test_that("refitting model with automatically generated path gives same fit", {
                      binomial = mtcars$vs,
                      multinomial = mtcars$gear,
                      mgaussian = cbind(mtcars$hp, mtcars$drat))
-    set.seed(1)
+    set.seed(i)
     fit1 <- do.call(sgdnet, pars)
-    set.seed(1)
+    set.seed(i)
     fit2 <- do.call(sgdnet, modifyList(pars, list(lambda = fit1$lambda)))
 
-    if (is.list(coef(fit1))) {
-      for (i in seq_len(length(coef(fit1)))) {
-        expect_equivalent(coef(fit1)[[i]][, -1],
-                          coef(fit2)[[i]][, -1],
-                          tol = 1e-3)
-      }
-    } else {
-      expect_equivalent(coef(fit1)[, -1], coef(fit2)[, -1], tol = 1e-3)
-    }
+    compare_predictions(fit1, fit2, pars$x, type = "coefficients")
   }
 })

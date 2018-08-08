@@ -1,3 +1,7 @@
+# Load glmnet and set options for it
+library(glmnet)
+glmnet.control(fdev = 0)
+
 # generate random data simulated from a generalized linear model
 random_data <- function(n = 100,
                         p = 2,
@@ -59,6 +63,10 @@ compare_predictions <- function(f1,
                                 tol = 1e-3) {
   types <- match.arg(type, several.ok = TRUE)
 
+  alpha <- f1$alpha
+
+  is_glmnet <- inherits(f1, "glmnet") || inherits(f2, "glmnet")
+
   for (type in types) {
     if (!inherits(f1, c("sgdnet_multinomial", "sgdnet_binomial"))
         && type == "class")
@@ -74,6 +82,13 @@ compare_predictions <- function(f1,
 
     c1 <- as.matrix(c1)
     c2 <- as.matrix(c2)
+
+    if (is_glmnet && alpha == 0) {
+      # in this case we don't check the first coefficients since glmnet
+      # uses a different penalty here
+      c1 <- c1[, -1, drop = FALSE]
+      c2 <- c2[, -1, drop = FALSE]
+    }
 
     if (type == "class") {
       frac_agree <- sum(c1 == c2)/length(c1)
