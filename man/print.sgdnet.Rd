@@ -11,8 +11,6 @@
 calling \code{\link[=sgdnet]{sgdnet()}}}
 
 \item{...}{other arguments passed to \code{\link[=print]{print()}}}
-
-\item{digits}{the number of significant digits to print}
 }
 \value{
 Prints (and return invisibly) a table of the regularization path from
