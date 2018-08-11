@@ -203,9 +203,25 @@ sgdnet.default <- function(x,
   # Collect the call so we can use it in update() later on
   ocall <- match.call()
 
+  # Collect sgdnet-specific options for debugging and more
+  debug <- getOption("sgdnet.debug")
+
   n_samples <- NROW(x)
   n_features <- NCOL(x)
   n_targets <- NCOL(y)
+
+  stopifnot(is.logical(intercept),
+            is.logical(standardize),
+            is.logical(debug))
+
+  if (NROW(y) != NROW(x))
+    stop("the number of samples in 'x' and 'y' must match")
+
+  if (NROW(y) == 0)
+    stop("the response (y) is empty.")
+
+  if (NROW(x) == 0)
+    stop("the predictor matrix (x) is empty.")
 
   # Convert sparse x to dgCMatrix class from package Matrix.
   if (is_sparse <- inherits(x, "sparseMatrix")) {
@@ -225,9 +241,6 @@ sgdnet.default <- function(x,
   if (is.null(response_names))
     response_names <- paste0("y", seq_len(NCOL(y)))
 
-  # Collect sgdnet-specific options for debugging and more
-  debug <- getOption("sgdnet.debug")
-
   if (is.null(lambda) || is_false(lambda))
     lambda <- double(0L)
   else
@@ -235,12 +248,6 @@ sgdnet.default <- function(x,
 
   if (nlambda == 0)
     stop("lambda path cannot be of zero length.")
-
-  stopifnot(NROW(y) == NROW(x),
-            length(alpha) == 1,
-            is.logical(intercept),
-            is.logical(standardize),
-            is.logical(debug))
 
   if (alpha < 0 || alpha > 1)
     stop("elastic net mixing parameter (alpha) must be in [0, 1].")
