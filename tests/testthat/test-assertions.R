@@ -51,3 +51,14 @@ test_that("assertions in sgdnet() throw exceptions", {
   x <- c(0.5, 0.5, 0.5)
   expect_error(sgdnet(x, y, family = "binomial"))
 })
+
+test_that("assertions in cv_sgdnet() throw exceptions", {
+  n <- 100
+  x <- rnorm(n)
+  y <- rnorm(n)
+
+  expect_error(cv_sgdnet(x, y, nfolds = n + 1))
+  expect_error(cv_sgdnet(x, y, nfolds = 1))
+  expect_error(cv_sgdnet(x, y, alpha = list()))
+  expect_error(cv_sgdnet(x, y, foldid = sample(n, n - 1)))
+})
