@@ -298,9 +298,7 @@ sgdnet.default <- function(x,
       class_names <- names(y_table)
 
       # Transform response to {-1, 1}, which is used internally
-      y <- as.double(y)
-      y[y == min(y)] <- 0
-      y[y == max(y)] <- 1
+      y <- as.numeric(as.factor(y)) - 1
     },
     multinomial = {
       y <- droplevels(as.factor(y))
