@@ -377,7 +377,7 @@ sgdnet.default <- function(x,
                            dimnames = list(variable_names, path_names),
                            sparse = TRUE)
 
-    df <- colSums(as.matrix(beta != 0))
+    df <- Matrix::colSums(beta != 0)
 
   } else if (family %in% c("multinomial", "mgaussian")) {
     a0 <- matrix(unlist(res$a0, use.names = FALSE), ncol = n_penalties)
@@ -396,7 +396,7 @@ sgdnet.default <- function(x,
                                   sparse = TRUE)
     }
 
-    df <- colSums(as.matrix(Reduce("+", beta) != 0))
+    df <- Matrix::colSums(Reduce("+", beta) != 0)
 
     dfmat <- lapply(beta, function(x) apply(x, 2, function(x) sum(abs(x) > 0)))
     dfmat <- do.call(rbind, dfmat)
