@@ -112,7 +112,7 @@ fit_mgaussian <- sgdnet(student$x, student$y, family = "mgaussian")
 predict(fit_mgaussian, type = "nonzero")
 }
 \seealso{
-\code{\link[=sgdnet]{sgdnet()}}, \code{\link[=coef.sgdnet]{coef.sgdnet()}}
+\code{\link[=sgdnet]{sgdnet()}}, \code{\link[=coef.sgdnet]{coef.sgdnet()}}, \code{\link[=predict.cv_sgdnet]{predict.cv_sgdnet()}}
 }
 \author{
 Jerome Friedman, Trevor Hastie, Rob Tibshirani, Noah Simon
