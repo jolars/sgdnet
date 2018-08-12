@@ -239,7 +239,10 @@ for i in 1:max_iter
 
 From this description we have left out the case where the scale of the 
 coefficients becomes small enough to risk underflow and loss of numerical
-precision. In this case, as is the case when the 
+precision. In this case we simply rescale the coefficients back to their
+real scale (using `beta_scale`) and update all the coeffiecients that are
+lagging behind (if we have sparse features; see below for more
+information on this).
 
 The algorithm for dense input is relatively straightforward. We
 
