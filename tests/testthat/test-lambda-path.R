@@ -7,7 +7,7 @@ test_that("lambda paths are computed as in glmnet", {
   # TODO(jolars): test for sparse features with standardization once in-place
   # centering has been implemented
 
-  n <- 500
+  n <- 100
   p <- 2
   set.seed(1)
 
@@ -25,7 +25,7 @@ test_that("lambda paths are computed as in glmnet", {
   for (i in seq_len(nrow(grid))) {
     pars <- list(
       x = if (grid$sparse[i]) x else as.matrix(x),
-      standardize = if (grid$sparse[i]) FALSE else grid$standardize[i],
+      standardize = grid$standardize[i],
       family = grid$family[i],
       intercept = grid$intercept[i],
       alpha = grid$alpha[i],
@@ -36,7 +36,7 @@ test_that("lambda paths are computed as in glmnet", {
     pars$y <- switch(pars$family,
                      gaussian = rnorm(n, 10, 2),
                      binomial = rbinom(n, 1, 0.8),
-                     multinomial = rbinom(n, 3, 0.5),
+                     multinomial = rbinom(n, 2, 0.5),
                      mgaussian = cbind(rnorm(n), rnorm(n, -19)))
 
     sfit <- do.call(sgdnet, pars)
@@ -188,11 +188,11 @@ test_that("refitting model with automatically generated path gives same fit", {
                      binomial = mtcars$vs,
                      multinomial = mtcars$gear,
                      mgaussian = cbind(mtcars$hp, mtcars$drat))
-    set.seed(1)
+    set.seed(i)
     fit1 <- do.call(sgdnet, pars)
-    set.seed(1)
+    set.seed(i)
     fit2 <- do.call(sgdnet, modifyList(pars, list(lambda = fit1$lambda)))
 
-    expect_equal(coef(fit1), coef(fit2))
+    compare_predictions(fit1, fit2, pars$x, type = "coefficients")
   }
 })

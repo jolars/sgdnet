@@ -54,9 +54,50 @@
 #include "families.h"
 #include "prox.h"
 #include "penalties.h"
-#include "saga.h"
+#include "saga-sparse.h"
+#include "saga-dense.h"
 #include "math.h"
 #include <memory>
+
+//' Run Saga
+//'
+//' This function is here to template on the penalty
+//'
+//' @param control a list of control parameters
+//' @param args a parameter pack that is passed to the call to Saga()
+//'
+//' @return see Saga()
+//' @noRd
+template <typename... Args>
+inline
+void
+RunSaga(const Rcpp::List& control, Args&&... args)
+{
+  auto elasticnet_mix = Rcpp::as<double>(control["elasticnet_mix"]);
+  auto family_choice = Rcpp::as<std::string>(control["family"]);
+  auto type_multinomial = Rcpp::as<std::string>(control["type_multinomial"]);
+
+  bool group_lasso =
+    family_choice == "mgaussian"
+    || (family_choice == "multinomial" && type_multinomial == "grouped");
+
+  if (elasticnet_mix == 0.0) {
+
+    sgdnet::Ridge penalty;
+    Saga(penalty, args...);
+
+  } else if (group_lasso) {
+
+    sgdnet::GroupLasso penalty;
+    Saga(penalty, args...);
+
+  } else {
+
+    sgdnet::ElasticNet penalty;
+    Saga(penalty, args...);
+
+  }
+}
 
 //' Setup sgdnet Model Options
 //'
@@ -75,12 +116,11 @@
 //'
 //' @noRd
 //' @keywords internal
-template <typename T, typename Family, typename Penalty>
+template <typename T, typename Family>
 Rcpp::List
 SetupSgdnet(T                 x,
             Eigen::MatrixXd   y,
             Family&&          family,
-            Penalty&&         penalty,
             const bool        is_sparse,
             const Rcpp::List& control)
 {
@@ -106,6 +146,9 @@ SetupSgdnet(T                 x,
 
   if (standardize)
     PreprocessFeatures(x, x_center, x_scale);
+
+  Eigen::ArrayXd x_center_scaled = is_sparse ? (x_center/x_scale).eval()
+                                             : Eigen::ArrayXd::Zero(n_features);
 
   // Store null deviance here before processing response
   double null_deviance = family.NullDeviance(y.transpose(), fit_intercept);
@@ -134,14 +177,11 @@ SetupSgdnet(T                 x,
   AdaptiveTranspose(x);
   AdaptiveTranspose(y);
 
-  vector<double> step_size = StepSize(ColNormsMax(x),
-                                      alpha,
-                                      fit_intercept,
-                                      family.L_scaling,
-                                      n_samples);
-
-  // intercept updates are scaled to avoid oscillation
-  double intercept_decay = is_sparse ? 0.01 : 1.0;
+  auto step_size = StepSize(ColNormsMax(x, x_center_scaled, standardize),
+                            alpha,
+                            fit_intercept,
+                            family.L_scaling,
+                            n_samples);
 
   // Intercept
   Eigen::ArrayXd intercept = Eigen::ArrayXd::Zero(n_classes);
@@ -167,6 +207,7 @@ SetupSgdnet(T                 x,
   unsigned n_iter = 0;
 
   // Null deviance on scaled y for computing deviance ratio
+  family.FitNullModel(y, fit_intercept, intercept);
   double null_deviance_scaled = family.NullDeviance(y, fit_intercept);
 
   vector<double> deviance_ratio;
@@ -176,38 +217,43 @@ SetupSgdnet(T                 x,
   for (unsigned lambda_ind = 0; lambda_ind < n_lambda; ++lambda_ind) {
     vector<double> losses;
 
-    Saga(x,
-         y,
-         intercept,
-         fit_intercept,
-         intercept_decay,
-         weights,
-         family,
-         penalty,
-         step_size[lambda_ind],
-         alpha[lambda_ind],
-         beta[lambda_ind],
-         g_memory,
-         g_sum,
-         g_sum_intercept,
-         n_samples,
-         n_features,
-         n_classes,
-         max_iter,
-         tol,
-         n_iter,
-         return_codes,
-         losses,
-         debug);
+    RunSaga(control,
+            x,
+            x_center_scaled,
+            y,
+            intercept,
+            fit_intercept,
+            is_sparse,
+            standardize,
+            weights,
+            family,
+            step_size[lambda_ind],
+            alpha[lambda_ind],
+            beta[lambda_ind],
+            g_memory,
+            g_sum,
+            g_sum_intercept,
+            n_samples,
+            n_features,
+            n_classes,
+            max_iter,
+            tol,
+            n_iter,
+            return_codes,
+            losses,
+            debug);
 
     double deviance = Deviance(x,
+                               x_center_scaled,
                                y,
                                weights,
                                intercept,
                                n_samples,
                                n_features,
                                n_classes,
-                               family);
+                               family,
+                               is_sparse,
+                               standardize);
 
     deviance_ratio.emplace_back(1.0 - deviance/null_deviance_scaled);
 
@@ -238,65 +284,6 @@ SetupSgdnet(T                 x,
   );
 }
 
-//' Setup penalty
-//'
-//' This function serves as a portal to SetupSgdnet to provide
-//' a Penalty object to template on
-//'
-//' @param x predictor matrix
-//' @param y response matrix
-//' @param family Object of family class
-//' @param is_sparse whether or not x is sparse
-//' @param control a Rcpp::List of control parameters
-//'
-//' @return The final fitted object.
-//' @noRd
-template <typename T, typename Family>
-Rcpp::List
-SetupPenalty(const T&               x,
-             const Eigen::MatrixXd& y,
-             Family&&               family,
-             const bool             is_sparse,
-             const                  Rcpp::List& control)
-{
-  auto elasticnet_mix = Rcpp::as<double>(control["elasticnet_mix"]);
-  auto family_choice = Rcpp::as<std::string>(control["family"]);
-  auto type_multinomial = Rcpp::as<std::string>(control["type_multinomial"]);
-
-  bool group_lasso =
-    family_choice == "mgaussian"
-    || (family_choice == "multinomial" && type_multinomial == "grouped");
-
-  if (elasticnet_mix == 0.0) {
-    sgdnet::Ridge penalty;
-    return SetupSgdnet(x,
-                       y,
-                       std::move(family),
-                       std::move(penalty),
-                       is_sparse,
-                       control);
-
-  } else if (group_lasso) {
-      sgdnet::GroupLasso penalty;
-      return SetupSgdnet(x,
-                         y,
-                         std::move(family),
-                         std::move(penalty),
-                         is_sparse,
-                         control);
-  } else {
-    sgdnet::ElasticNet penalty;
-    return SetupSgdnet(x,
-                       y,
-                       std::move(family),
-                       std::move(penalty),
-                       is_sparse,
-                       control);
-  }
-
-  return Rcpp::List::create();
-}
-
 //' Setup family
 //'
 //' This function serves as a portal to SetupSgdnet to provide
@@ -320,26 +307,26 @@ SetupFamily(const T&               x,
   if (family_choice == "gaussian") {
 
     sgdnet::Gaussian family;
-    return SetupPenalty(x, y, std::move(family), is_sparse, control);
+    return SetupSgdnet(x, y, std::move(family), is_sparse, control);
 
   } else if (family_choice == "binomial") {
 
     sgdnet::Binomial family;
-    return SetupPenalty(x, y, std::move(family), is_sparse, control);
+    return SetupSgdnet(x, y, std::move(family), is_sparse, control);
 
   } else if (family_choice == "multinomial") {
 
     auto n_classes = Rcpp::as<unsigned>(control["n_classes"]);
 
     sgdnet::Multinomial family{n_classes};
-    return SetupPenalty(x, y, std::move(family), is_sparse, control);
+    return SetupSgdnet(x, y, std::move(family), is_sparse, control);
 
   } else if (family_choice == "mgaussian") {
 
     auto standardize_response = Rcpp::as<bool>(control["standardize_response"]);
 
     sgdnet::MultivariateGaussian family{standardize_response};
-    return SetupPenalty(x, y, std::move(family), is_sparse, control);
+    return SetupSgdnet(x, y, std::move(family), is_sparse, control);
 
   }
 
@@ -367,7 +354,6 @@ SetupFamily(const T&               x,
 //'   * return_codes: the convergence result. 0 means that the algorithm
 //'     converged, 1 means that `max_iter` was reached before the algorithm
 //'     converged.
-//
 //' @noRd
 // [[Rcpp::export]]
 Rcpp::List

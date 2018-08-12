@@ -115,7 +115,7 @@ download.file(
 
 tmp <- read.csv(temp_file)
 
-x <- tmp[, -1]
+x <- as.matrix(tmp[, -1])
 y <- as.factor(tmp[, 1])
 
 wine <- list(x = x, y = y)
