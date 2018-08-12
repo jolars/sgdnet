@@ -98,3 +98,18 @@ compare_predictions <- function(f1,
     }
   }
 }
+
+# Store the current families
+families <- function() {
+  c("gaussian", "binomial", "multinomial", "mgaussian")
+}
+
+# Capture plots without plotting
+dont_plot <- function(x, ...) {
+  tmp <- tempfile()
+  grDevices::png(tmp)
+  p <- graphics::plot(x, ...)
+  grDevices::dev.off()
+  unlink(tmp)
+  invisible(p)
+}
