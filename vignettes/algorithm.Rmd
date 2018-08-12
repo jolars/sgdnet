@@ -135,7 +135,7 @@ Naturally, whatever value the user provides in the argument `lambda` to
 
 The step size, $\gamma$, in SAGA is constant throughout the algorithm.
 For non-strongly convex objectives it is set to $1/(3L)$, where $L$ is the 
-*Lipschitz* constant. Note that since we are picking a single sample at a time,
+*Lipschitz* constant. Since we are picking a single sample at a time,
 we approximate this constant by the largest sample-wise squared norm
 of the feature matrix. For strongly convex objectives,
 the step size is set to
@@ -143,9 +143,9 @@ the step size is set to
 $$ \frac{1}{3(\mu n + L)},$$
 
 where $\mu$ is the level of strong convexity and $n$ the number of samples.
-
-In practice, the step size is set to lie somewhere between
-these two values depending on the type and amount of regularization used.
+For our purposes, $\mu$, is simply the regularization strength of
+the $\ell_2$-penalty: $\alpha\lambda$. This has the effect of 
+letting the step size adapt to the type of regularization penalty used.
 
 In our example, where we have the elastic net penalty, we will have the
 following step sizes (one for each $\lambda$). For the sake of illustration,
