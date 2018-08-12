@@ -115,7 +115,7 @@ plot_benchmarks(benchmarks$multinomial)
 For the multivariate gaussian case, we have these data:
 
 Name              Observations    Responses    Features     Density
-----------    ----------------     --------   ---------   ---------
+----------    ----------------    ---------   ---------   ---------
 violence                 1,901           18         100        100%  
 bikes                      731            2          29         28%
 naval                   11,934            2          15        100%
