@@ -18,11 +18,15 @@ cv_sgdnet(x, y, alpha = 1, lambda = NULL, nfolds = 10,
 
 \item{lambda}{regularization strength}
 
-\item{nfolds}{number of folds (k)}
+\item{nfolds}{number of folds (\emph{k}) -- 3 is the minimum allowed}
 
-\item{foldid}{a vector of fold identities}
+\item{foldid}{a vector of fold identities of the same length as the
+number of observations}
 
-\item{type.measure}{the type of error}
+\item{type.measure}{the type of error, one of ("deviance" (default),
+"mse" (mean-squared error), "mae" (mean absolute error), "class"
+(misclassification rate), "auc" (area under the curve)); see \strong{Measures}
+to find out what types each family has available.}
 
 \item{...}{arguments passed on to \code{\link[=sgdnet]{sgdnet()}}}
 }
@@ -49,8 +53,31 @@ within one standard deviation of the one
 coresponding to \code{lambda_min}}
 }
 \description{
-\emph{k}-fold Cross Validation for \strong{sgdnet}
+This function performs model validation by \emph{k}-fold cross validation for
+models fit with \code{\link[=sgdnet]{sgdnet()}} over the entire regularization path and/or
+various elastic net penalties.
 }
+\details{
+The primary usage of this model is to tune for values of \code{lambda} and
+\code{alpha}. This function will randomly divide the
+data into \eqn{k} folds. For each fold, the remaining \eqn{k-1} will
+be used to train a model across a regularization path, and optionally a
+range of \code{alpha}. The fold that is left out
+is then used to measure the performance of the model. We proceed across
+all the folds, which means that each observation is used exactly once for
+validation, and finally average our results across all the folds.
+}
+\section{Measures}{
+
+\tabular{llllll}{
+Family        \tab \code{deviance} \tab \code{mse} \tab \code{mae} \tab \code{class} \tab \code{auc}\cr
+\code{gaussian}    \tab x (\code{mse})  \tab  x    \tab x     \tab         \tab      \cr
+\code{binomial}    \tab x          \tab  x    \tab x     \tab x       \tab x    \cr
+\code{multinomial} \tab x          \tab  x    \tab x     \tab x       \tab      \cr
+\code{mgaussian}   \tab x (\code{mse})  \tab  x    \tab x     \tab         \tab
+}
+}
+
 \examples{
 set.seed(1)
 n <- nrow(heart$x)
@@ -65,4 +92,9 @@ predict(cv_fit, heart$x[-train_ind, ], s = "lambda_min")
 }
 \seealso{
 \code{\link[=sgdnet]{sgdnet()}}, \code{\link[=predict.cv_sgdnet]{predict.cv_sgdnet()}}, \code{\link[=plot.cv_sgdnet]{plot.cv_sgdnet()}}
+}
+\author{
+Johan Larsson (partly consisting of modified code from
+\code{\link[glmnet:cv.glmnet]{glmnet::cv.glmnet()}} by Jerome Friedman, Trevor Hastie, Rob Tibshirani,
+and Noah Simon)
 }
