@@ -25,27 +25,25 @@
 #' @param ... arguments passed on to [sgdnet()]
 #'
 #' @return An object of class `'cv_sgdnet'` with the following items:
-#' \tabular{ll}{
-#'   `alpha`      \tab the elastic net mixing parameter used\cr
-#'   `lambda`     \tab a list of lambda values of the same length as `alpha`\cr
-#'   `cv_summary` \tab a `data.frame` summarizing the prediction error across
+#' \item{`alpha`}{the elastic net mixing parameter used}
+#' \item{`lambda`}{a list of lambda values of the same length as `alpha`}
+#' \item{`cv_summary`}{a `data.frame` summarizing the prediction error across
 #'                     the regularization path with columns `alpha`, `lambda`,
-#'                     `mean`, `sd`, `ci_lo`, `ci_up`\cr
-#'   `cv_raw`     \tab the raw cross-validation scores as a list of the
-#'                     same length as `alpha`, each item a `matrix` with
-#'                     the error for each fold as a row and each value of
-#'                     `lambda` in columns.\cr
-#'   `name`       \tab the type of prediction error used\cr
-#'   `fit`        \tab a fit from [sgdnet()] to the full data set based on the
-#'                     `alpha` with the best cross-validation score\cr
-#'   `alpha_min`  \tab the `alpha` corresponding to the fit with the best
-#'                     cross-validation performance\cr
-#'   `lambda_min` \tab the `lambda` corresponding to the fit with the best
-#'                     cross-validation performance\cr
-#'   `lambda_1se` \tab the largest `lambda` with a cross-validation performance
+#'                     `mean`, `sd`, `ci_lo`, `ci_up`}
+#' \item{`cv_raw`}{the raw cross-validation scores as a list of the
+#'                 same length as `alpha`, each item a `matrix` with
+#'                 the error for each fold as a row and each value of
+#'                 `lambda` in columns.}
+#' \item{`name`}{the type of prediction error used}
+#' \item{`fit`}{a fit from [sgdnet()] to the full data set based on the
+#'              `alpha` with the best cross-validation score}
+#' \item{`alpha_min`}{the `alpha` corresponding to the fit with the best
+#'                    cross-validation performance}
+#' \item{`lambda_min`}{the `lambda` corresponding to the fit with the best
+#'                     cross-validation performance}
+#' \item{`lambda_1se`}{the largest `lambda` with a cross-validation performance
 #'                     within one standard deviation of the one
-#'                     coresponding to `lambda_min`
-#' }
+#'                     coresponding to `lambda_min`}
 #'
 #' @seealso [sgdnet()], [predict.cv_sgdnet()], [plot.cv_sgdnet()]
 #'

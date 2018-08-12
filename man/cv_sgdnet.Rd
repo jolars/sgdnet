@@ -28,27 +28,25 @@ cv_sgdnet(x, y, alpha = 1, lambda = NULL, nfolds = 10,
 }
 \value{
 An object of class \code{'cv_sgdnet'} with the following items:
-\tabular{ll}{
-\code{alpha}      \tab the elastic net mixing parameter used\cr
-\code{lambda}     \tab a list of lambda values of the same length as \code{alpha}\cr
-\code{cv_summary} \tab a \code{data.frame} summarizing the prediction error across
+\item{\code{alpha}}{the elastic net mixing parameter used}
+\item{\code{lambda}}{a list of lambda values of the same length as \code{alpha}}
+\item{\code{cv_summary}}{a \code{data.frame} summarizing the prediction error across
 the regularization path with columns \code{alpha}, \code{lambda},
-\code{mean}, \code{sd}, \code{ci_lo}, \code{ci_up}\cr
-\code{cv_raw}     \tab the raw cross-validation scores as a list of the
+\code{mean}, \code{sd}, \code{ci_lo}, \code{ci_up}}
+\item{\code{cv_raw}}{the raw cross-validation scores as a list of the
 same length as \code{alpha}, each item a \code{matrix} with
 the error for each fold as a row and each value of
-\code{lambda} in columns.\cr
-\code{name}       \tab the type of prediction error used\cr
-\code{fit}        \tab a fit from \code{\link[=sgdnet]{sgdnet()}} to the full data set based on the
-\code{alpha} with the best cross-validation score\cr
-\code{alpha_min}  \tab the \code{alpha} corresponding to the fit with the best
-cross-validation performance\cr
-\code{lambda_min} \tab the \code{lambda} corresponding to the fit with the best
-cross-validation performance\cr
-\code{lambda_1se} \tab the largest \code{lambda} with a cross-validation performance
+\code{lambda} in columns.}
+\item{\code{name}}{the type of prediction error used}
+\item{\code{fit}}{a fit from \code{\link[=sgdnet]{sgdnet()}} to the full data set based on the
+\code{alpha} with the best cross-validation score}
+\item{\code{alpha_min}}{the \code{alpha} corresponding to the fit with the best
+cross-validation performance}
+\item{\code{lambda_min}}{the \code{lambda} corresponding to the fit with the best
+cross-validation performance}
+\item{\code{lambda_1se}}{the largest \code{lambda} with a cross-validation performance
 within one standard deviation of the one
-coresponding to \code{lambda_min}
-}
+coresponding to \code{lambda_min}}
 }
 \description{
 \emph{k}-fold Cross Validation for \strong{sgdnet}

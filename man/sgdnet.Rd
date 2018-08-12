@@ -54,33 +54,31 @@ algorithm terminates when
 }
 \value{
 An object of class \code{'sgdnet'} with the following items:
-\tabular{ll}{
-\code{a0}        \tab the intercept \cr
-\code{beta}      \tab the coefficients stored in sparse matrix format
+\item{\code{a0}}{the intercept}
+\item{\code{beta}}{the coefficients stored in sparse matrix format
 "dgCMatrix". For the multivariate families, this is a
 list with one matrix of coefficients for each response or
-class. \cr
-\code{nulldev}   \tab the deviance of the null (intercept-only model)\cr
-\code{dev.ratio} \tab the fraction of deviance explained, where the deviance
+class.}
+\item{\code{nulldev}}{the deviance of the null (intercept-only model)}
+\item{\code{dev.ratio}}{the fraction of deviance explained, where the deviance
 is two times the difference in loglikelihood between the
-saturated model and the null model \cr
-\code{df}        \tab the number of nozero coefficients along the
+saturated model and the null model}
+\item{\code{df}}{the number of nozero coefficients along the
 regularization path. For \code{family = "multinomial"},
 this is the number of variables with
-a nonzero coefficient for any class. \cr
-\code{dfmat}     \tab a matrix of the number of nonzero coefficients for
-any class (only available for multivariate models)\cr
-\code{alpha}     \tab elastic net mixing parameter. See the description
-of the arguments. \cr
-\code{lambda}    \tab the sequence of lambda values scaled to the
-original scale of the input data. \cr
-\code{nobs}      \tab number of observations \cr
-\code{npasses}   \tab accumulated number of outer iterations (epochs)
-for the entire regularization path \cr
-\code{offset}    \tab a logical indicating whether an offset was used \cr
-\code{grouped}   \tab a logical indicating if a group lasso penalty was used \cr
-\code{call}      \tab the call that generated this fit
-}
+a nonzero coefficient for any class.}
+\item{\code{dfmat}}{a matrix of the number of nonzero coefficients for
+any class (only available for multivariate models)}
+\item{\code{alpha}}{elastic net mixing parameter. See the description
+of the arguments.}
+\item{\code{lambda}}{the sequence of lambda values scaled to the
+original scale of the input data.}
+\item{\code{nobs}}{number of observations}
+\item{\code{npasses}}{accumulated number of outer iterations (epochs)
+for the entire regularization path}
+\item{\code{offset}}{a logical indicating whether an offset was used}
+\item{\code{grouped}}{a logical indicating if a group lasso penalty was used}
+\item{\code{call}}{the call that generated this fit}
 }
 \description{
 Fit a Generalized Linear Model with Elastic Net Regularization
