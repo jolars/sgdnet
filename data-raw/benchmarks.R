@@ -181,7 +181,7 @@ keep <- apply(y1, 1, function(x) all(!is.na(x)))
 y1 <- y1[keep, ]
 x1 <- d[keep, c(6:30, 32:103, 121:123)]
 
-violence <- list(x = x1, y = y1)
+violence <- list(x = as.matrix(x1), y = as.matrix(y1))
 
 unlink(tmp_file)
 
@@ -203,7 +203,7 @@ x1 <- d[, -c(9, 17, 18)]
 x2 <- scale(x1)
 y <- d[, 17:18]
 
-naval <- list(x = x2, y = y)
+naval <- list(x = as.matrix(x2), y = as.matrix(y))
 
 # Bike sharing
 tmp_file <- tempfile()
