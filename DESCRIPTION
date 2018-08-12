@@ -6,11 +6,9 @@ Authors@R: c(person("Johan", "Larsson", email = "johanlarsson@outlook.com",
                     comment = c(ORCID = "0000-0002-4029-5945")),
              person(c("Toby", "Dylan"), "Hocking", role = c("aut")),
              person("Michael", "Weylandt", role = c("aut")))
-Description: Fast implementations of L1-penalized generalized linear
-    models (gaussian, multivariate gaussian, binomial, multinomial, poisson, and
-    cox-proportional hazards) using SAGA: a fast stochastic average gradient
-    algorithm. The core functionality of the package has been ported
-    from the 'scikit-learn' Python package.
+Description: Fast implementations of elastic net-regularized generalized linear
+    models (gaussian, multivariate gaussian, binomial, and multinomial)
+    using SAGA: a fast stochastic incremental gradient algorithm.
 License: GPL-3
 Copyright: See file inst/COPYRIGHTS
 Encoding: UTF-8
