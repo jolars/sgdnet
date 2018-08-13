@@ -2,9 +2,12 @@
 % Please edit documentation in R/deviance.sgdnet.R
 \name{deviance.sgdnet}
 \alias{deviance.sgdnet}
+\alias{deviance.cv_sgdnet}
 \title{Deviance for sgdnet Object}
 \usage{
 \method{deviance}{sgdnet}(object, ...)
+
+\method{deviance}{cv_sgdnet}(object, ...)
 }
 \arguments{
 \item{object}{an object of class \code{'sgdnet'}}
@@ -18,7 +21,8 @@ squares.
 }
 \description{
 Return the deviance for an object of class \code{"sgdnet"}, typically
-from a fit with \code{\link[=sgdnet]{sgdnet()}}.
+from a fit with \code{\link[=sgdnet]{sgdnet()}}. \code{deviance.cv_sgdnet()} is a simple wrapper
+that calls \code{\link[=deviance.sgdnet]{deviance.sgdnet()}} on the fit to full data from \code{\link[=cv_sgdnet]{cv_sgdnet()}}.
 }
 \details{
 This functions returns the deviance of the model along the regularization
