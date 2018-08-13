@@ -39,7 +39,8 @@ $\alpha = 1$ results in the lasso [@tibshirani1996] and $\alpha = 0$ the ridge
 penalty.
 
 When the lasso penalty is in place, the regularization imposed on the
-coefficients takes the shape of an octahedron.
+coefficients takes the shape of an octahedron when there are three
+coefficients.
 
 ```{r, echo = FALSE, fig.cap = "The constraint region for the lasso penalty."}
 # Lasso penalty (octahedron)
