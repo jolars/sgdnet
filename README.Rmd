@@ -65,7 +65,7 @@ plot(fit)
 
 ## Versioning 
 
-**eulerr** uses [semantic versioning](https://semver.org/).
+**sgdnet** uses [semantic versioning](https://semver.org/).
 
 ## Acknowledgements
 
