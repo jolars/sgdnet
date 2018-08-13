@@ -21,12 +21,12 @@ and to be able to tune its parameters. **sgdnet** fits regularized models that
 are designed to avoid over-fitting. This, however, can only be accomplished
 if we split our data into training and test sets and tune our model by
 varying its parameters -- in our case these is the regularization strength 
-($\lambda$) and the elastic net mixing paramter ($\alpha$) -- and
+($\lambda$) and the elastic net mixing parameter ($\alpha$) -- and
 repeatedly fit our model against a training set and measure
 its performance against a test set. 
 
 There is a plethora of methods for model tuning. For **sgdnet** we have
-chosen to use $k$-fold cross-validation, which is availabe via
+chosen to use $k$-fold cross-validation, which is available via
 the `cv_sgdnet()` function. This function will randomly divide the 
 data into $k$ folds. For each fold, the remaining $k-1$ will
 be used to train a model across a regularization path, and optionally a
