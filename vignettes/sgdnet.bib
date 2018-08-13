@@ -3,39 +3,35 @@
   title = {Regularization and {{Variable Selection}} via the {{Elastic Net}}},
   volume = {67},
   issn = {1369-7412},
-  abstract = {[We propose the elastic net, a new regularization and variable selection method. Real world data and a simulation study show that the elastic net often outperforms the lasso, while enjoying a similar sparsity of representation. In addition, the elastic net encourages a grouping effect, where strongly correlated predictors tend to be in or out of the model together. The elastic net is particularly useful when the number of predictors (p) is much bigger than the number of observations (n). By contrast, the lasso is not a very satisfactory variable selection method in the p $\gg$ n case. An algorithm called LARS-EN is proposed for computing elastic net regularization paths efficiently, much like algorithm LARS does for the lasso.]},
   number = {2},
   journal = {Journal of the Royal Statistical Society. Series B (Statistical Methodology)},
   author = {Zou, Hui and Hastie, Trevor},
   year = {2005},
-  pages = {301-320},
-  file = {/home/jolars/Zotero/storage/K82GEAG2/zou_hastie - 2005 - regularization and variable selection via the.pdf}
+  pages = {301-320}
 }
 
 @article{tibshirani1996,
   title = {Regression {{Shrinkage}} and {{Selection}} via the {{Lasso}}},
   volume = {58},
   issn = {0035-9246},
-  abstract = {We propose a new method for estimation in linear models. The ‘lasso' minimizes the residual sum of squares subject to the sum of the absolute value of the coefficients being less than a constant. Because of the nature of this constraint it tends to produce some coefficients that are exactly 0 and hence gives interpretable models. Our simulation studies suggest that the lasso enjoys some of the favourable properties of both subset selection and ridge regression. It produces interpretable models like subset selection and exhibits the stability of ridge regression. There is also an interesting relationship with recent work in adaptive function estimation by Donoho and Johnstone. The lasso idea is quite general and can be applied in a variety of statistical models: extensions to generalized regression models and tree-based models are briefly described.},
   number = {1},
   journal = {Journal of the Royal Statistical Society. Series B (Methodological)},
   author = {Tibshirani, Robert},
   year = {1996},
-  pages = {267-288},
-  file = {/home/jolars/Zotero/storage/VBKPL9NT/tibshirani - 1996 - regression shrinkage and selection via the lasso.pdf}
+  pages = {267-288}
 }
 
-@article{defazio2014,
+@inproceedings{defazio2014,
+  address = {Montreal, Canada},
   title = {{{SAGA}}: {{A Fast Incremental Gradient Method With Support}} for {{Non}}-{{Strongly Convex Composite Objectives}}},
   volume = {2},
   shorttitle = {{{SAGA}}},
-  abstract = {In this work we introduce a new optimisation method called SAGA in the spirit of SAG, SDCA, MISO and SVRG, a set of recently proposed incremental gradient algorithms with fast linear convergence rates. SAGA improves on the theory behind SAG and SVRG, with better theoretical convergence rates, and has support for composite objectives where a proximal operator is used on the regulariser. Unlike SDCA, SAGA supports non-strongly convex problems directly, and is adaptive to any inherent strong convexity of the problem. We give experimental results showing the effectiveness of our method.},
-  journal = {Advances in Neural Information Processing Systems},
+  booktitle = {Advances in {{Neural Information Processing Systems}} 27},
+  publisher = {{Curran Associates, Inc.}},
   author = {Defazio, Aaron and Bach, Francis and {Lacoste-Julien}, Simon},
-  month = jul,
+  month = dec,
   year = {2014},
-  keywords = {_tablet},
-  file = {/home/jolars/Zotero/storage/2TZQZ3YK/defazio_2014_saga.pdf}
+  pages = {1646-1654}
 }
 
 @article{schmidt2017,
@@ -43,26 +39,24 @@
   volume = {162},
   issn = {0025-5610, 1436-4646},
   doi = {10/f9xwpn},
-  abstract = {We analyze the stochastic average gradient (SAG) method for optimizing the sum of a finite number of smooth convex functions. Like stochastic gradient (SG) methods, the SAG method's iteration cost is independent of the number of terms in the sum. However, by incorporating a memory of previous gradient values the SAG method achieves a faster convergence rate than black-box SG methods. The convergence rate is improved from O(1/k$\surd$)O(1/k)O(1/$\backslash$sqrt\{k\}) to O(1 / k) in general, and when the sum is strongly-convex the convergence rate is improved from the sub-linear O(1 / k) to a linear convergence rate of the form O($\rho$k)O($\rho$k)O($\backslash$rho \^k) for $\rho{}<$1$\rho{}<$1$\backslash$rho $<$ 1. Further, in many cases the convergence rate of the new method is also faster than black-box deterministic gradient methods, in terms of the number of gradient evaluations. This extends our earlier work Le Roux et al. (Adv Neural Inf Process Syst, 2012), which only lead to a faster rate for well-conditioned strongly-convex problems. Numerical experiments indicate that the new algorithm often dramatically outperforms existing SG and deterministic gradient methods, and that the performance may be further improved through the use of non-uniform sampling strategies.},
   language = {en},
   number = {1-2},
-  journal = {Math. Program.},
+  journal = {Mathematical Programming},
   author = {Schmidt, Mark and Roux, Nicolas Le and Bach, Francis},
   month = mar,
   year = {2017},
-  pages = {83-112},
-  file = {/home/jolars/Zotero/storage/DZTJ3CD5/schmidt - 2017 - minimizing finite sums with the stochastic.pdf;/home/jolars/Zotero/storage/4R8E9UCS/10.html}
+  pages = {83-112}
 }
 
 @article{friedman2010,
   title = {Regularization {{Paths}} for {{Generalized Linear Models}} via {{Coordinate Descent}}},
   volume = {33},
+  doi = {10.18637/jss.v033.i01},
   number = {1},
   journal = {Journal of Statistical Software},
   author = {Friedman, Jerome and Hastie, Trevor and Tibshirani, Robert},
   year = {2010},
-  pages = {1-22},
-  file = {/home/jolars/Zotero/storage/TLM8WH52/friedman - 2010 - regularization paths for generalized linear.pdf}
+  pages = {1-22}
 }
 
 @book{hastie2015,
@@ -71,7 +65,6 @@
   title = {Statistical {{Learning}} with {{Sparsity}}: {{The Lasso}} and {{Generalizations}}},
   isbn = {978-1-4987-1216-3},
   shorttitle = {Statistical {{Learning}} with {{Sparsity}}},
-  abstract = {Discover New Methods for Dealing with High-Dimensional Data  A sparse statistical model has only a small number of nonzero parameters or weights; therefore, it is much easier to estimate and interpret than a dense model. Statistical Learning with Sparsity: The Lasso and Generalizations presents methods that exploit sparsity to help recover the underlying signal in a set of data.  Top experts in this rapidly evolving field, the authors describe the lasso for linear regression and a simple coordinate descent algorithm for its computation. They discuss the application of $\mathscr{l}$1 penalties to generalized linear models and support vector machines, cover generalized penalties such as the elastic net and group lasso, and review numerical methods for optimization. They also present statistical inference methods for fitted (lasso) models, including the bootstrap, Bayesian methods, and recently developed approaches. In addition, the book examines matrix decomposition, sparse multivariate analysis, graphical models, and compressed sensing. It concludes with a survey of theoretical results for the lasso.  In this age of big data, the number of features measured on a person or object can be large and might be larger than the number of observations. This book shows how the sparsity assumption allows us to tackle these problems and extract useful and reproducible patterns from big datasets. Data analysts, computer scientists, and theorists will appreciate this thorough and up-to-date treatment of sparse statistical modeling.},
   language = {English},
   publisher = {{Chapman and Hall/CRC}},
   author = {Hastie, Trevor and Tibshirani, Robert and Wainwright, Martin},
@@ -85,13 +78,10 @@
   eprint = {1510.02533},
   primaryClass = {cs, stat},
   title = {New {{Optimisation Methods}} for {{Machine Learning}}},
-  abstract = {A thesis submitted for the degree of Doctor of Philosophy of The Australian National University. In this work we introduce several new optimisation methods for problems in machine learning. Our algorithms broadly fall into two categories: optimisation of finite sums and of graph structured objectives. The finite sum problem is simply the minimisation of objective functions that are naturally expressed as a summation over a large number of terms, where each term has a similar or identical weight. Such objectives most often appear in machine learning in the empirical risk minimisation framework in the non-online learning setting. The second category, that of graph structured objectives, consists of objectives that result from applying maximum likelihood to Markov random field models. Unlike the finite sum case, all the non-linearity is contained within a partition function term, which does not readily decompose into a summation. For the finite sum problem, we introduce the Finito and SAGA algorithms, as well as variants of each. For graph-structured problems, we take three complementary approaches. We look at learning the parameters for a fixed structure, learning the structure independently, and learning both simultaneously. Specifically, for the combined approach, we introduce a new method for encouraging graph structures with the "scale-free" property. For the structure learning problem, we establish SHORTCUT, a O(n\^\{2.5\}) expected time approximate structure learning method for Gaussian graphical models. For problems where the structure is known but the parameters unknown, we introduce an approximate maximum likelihood learning algorithm that is capable of learning a useful subclass of Gaussian graphical models.},
   journal = {arXiv:1510.02533 [cs, stat]},
   author = {Defazio, Aaron},
   month = oct,
-  year = {2015},
-  keywords = {Computer Science - Learning,Statistics - Machine Learning},
-  file = {/home/jolars/Zotero/storage/32QUIN5S/defazio_2015_new_optimisation_methods_for_machine.pdf;/home/jolars/Zotero/storage/TXMDUVJC/1510.html}
+  year = {2015}
 }
 
 
