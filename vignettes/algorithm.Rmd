@@ -138,8 +138,9 @@ Naturally, whatever value the user provides in the argument `lambda` to
 
 The step size, $\gamma$, in SAGA is constant throughout the algorithm.
 For non-strongly convex objectives it is set to $1/(3L)$, where $L$ is the 
-*Lipschitz* constant. Since we are picking a single sample at a time,
-we approximate this constant by the largest sample-wise squared norm
+maximum Lipschitz constant of the term of the log-likelihood
+corresponding to a single observation. This is bound to be
+largest sample-wise squared norm
 of the feature matrix. For strongly convex objectives,
 the step size is set to
 
@@ -175,7 +176,7 @@ xyplot(ridge + elastic_net + lasso ~ seq_len(nlambda),
 
 ```
 
-### Algorithm
+## Algorithm
 
 We will now look at the implementation (in pseudocode) of the actual SAGA
 algorithm as it is realized in **sgdnet**.
@@ -189,24 +190,10 @@ l1          amount of L1-regularization
 l2          amount of L2-regularization
 max_iter    maximum number of outer iterations
 gamma       the step size
-lag         a vector of size dnenoting the last time each feature was updated
-lag_scaling a series of geometric sums to use with LaggedUpdate()
 
 for i in 1:max_iter
   for k in 1:n_samples
     X[j] <- draw a sample randomly from X
-    
-    nz <- Nonzeros(X[j]) # nonzero indices of X[j]
-    
-    # Perform just-in-time updates of coefficients X is sparse
-    X[j] <- LaggedUpdate(j,
-                         nz,      
-                         X[j],
-                         g_avg,
-                         l1*gamma/beta_scale, # step size for proximal operator
-                         gamma/beta_scale,    # step size for gradient
-                         lag,                
-                         lag_scaling)
     
     # Compute the conditional mean given X[j]
     E[X] <- DotProduct(beta_scale*beta, X[j])
@@ -223,7 +210,7 @@ for i in 1:max_iter
     X[j] <- Update(k + 1, 
                    nz,     
                    X[j],
-                   g_sum,
+                   g_avg,
                    l1*gamma/beta_scale,     
                    gamma/beta_scale)
     
@@ -231,7 +218,6 @@ for i in 1:max_iter
     g_avg <- g_avg + g_change/n_samples
   
   # At the end of each epoch, reset the scale and unlag all the coefficients
-  beta <- Unlag(beta, lag, lag_scaling)
   beta <- beta*beta_scale
   beta_scale <- 1
   
@@ -256,6 +242,8 @@ The algorithm for dense input is relatively straightforward. We
 
 Rinse and repeat until our convergence criterion is met.
 
+### Sparse features
+
 The implementation for sparse input, however, is slightly more intricate.
 The reason is that we can save considerable time by postponing
 the updates of coefficients when their corresponding features are sparse in the
@@ -265,7 +253,7 @@ corresponding to these coefficients or at the end of an epoch, at which
 point we make sure to update all of the coefficients to be able to
 check for convergence.
 
-These lagged updates are accomplished in `LaggedUpdate()`, which
+These lagged updates are accomplished in a `LaggedUpdate()` function, which
 relies on the following two objects:
 
 `lag_scaling`
@@ -294,7 +282,7 @@ LaggedUpdate(k,                   # iteration
     missed_updates <- k - lag[ind]
     
     # L2-regularization
-    beta[ind] <- beta[ind] + grad_step_size*lag_scaling[missed_updates]*g_sum[ind]
+    beta[ind] <- beta[ind] + grad_step_size*lag_scaling[missed_updates]*g_avg[ind]
     
     # L1-regularization through SoftMax function.
     beta[ind] <- SoftThreshold(beta[ind],
