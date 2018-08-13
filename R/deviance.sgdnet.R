@@ -1,10 +1,12 @@
 #' Deviance for sgdnet Object
 #'
-#' Return the deviance for a sgdnet object.
+#' Return the deviance for an object of class `"sgdnet"`, typically
+#' from a fit with [sgdnet()]. `deviance.cv_sgdnet()` is a simple wrapper
+#' that calls [deviance.sgdnet()] on the fit to full data from [cv_sgdnet()].
 #'
 #' This functions returns the deviance of the model along the regularization
 #' path. It is computed from the slots `dev.ratio` and `nulldev` from the
-#' `'sgdnet'` object using the formula
+#' `"sgdnet"` object using the formula
 #'
 #' \deqn{
 #'   (1 - \mathtt{dev.ratio}) \times \mathtt{nulldev}
@@ -30,4 +32,10 @@
 #' deviance(fit)
 deviance.sgdnet <- function(object, ...) {
   (1 - object$dev.ratio)*object$nulldev
+}
+
+#' @export
+#' @rdname deviance.sgdnet
+deviance.cv_sgdnet <- function(object, ...) {
+  stats::deviance(object$fit, ...)
 }

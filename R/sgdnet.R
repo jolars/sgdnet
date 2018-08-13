@@ -129,33 +129,31 @@
 #' @param ... ignored
 #'
 #' @return An object of class `'sgdnet'` with the following items:
-#' \tabular{ll}{
-#'   `a0`        \tab the intercept \cr
-#'   `beta`      \tab the coefficients stored in sparse matrix format
-#'                    "dgCMatrix". For the multivariate families, this is a
-#'                    list with one matrix of coefficients for each response or
-#'                    class. \cr
-#'   `nulldev`   \tab the deviance of the null (intercept-only model)\cr
-#'   `dev.ratio` \tab the fraction of deviance explained, where the deviance
+#' \item{`a0`}{the intercept}
+#' \item{`beta`}{the coefficients stored in sparse matrix format
+#'               "dgCMatrix". For the multivariate families, this is a
+#'               list with one matrix of coefficients for each response or
+#'               class.}
+#' \item{`nulldev`}{the deviance of the null (intercept-only model)}
+#' \item{`dev.ratio`}{the fraction of deviance explained, where the deviance
 #'                    is two times the difference in loglikelihood between the
-#'                    saturated model and the null model \cr
-#'   `df`        \tab the number of nozero coefficients along the
-#'                    regularization path. For `family = "multinomial"`,
-#'                    this is the number of variables with
-#'                    a nonzero coefficient for any class. \cr
-#'   `dfmat`     \tab a matrix of the number of nonzero coefficients for
-#'                    any class (only available for multivariate models)\cr
-#'   `alpha`     \tab elastic net mixing parameter. See the description
-#'                    of the arguments. \cr
-#'   `lambda`    \tab the sequence of lambda values scaled to the
-#'                    original scale of the input data. \cr
-#'   `nobs`      \tab number of observations \cr
-#'   `npasses`   \tab accumulated number of outer iterations (epochs)
-#'                    for the entire regularization path \cr
-#'   `offset`    \tab a logical indicating whether an offset was used \cr
-#'   `grouped`   \tab a logical indicating if a group lasso penalty was used \cr
-#'   `call`      \tab the call that generated this fit
-#' }
+#'                    saturated model and the null model}
+#' \item{`df`}{the number of nozero coefficients along the
+#'             regularization path. For `family = "multinomial"`,
+#'             this is the number of variables with
+#'             a nonzero coefficient for any class.}
+#' \item{`dfmat`}{a matrix of the number of nonzero coefficients for
+#'                any class (only available for multivariate models)}
+#' \item{`alpha`}{elastic net mixing parameter. See the description
+#'                of the arguments.}
+#' \item{`lambda`}{the sequence of lambda values scaled to the
+#'                 original scale of the input data.}
+#' \item{`nobs`}{number of observations}
+#' \item{`npasses`}{accumulated number of outer iterations (epochs)
+#'                  for the entire regularization path}
+#' \item{`offset`}{a logical indicating whether an offset was used}
+#' \item{`grouped`}{a logical indicating if a group lasso penalty was used}
+#' \item{`call`}{the call that generated this fit}
 #'
 #' @seealso [predict.sgdnet()], [plot.sgdnet()], [coef.sgdnet()],
 #'   [sgdnet-package()]
@@ -203,9 +201,25 @@ sgdnet.default <- function(x,
   # Collect the call so we can use it in update() later on
   ocall <- match.call()
 
+  # Collect sgdnet-specific options for debugging and more
+  debug <- getOption("sgdnet.debug")
+
   n_samples <- NROW(x)
   n_features <- NCOL(x)
   n_targets <- NCOL(y)
+
+  stopifnot(is.logical(intercept),
+            is.logical(standardize),
+            is.logical(debug))
+
+  if (NROW(y) != NROW(x))
+    stop("the number of samples in 'x' and 'y' must match")
+
+  if (NROW(y) == 0)
+    stop("the response (y) is empty.")
+
+  if (NROW(x) == 0)
+    stop("the predictor matrix (x) is empty.")
 
   # Convert sparse x to dgCMatrix class from package Matrix.
   if (is_sparse <- inherits(x, "sparseMatrix")) {
@@ -225,9 +239,6 @@ sgdnet.default <- function(x,
   if (is.null(response_names))
     response_names <- paste0("y", seq_len(NCOL(y)))
 
-  # Collect sgdnet-specific options for debugging and more
-  debug <- getOption("sgdnet.debug")
-
   if (is.null(lambda) || is_false(lambda))
     lambda <- double(0L)
   else
@@ -235,12 +246,6 @@ sgdnet.default <- function(x,
 
   if (nlambda == 0)
     stop("lambda path cannot be of zero length.")
-
-  stopifnot(NROW(y) == NROW(x),
-            length(alpha) == 1,
-            is.logical(intercept),
-            is.logical(standardize),
-            is.logical(debug))
 
   if (alpha < 0 || alpha > 1)
     stop("elastic net mixing parameter (alpha) must be in [0, 1].")
@@ -298,9 +303,7 @@ sgdnet.default <- function(x,
       class_names <- names(y_table)
 
       # Transform response to {-1, 1}, which is used internally
-      y <- as.double(y)
-      y[y == min(y)] <- 0
-      y[y == max(y)] <- 1
+      y <- as.numeric(as.factor(y)) - 1
     },
     multinomial = {
       y <- droplevels(as.factor(y))

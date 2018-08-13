@@ -96,8 +96,11 @@ nonzero_coefs <- function(beta, bystep = FALSE) {
 #'
 #' @param x linear predictors
 #'
+#' @author Jerome Friedman, Trevor Hastie, Rob Tibshirani, and Noah Simon
+#'
 #' @return Class predictions.
 #' @keywords internal
+#' @noRd
 softmax <- function(x) {
   d <- dim(x)
   nas <- apply(is.na(x), 1, any)
@@ -294,7 +297,7 @@ interpolate_coefficients <- function(beta, s, lamlist) {
 #' @author Jerome Friedman, Trevor Hastie, Rob Tibshirani, Noah Simon
 #'   (original), Johan Larsson (modifications)
 #'
-#' @seealso [sgdnet()], [coef.sgdnet()]
+#' @seealso [sgdnet()], [coef.sgdnet()], [predict.cv_sgdnet()]
 #'
 #' @examples
 #' # Gaussian
@@ -355,7 +358,7 @@ predict.sgdnet <- function(object,
   beta <- bind_intercept(object$beta, object$a0)
 
   if (!is.null(s)) {
-    if (s < 0)
+    if (any(s < 0))
       stop("s (lambda penalty) cannot be negative")
 
     lamlist <- lambda_interpolate(object$lambda, s)
@@ -480,7 +483,7 @@ predict.sgdnet_multinomial <- function(object,
   }
 
   if (!is.null(s)) {
-    if (s < 0)
+    if (any(s < 0))
       stop("s (lambda penalty) cannot be negative")
     nlambda <- length(s)
     lamlist <- lambda_interpolate(object$lambda, s)

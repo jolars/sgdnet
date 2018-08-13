@@ -13,8 +13,6 @@ test_that("all combinations run without errors", {
   )
 
   for (i in seq_len(nrow(grid))) {
-    sparse <- grid$sparse[i]
-
     pars <- list(
       standardize = grid$standardize[i],
       family = grid$family[i],

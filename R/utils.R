@@ -25,3 +25,22 @@
 is_false <- function(x) {
   identical(x, FALSE)
 }
+
+#' Standard Deviation by Columns
+#'
+#' @param x a matrix or data.frame
+#' @param na.rm whether to remove NA values
+#'
+#' @return A vector of standard deviations, one per column
+#'
+#' @noRd
+#' @keywords internal
+col_sd <- function(x, na.rm = TRUE) {
+  if (na.rm) {
+    n <- colSums(!is.na(x))
+  } else {
+    n <- nrow(x)
+  }
+  col_var <- colMeans(x^2, na.rm = na.rm) - (colMeans(x, na.rm = na.rm))^2
+  sqrt(col_var*n/(n - 1))
+}

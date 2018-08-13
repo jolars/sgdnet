@@ -16,7 +16,6 @@ test_that("assertions in predict.sgdnet() throw exceptions", {
   expect_error(predict(fit))
 })
 
-
 test_that("assertions in sgdnet() throw exceptions", {
   x <- with(trees, cbind(Girth, Volume))
   y <- trees$Height
@@ -50,4 +49,15 @@ test_that("assertions in sgdnet() throw exceptions", {
   y <- c(0, 0, 1)
   x <- c(0.5, 0.5, 0.5)
   expect_error(sgdnet(x, y, family = "binomial"))
+})
+
+test_that("assertions in cv_sgdnet() throw exceptions", {
+  n <- 100
+  x <- rnorm(n)
+  y <- rnorm(n)
+
+  expect_error(cv_sgdnet(x, y, nfolds = n + 1))
+  expect_error(cv_sgdnet(x, y, nfolds = 1))
+  expect_error(cv_sgdnet(x, y, alpha = list()))
+  expect_error(cv_sgdnet(x, y, foldid = sample(n, n - 1)))
 })
