@@ -18,8 +18,7 @@ algorithm SAGA (Defazio et al. 2014).
 
 **sgdnet** is not currently available on
 [CRAN](https://cran.r-project.org/) but can be installed using the
-[devtools](https://CRAN.R-project.org/package=devtools) package as
-follows:
+[devtools](https://CRAN.R-project.org/package=devtools) package:
 
 ``` r
 # install.packages("devtools")
@@ -30,7 +29,7 @@ devtools::install_github("jolars/sgdnet")
 
 It is simple to fit a model using **sgdnet**. The interface deliberately
 mimics that of [glmnet](https://CRAN.R-project.org/package=glmnet) to
-facilitate transitionining.
+facilitate transitioning between the two.
 
 First we load the package, and then we fit a multinomial model to the
 [iris](https://en.wikipedia.org/wiki/Iris_flower_data_set) data set. We
@@ -40,7 +39,7 @@ penalty](https://en.wikipedia.org/wiki/Elastic_net_regularization) to
 [ridge](https://en.wikipedia.org/wiki/Tikhonov_regularization) and
 [lasso](https://en.wikipedia.org/wiki/Lasso_\(statistics\)) penalties.
 
-**sgdnet** automatically fits the model across an automatically computed
+**sgdnet** fits the model across an automatically computed
 regularization path. Altneratively, the user might supply their own path
 using the `lambda` argument.
 
@@ -50,7 +49,7 @@ fit <- sgdnet(iris[, 1:4], iris[, 5], family = "multinomial", alpha = 0.8)
 plot(fit)
 ```
 
-<img src="man/figures/README-unnamed-chunk-2-1.png" title="The coefficients from a multinomial model along the regularization path fit to the iris data set." alt="The coefficients from a multinomial model along the regularization path fit to the iris data set." width="100%" />
+<img src="man/figures/README-unnamed-chunk-2-1.png" title="The coefficients from a multinomial model along the regularization path fit to the iris data set." alt="The coefficients from a multinomial model along the regularization path fit to the iris data set." width="auto" />
 
 ## License
 
@@ -58,7 +57,7 @@ plot(fit)
 
 ## Versioning
 
-**eulerr** uses [semantic versioning](https://semver.org/).
+**sgdnet** uses [semantic versioning](https://semver.org/).
 
 ## Acknowledgements
 

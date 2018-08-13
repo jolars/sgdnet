@@ -53,7 +53,7 @@ and [lasso](https://en.wikipedia.org/wiki/Lasso_(statistics)) penalties.
 regularization path. Altneratively, the user might supply their own
 path using the `lambda` argument.
 
-```{r, fig.cap = "The coefficients from a multinomial model along the regularization path fit to the iris data set."}
+```{r, fig.cap = "The coefficients from a multinomial model along the regularization path fit to the iris data set.", out.width = "auto", fig.width = 8, fig.asp = 0.5}
 library(sgdnet)
 fit <- sgdnet(iris[, 1:4], iris[, 5], family = "multinomial", alpha = 0.8)
 plot(fit)
