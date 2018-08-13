@@ -42,4 +42,5 @@ test_that("various cross-validation arguments can be used", {
 
   # leave-one-out cross validation
   expect_silent(cv_sgdnet(x, y, nfolds = n))
+  expect_silent(cv_sgdnet(x, y, foldid = sample(rep(1:10, 10))))
 })
