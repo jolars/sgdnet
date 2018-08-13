@@ -113,13 +113,13 @@
 <h2 class="hasAnchor">
 <a href="#usage" class="anchor"></a>Usage</h2>
 <p>It is simple to fit a model using <strong>sgdnet</strong>. The interface deliberately mimics that of <a href="https://CRAN.R-project.org/package=glmnet">glmnet</a> to facilitate transitioning between the two.</p>
-<p>First we load the package, and then we fit a multinomial model to the <a href="https://en.wikipedia.org/wiki/Iris_flower_data_set">iris</a> data set. We se the <a href="https://en.wikipedia.org/wiki/Elastic_net_regularization">elastic net penalty</a> to 0.8 using the <code>alpha</code> argument to achieve a compromise between the <a href="https://en.wikipedia.org/wiki/Tikhonov_regularization">ridge</a> and <a href="https://en.wikipedia.org/wiki/Lasso_(statistics)">lasso</a> penalties.</p>
+<p>First we load the package, and then we fit a multinomial model to the <a href="https://en.wikipedia.org/wiki/Iris_flower_data_set">iris</a> data set. We set the <a href="https://en.wikipedia.org/wiki/Elastic_net_regularization">elastic net penalty</a> to 0.8 using the <code>alpha</code> argument to achieve a compromise between the <a href="https://en.wikipedia.org/wiki/Tikhonov_regularization">ridge</a> and <a href="https://en.wikipedia.org/wiki/Lasso_(statistics)">lasso</a> penalties.</p>
 <p><strong>sgdnet</strong> fits the model across an automatically computed regularization path. Altneratively, the user might supply their own path using the <code>lambda</code> argument.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="kw">library</span>(sgdnet)</a>
 <a class="sourceLine" id="cb2-2" data-line-number="2">fit &lt;-<span class="st"> </span><span class="kw"><a href="reference/sgdnet.html">sgdnet</a></span>(iris[, <span class="dv">1</span><span class="op">:</span><span class="dv">4</span>], iris[, <span class="dv">5</span>], <span class="dt">family =</span> <span class="st">"multinomial"</span>, <span class="dt">alpha =</span> <span class="fl">0.8</span>)</a>
 <a class="sourceLine" id="cb2-3" data-line-number="3"><span class="kw">plot</span>(fit)</a></code></pre></div>
 <div class="figure">
-<img src="reference/figures/README-unnamed-chunk-2-1.png" alt="The coefficients from a multinomial model along the regularization path fit to the iris data set." width="100%"><p class="caption">
+<img src="reference/figures/README-unnamed-chunk-2-1.png" alt="The coefficients from a multinomial model along the regularization path fit to the iris data set." width="auto"><p class="caption">
 The coefficients from a multinomial model along the regularization path fit to the iris data set.
 </p>
 </div>
