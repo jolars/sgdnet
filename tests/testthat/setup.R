@@ -113,3 +113,9 @@ dont_plot <- function(x, ...) {
   unlink(tmp)
   invisible(p)
 }
+
+# Suppress printning
+dont_print <- function(x, ...) {
+  utils::capture.output(y <- print(x, ...))
+  invisible(y)
+}
