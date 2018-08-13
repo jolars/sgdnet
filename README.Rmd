@@ -43,7 +43,7 @@ facilitate transitioning between the two.
 
 First we load the package, and then we fit a multinomial model to
 the [iris](https://en.wikipedia.org/wiki/Iris_flower_data_set) data set.
-We se the
+We set the
 [elastic net penalty](https://en.wikipedia.org/wiki/Elastic_net_regularization) 
 to 0.8 using the `alpha` argument to achieve a compromise between the 
 [ridge](https://en.wikipedia.org/wiki/Tikhonov_regularization)
