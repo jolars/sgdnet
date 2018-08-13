@@ -49,7 +49,7 @@ to 0.8 using the `alpha` argument to achieve a compromise between the
 [ridge](https://en.wikipedia.org/wiki/Tikhonov_regularization)
 and [lasso](https://en.wikipedia.org/wiki/Lasso_(statistics)) penalties.
 
-**sgdnet** automatically fits the model across an automatically computed
+**sgdnet** fits the model across an automatically computed
 regularization path. Altneratively, the user might supply their own
 path using the `lambda` argument.
 
