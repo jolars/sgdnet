@@ -17,12 +17,13 @@ For \code{family = "gaussian"} in \code{\link[=sgdnet]{sgdnet()}}, this is the r
 squares.
 }
 \description{
-Return the deviance for a sgdnet object.
+Return the deviance for an object of class \code{"sgdnet"}, typically
+from a fit with \code{\link[=sgdnet]{sgdnet()}}.
 }
 \details{
 This functions returns the deviance of the model along the regularization
 path. It is computed from the slots \code{dev.ratio} and \code{nulldev} from the
-\code{'sgdnet'} object using the formula
+\code{"sgdnet"} object using the formula
 
 \deqn{
   (1 - \mathtt{dev.ratio}) \times \mathtt{nulldev}
