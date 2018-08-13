@@ -14,38 +14,86 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+# These functions have been adapted from the glmnet R package maintained
+# by Trevor Hastie, which is licensed under the GPL-2:
+#
+# glmnet: Lasso and Elastic-Net Regularized Generalized Linear Models
+# Copyright (C) 2018 Jerome Friedman, Trevor Hastie, Rob Tibshirani, Noah Simon
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
 #' *k*-fold Cross Validation for **sgdnet**
+#'
+#' This function performs model validation by *k*-fold cross validation for
+#' models fit with [sgdnet()] over the entire regularization path and/or
+#' various elastic net penalties.
+#'
+#' The primary usage of this model is to tune for values of `lambda` and
+#' `alpha`. This function will randomly divide the
+#' data into \eqn{k} folds. For each fold, the remaining \eqn{k-1} will
+#' be used to train a model across a regularization path, and optionally a
+#' range of `alpha`. The fold that is left out
+#' is then used to measure the performance of the model. We proceed across
+#' all the folds, which means that each observation is used exactly once for
+#' validation, and finally average our results across all the folds.
+#'
+#' @section Measures:
+#' \tabular{llllll}{
+#'   Family        \tab `deviance` \tab `mse` \tab `mae` \tab `class` \tab `auc`\cr
+#'   `gaussian`    \tab x (`mse`)  \tab  x    \tab x     \tab         \tab      \cr
+#'   `binomial`    \tab x          \tab  x    \tab x     \tab x       \tab x    \cr
+#'   `multinomial` \tab x          \tab  x    \tab x     \tab x       \tab      \cr
+#'   `mgaussian`   \tab x (`mse`)  \tab  x    \tab x     \tab         \tab
+#' }
 #'
 #' @inheritParams sgdnet
 #' @param alpha elastic net mixing parameter; vectors of values are allowed
 #'  (unlike in [sgdnet()])
-#' @param nfolds number of folds (k)
-#' @param foldid a vector of fold identities
-#' @param type.measure the type of error
+#' @param nfolds number of folds (*k*) -- 3 is the minimum allowed
+#' @param foldid a vector of fold identities of the same length as the
+#'   number of observations
+#' @param type.measure the type of error, one of ("deviance" (default),
+#'   "mse" (mean-squared error), "mae" (mean absolute error), "class"
+#'   (misclassification rate), "auc" (area under the curve)); see **Measures**
+#'   to find out what types each family has available.
 #' @param ... arguments passed on to [sgdnet()]
 #'
+#' @author Johan Larsson (partly consisting of modified code from
+#'   [glmnet::cv.glmnet()] by Jerome Friedman, Trevor Hastie, Rob Tibshirani,
+#'   and Noah Simon)
+#'
 #' @return An object of class `'cv_sgdnet'` with the following items:
-#' \tabular{ll}{
-#'   `alpha`      \tab the elastic net mixing parameter used\cr
-#'   `lambda`     \tab a list of lambda values of the same length as `alpha`\cr
-#'   `cv_summary` \tab a `data.frame` summarizing the prediction error across
+#' \item{`alpha`}{the elastic net mixing parameter used}
+#' \item{`lambda`}{a list of lambda values of the same length as `alpha`}
+#' \item{`cv_summary`}{a `data.frame` summarizing the prediction error across
 #'                     the regularization path with columns `alpha`, `lambda`,
-#'                     `mean`, `sd`, `ci_lo`, `ci_up`\cr
-#'   `cv_raw`     \tab the raw cross-validation scores as a list of the
-#'                     same length as `alpha`, each item a `matrix` with
-#'                     the error for each fold as a row and each value of
-#'                     `lambda` in columns.\cr
-#'   `name`       \tab the type of prediction error used\cr
-#'   `fit`        \tab a fit from [sgdnet()] to the full data set based on the
-#'                     `alpha` with the best cross-validation score\cr
-#'   `alpha_min`  \tab the `alpha` corresponding to the fit with the best
-#'                     cross-validation performance\cr
-#'   `lambda_min` \tab the `lambda` corresponding to the fit with the best
-#'                     cross-validation performance\cr
-#'   `lambda_1se` \tab the largest `lambda` with a cross-validation performance
+#'                     `mean`, `sd`, `ci_lo`, `ci_up`}
+#' \item{`cv_raw`}{the raw cross-validation scores as a list of the
+#'                 same length as `alpha`, each item a `matrix` with
+#'                 the error for each fold as a row and each value of
+#'                 `lambda` in columns.}
+#' \item{`name`}{the type of prediction error used}
+#' \item{`fit`}{a fit from [sgdnet()] to the full data set based on the
+#'              `alpha` with the best cross-validation score}
+#' \item{`alpha_min`}{the `alpha` corresponding to the fit with the best
+#'                    cross-validation performance}
+#' \item{`lambda_min`}{the `lambda` corresponding to the fit with the best
+#'                     cross-validation performance}
+#' \item{`lambda_1se`}{the largest `lambda` with a cross-validation performance
 #'                     within one standard deviation of the one
-#'                     coresponding to `lambda_min`
-#' }
+#'                     coresponding to `lambda_min`}
 #'
 #' @seealso [sgdnet()], [predict.cv_sgdnet()], [plot.cv_sgdnet()]
 #'

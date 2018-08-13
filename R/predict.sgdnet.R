@@ -297,7 +297,7 @@ interpolate_coefficients <- function(beta, s, lamlist) {
 #' @author Jerome Friedman, Trevor Hastie, Rob Tibshirani, Noah Simon
 #'   (original), Johan Larsson (modifications)
 #'
-#' @seealso [sgdnet()], [coef.sgdnet()]
+#' @seealso [sgdnet()], [coef.sgdnet()], [predict.cv_sgdnet()]
 #'
 #' @examples
 #' # Gaussian

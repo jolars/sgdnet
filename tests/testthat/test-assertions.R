@@ -16,7 +16,6 @@ test_that("assertions in predict.sgdnet() throw exceptions", {
   expect_error(predict(fit))
 })
 
-
 test_that("assertions in sgdnet() throw exceptions", {
   x <- with(trees, cbind(Girth, Volume))
   y <- trees$Height
