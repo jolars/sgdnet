@@ -55,8 +55,11 @@ y <- trees$Volume
 ### Standardization
 
 By default, the feature matrix in **sgdnet** is centered and scaled to unit
-variance. Here, however, we used the *biased* population standard deviation
-and divide by $n$ rather than $n-1$.
+variance[^1].
+
+[^1]: Here we use the *sample* standard deviation,
+dividing by $n$ rather than $n-1$, since we are only interested in the
+sample at hand and not the entire population.
 
 ```{r}
 sgdnet_sd <- function(x) sqrt(sum((x - mean(x))^2)/length(x))
