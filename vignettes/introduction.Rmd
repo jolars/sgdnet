@@ -21,8 +21,10 @@ knitr::opts_chunk$set(
 
 The goal of **sgdnet** is to be
 a one-stop solution for fitting elastic net-penalized generalized linear 
-models. This is of course not novel in and by itself. Several packages,
-such as the popular *glmnet* package [@friedman2010], already exists to serve this pupose.
+models in the $n \gg p$ regime. This is of course not novel in and by itself.
+Several packages,
+such as the popular *glmnet* package [@friedman2010], already exists to serve
+this pupose.
 With *sgdnet*, however, we set out to improve upon the existing solutions
 in a number of ways:
 
