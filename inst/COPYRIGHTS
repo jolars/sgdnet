@@ -19,7 +19,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # scikit-learn
 
 Parts of this package are modified translations of source code from the
-Python package scikit-learn, which is licensed under the New BSD License
+Python package scikit-learn (http://scikit-learn.org),
+including the contributed module lightning
+(http://contrib.scikit-learn.org/lightning/),
+which is licensed under the New BSD License
 and comes with the following notice:
 
 Copyright (c) 2007–2018 The scikit-learn developers.

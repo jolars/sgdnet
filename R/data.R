@@ -175,16 +175,17 @@
 #'  School of Information and Computer Science.
 "student"
 
-#' Benchmark data for binomial response family
+#' Benchmark data
 #'
 #' @source <https://github.com/jolars/sgdnet/data-raw/
 #'
-#' @format A `data.frame` with 5 variables and 2000 observations.
+#' @format A `list` with a `data.frame` for each model family (Gaussian, binomial,
+#'   multinomial), featuring 5 variables:
 #' \describe{
 #'   \item{dataset}{dataset used}
+#'   \item{penalty}{type of penalty (ridge or lasso)}
 #'   \item{package}{R package}
 #'   \item{time}{run time in seconds}
 #'   \item{loss}{objective loss}
-#'   \item{penalty}{type of penalty, "ridge" or "lasso"}
 #' }
-"benchmarks_binomial"
+"benchmarks"

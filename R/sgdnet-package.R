@@ -34,3 +34,9 @@ NULL
 #' @name sgdnet-package
 #' @docType package
 NULL
+
+
+# Additional release questions
+release_questions <- function() {
+  c("Have you updated the benchmarks?")
+}

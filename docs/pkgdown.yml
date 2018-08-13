@@ -1,0 +1,10 @@
+pandoc: 2.2.3.2
+pkgdown: 1.1.0
+pkgdown_sha: ~
+articles:
+  algorithm: algorithm.html
+  benchmarks: benchmarks.html
+  cross-validation: cross-validation.html
+  introduction: introduction.html
+  models: models.html
+

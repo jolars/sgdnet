@@ -4,7 +4,7 @@ author: "Johan Larsson"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteIndexEntry{Benchmarks}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -12,49 +12,114 @@ vignette: >
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
+  echo = FALSE,
   comment = "#>"
 )
 
 library(lattice)
 library(latticeExtra)
+library(sgdnet)
 
 lattice.options(default.theme = list(fontsize = list(points = 4, text = 8)))
+
+plot_benchmarks <- function(data) {
+  p <- xyplot(loss ~ time | dataset + penalty,
+              groups = package, 
+              data = data,
+              type = "l",
+              scales = list(relation = "free", draw = FALSE),
+              auto.key = TRUE)
+  useOuterStrips(p)
+}
 ```
 
 This vignette contains benchmarks of **sgdnet** against other similar
 packages. The data has been precomputed from scripts that are
 available at <https://github.com/jolars/sgdnet/data-raw/>.
 
-The benchmarks were produced by fitting models over a range
-of tolerance thresholds and recording the run times for each run.
+The benchmarks were generated as follows:
 
-## Binomial family
+* We fit with ($\alpha = 1$) and ridge ($\alpha = 0$) penalties.
+* The regularization strength, $\lambda$, was set to $\frac1n$ for each fit.
+* A log-spaced sequence of tolerance thresholds were generated, which were
+selected after trial-and-error to ensure that the packages ran over
+approximately the same time frame.
+* The run times were recorded using `system.time()`.
+* The range of run times were clipped to remove "trailing" times to make sure
+that each the range of times for each package were constrained around the
+same values.
+* Both loss and run times were normalized and the latter were cut into
+intervals of 20 slices within which the run times were averaged.
+
+The benchmarks were run on a dedicated
+[Amazon EC2 m4.large instance](https://aws.amazon.com/ec2/instance-types/).
+
+Note that some of the data sets below are not strictly 100% dense,
+despite the specifications below. They are, however, stored in dense
+matrix form (the regular `matrix` class in R), which makes the packages
+ignore any sparsity.
+
+## Gaussian least squares ordinary regression
+
+Name              Observations      Features     Density
+----------    ----------------     ---------   ---------
+abalone                  4,177             8        100%
+cadata                  20,640             8        100%
+mushroooms               8,124            12        100%
+
+Table: Benchmarking data sets for the gaussian model
+
+```{r, fig.cap = "Benchmarking results for gaussian responses.", fig.width = 7, fig.height = 5}
+plot_benchmarks(benchmarks$gaussian)
+```
+
+
+## Binomial logistic regression
 
 In this section, we are going to look at the following datasets:
 
-Name              Observations      Features
-----------    ----------------     ---------
-icjnn1                  49,990            22
-a9a                     32,561           123
-phishing                11,055            68
-mushroooms               8,124           112
-covtype                581,012            54
+Name              Observations      Features     Density
+----------    ----------------     ---------   ---------
+adult                   32,561           123         11%
+icjnn1                  49,990            22        100%
+mushroooms               8,124           112         19%
 
-Table: Benchmarking datasets for the binomial model.
+Table: Benchmarking data sets for the binomial model.
 
 All of these have been collected from the
 [libsvm binary dataset collection](https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary.html).
 
-```{r, echo = FALSE, fig.cap = "Benchmarking results for binomial responses.", fig.width = 7, fig.height = 5}
-library(sgdnet)
-p_binomial <- lattice::xyplot(loss ~ time | dataset + penalty,
-                              benchmarks_binomial,
-                              type = "l",
-                              xlab = "Time (seconds)",
-                              ylab = "Objective loss",
-                              groups = package,
-                              scales = list(relation = "free"),
-                              auto.key = list(lines = TRUE, points = FALSE))
-latticeExtra::useOuterStrips(p_binomial)
+```{r, fig.cap = "Benchmarking results for binomial responses.", fig.width = 7, fig.height = 5}
+plot_benchmarks(benchmarks$binomial)
 ```
 
+
+## Multinomial logistic regression
+
+For the multinomial model, we have these data sets:
+
+Name              Observations    Classes    Features     Density
+----------    ----------------   --------   ---------   ---------
+vehicle                    846          4          18        100%  
+dna                      2,000          3         180         25%
+poker                   25,010         10          22        100%
+
+Table: Benchmarking data sets for the multinomial model.
+
+```{r, fig.cap = "Benchmarking results for multinomial responses.", fig.width = 7, fig.height = 5}
+plot_benchmarks(benchmarks$multinomial)
+```
+
+## Multivariate gaussian regression
+
+For the multivariate gaussian case, we have these data:
+
+Name              Observations    Responses    Features     Density
+----------    ----------------    ---------   ---------   ---------
+violence                 1,901           18         100        100%  
+bikes                      731            2          29         28%
+naval                   11,934            2          15        100%
+
+```{r, fig.cap = "Benchmarking results for multivariate gaussian responses.", fig.width = 7, fig.height = 5}
+plot_benchmarks(benchmarks$mgaussian)
+```

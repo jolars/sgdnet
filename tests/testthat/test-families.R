@@ -7,7 +7,7 @@ test_that("all combinations run without errors", {
   grid <- expand.grid(
     family = c("gaussian", "binomial", "multinomial", "mgaussian"),
     intercept = TRUE, # glmnet behaves oddly when the intercept is missing
-    alpha = c(0, 0.5, 1),
+    alpha = c(0, 0.75, 1),
     standardize = c(TRUE, FALSE),
     stringsAsFactors = FALSE
   )
