@@ -94,3 +94,8 @@ test_that("we receive the correct deviance from deviance.sgdnet()", {
     expect_equal(sfit$nulldev, nulldev)
   }
 })
+
+test_that("deviance.cv_sgdnet() functions properly", {
+  cv_fit <- cv_sgdnet(heart$x, heart$y, family = "binomial", nfolds = 3)
+  expect_equal(deviance(cv_fit), deviance(cv_fit$fit))
+})
