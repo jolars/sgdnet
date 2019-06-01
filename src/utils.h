@@ -377,5 +377,44 @@ Rescale(Eigen::ArrayXXd               weights,
   intercept_archive.emplace_back(std::move(intercept));
 }
 
+
+//' Return a vector of random index
+//' 
+//' @param n_samples the sampler uses range from 0 to n_samples
+//' @param length the number of random index
+
+class Index{
+  
+public:
+  Index(const int n_samples_,
+        const int length_);
+  
+  std::vector<int> stochastic(){
+    std::vector<int> index;
+    index.reserve(length);
+    
+    for (int i=0; i < length; ++i){
+      int s_ind = floor(R::runif(0.0, n_samples));
+      index.emplace_back(s_ind);
+    }
+    return(index);
+  }
+  
+  std::vector<int> cyclic(){
+    std::vector<int> index;
+    index.reserve(length);
+    
+    for (int i=0; i < length; ++i){
+      index.emplace_back(i);
+    }
+    return(index);
+  }
+  
+private:
+  const int n_samples;
+  const int length;
+};
+
+
 #endif // SGDNET_UTILS_
 
