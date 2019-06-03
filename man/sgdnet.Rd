@@ -12,7 +12,7 @@ sgdnet(x, ...)
   lambda.min.ratio = if (NROW(x) < NCOL(x)) 0.01 else 1e-04,
   lambda = NULL, maxit = 1000, standardize = TRUE,
   intercept = TRUE, thresh = 0.001, standardize.response = FALSE,
-  ...)
+  cyclic = FALSE, ...)
 }
 \arguments{
 \item{x}{input matrix}
@@ -51,6 +51,8 @@ algorithm terminates when
 
 \item{standardize.response}{whether \code{y} should be standardized for
 \code{family = "mgaussian"}}
+
+\item{cyclic}{whether use cyclic or not}
 }
 \value{
 An object of class \code{'sgdnet'} with the following items:

@@ -126,6 +126,7 @@
 #'   }
 #' @param standardize.response whether `y` should be standardized for
 #'   `family = "mgaussian"`
+#' @param cyclic whether use cyclic or not
 #' @param ... ignored
 #'
 #' @return An object of class `'sgdnet'` with the following items:
@@ -196,6 +197,7 @@ sgdnet.default <- function(x,
                            intercept = TRUE,
                            thresh = 0.001,
                            standardize.response = FALSE,
+                           cyclic = FALSE,
                            ...) {
 
   # Collect the call so we can use it in update() later on
@@ -356,7 +358,8 @@ sgdnet.default <- function(x,
                   standardize = standardize,
                   standardize_response = standardize.response,
                   tol = thresh,
-                  type_multinomial = type.multinomial)
+                  type_multinomial = type.multinomial,
+                  cyclic=cyclic)
 
   # Fit the model by calling the Rcpp routine.
   if (is_sparse) {

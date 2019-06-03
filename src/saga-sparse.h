@@ -188,6 +188,7 @@ Reset(const unsigned         k,
 //'   `debug` is true.
 //' @param debug whether we are debuggin and should store loss from the
 //'   fit inside `losses`.
+//' @param cyclic whether we use cyclic SAGA or not.
 //'
 //' @return Updates `w`, `intercept`, `g_sum`, `g_sum_intercept`, `g`,
 //'   `n_iter`, `return_codes`, and possibly `losses`.
@@ -217,7 +218,8 @@ Saga(Penalty&                           penalty,
      unsigned&                          n_iter,
      std::vector<unsigned>&             return_codes,
      std::vector<double>&               losses,
-     const bool                         debug) noexcept
+     const bool                         debug,
+     const bool                         cyclic) noexcept
 {
   using namespace std;
 
@@ -259,7 +261,8 @@ Saga(Penalty&                           penalty,
   do {
     
     // Pull samples
-    index = IndexStochastic(n_samples, n_samples);
+    if (!cyclic) {index = IndexStochastic(n_samples, n_samples);}
+    else {index = IndexCyclic(n_samples, n_samples);}
     
     // Inner loop
     for (unsigned it_inner = 0; it_inner < n_samples; ++it_inner) {
