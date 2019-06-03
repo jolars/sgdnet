@@ -249,16 +249,23 @@ Saga(Penalty&                           penalty,
 
   // Setup functor for checking convergence
   ConvergenceCheck convergence_check{w, tol};
+  
+  // Setup index generator
+  Eigen::ArrayXi index;
 
   // Outer loop
   unsigned it_outer = 0;
   bool converged = false;
   do {
+    
+    // Pull samples
+    index = IndexStochastic(n_samples, n_samples);
+    
     // Inner loop
     for (unsigned it_inner = 0; it_inner < n_samples; ++it_inner) {
 
       // Pull a sample
-      unsigned s_ind = floor(R::runif(0.0, n_samples));
+      unsigned s_ind = index(it_inner);
 
       LaggedUpdate(it_inner,
                    w,

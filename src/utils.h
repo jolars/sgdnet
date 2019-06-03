@@ -383,37 +383,33 @@ Rescale(Eigen::ArrayXXd               weights,
 //' @param n_samples the sampler uses range from 0 to n_samples
 //' @param length the number of random index
 
-class Index{
-  
-public:
-  Index(const int n_samples_,
-        const int length_);
-  
-  std::vector<int> stochastic(){
-    std::vector<int> index;
-    index.reserve(length);
-    
-    for (int i=0; i < length; ++i){
-      int s_ind = floor(R::runif(0.0, n_samples));
-      index.emplace_back(s_ind);
-    }
-    return(index);
+Eigen::ArrayXi
+IndexStochastic(const int n_samples,
+                const int length)
+{
+  Eigen::ArrayXi index(length);
+  for (int i=0; i < length; ++i){
+    int s_ind = floor(R::runif(0.0, n_samples));
+    index.row(i) = s_ind;
   }
-  
-  std::vector<int> cyclic(){
-    std::vector<int> index;
-    index.reserve(length);
-    
-    for (int i=0; i < length; ++i){
-      index.emplace_back(i);
-    }
-    return(index);
+  return(index);
+}
+
+//' Return a vector of cyclic index
+//' 
+//' @param n_samples the sampler uses range from 0 to n_samples
+//' @param length the number of random index
+
+Eigen::ArrayXi
+IndexCyclic(const int n_samples,
+            const int length)
+{
+  Eigen::ArrayXi index(length);
+  for (int i=0; i < length; ++i){
+    index.row(i) = i;
   }
-  
-private:
-  const int n_samples;
-  const int length;
-};
+  return(index);
+}
 
 
 #endif // SGDNET_UTILS_
