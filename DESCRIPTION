@@ -32,5 +32,6 @@ Suggests:
     latticeExtra
 LinkingTo: 
     Rcpp (>= 0.12.16),
-    RcppEigen (>= 0.3.3.4.0)
+    RcppEigen (>= 0.3.3.4.0),
+    testthat
 VignetteBuilder: knitr
