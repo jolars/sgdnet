@@ -418,13 +418,29 @@ IndexCyclic(const int n_samples,
 
 Eigen::MatrixXd
 SelectCol(const Eigen::MatrixXd& x,
-          Eigen::ArrayXi         ind)
+          Eigen::ArrayXi&        ind)
 {
   Eigen::MatrixXd subx = Eigen::MatrixXd::Zero(x.rows(), ind.rows());
   for (int i = 0; i < ind.rows(); ++i) {
     subx.col(i) = x.col(ind(i));
   }
   return(subx);
+}
+
+//' Set a batch of columns of gradient table to a new value
+//' 
+//' @param g_memory the gradient table to update
+//' @param g new gradient
+//' @ind array of selected columns
+
+void
+SetCol(Eigen::ArrayXXd& g_memory,
+       Eigen::ArrayXd&  g,
+       Eigen::ArrayXi&  ind)
+{
+  for (int i = 0; i < ind.rows(); ++i){
+    g_memory.col(ind(i)) = g;
+  }
 }
 
 #endif // SGDNET_UTILS_
