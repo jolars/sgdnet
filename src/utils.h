@@ -411,6 +411,21 @@ IndexCyclic(const int n_samples,
   return(index);
 }
 
+//' Select a submatrix from given matrix using array of index
+//' 
+//' @param x input matrix
+//' @param ind array of index to select corresponding columns
+
+Eigen::MatrixXd
+SelectCol(const Eigen::MatrixXd& x,
+          Eigen::ArrayXi         ind)
+{
+  Eigen::MatrixXd subx = Eigen::MatrixXd::Zero(x.rows(), ind.rows());
+  for (int i = 0; i < ind.rows(); ++i) {
+    subx.col(i) = x.col(ind(i));
+  }
+  return(subx);
+}
 
 #endif // SGDNET_UTILS_
 
