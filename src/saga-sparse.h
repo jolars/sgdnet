@@ -66,8 +66,7 @@
 //' @param n_features number of features
 //' @param g_sum gradient sum
 //' @param lag iteration at which the features were last updated
-//' @param x the feature matrix. Sparse or dense Eigen object.
-//' @param s_ind the index of the current sample
+//' @param subx the selected feature matrix. Sparse or dense Eigen object.
 //' @param lag_scaling geometric sum for lagged updates
 //' @param wscale the current scale of the coefficients
 //' @param penalty object of Penalty class
@@ -81,21 +80,24 @@ LaggedUpdate(const unsigned                     k,
              const unsigned                     n_features,
              const Eigen::ArrayXXd&             g_sum,
              std::vector<unsigned>&             lag,
-             const Eigen::SparseMatrix<double>& x,
-             const unsigned                     s_ind,
+             const Eigen::SparseMatrix<double>& subx,
              const std::vector<double>&         lag_scaling,
              const double                       wscale,
              const Penalty&                     penalty) noexcept
 {
-  for (Eigen::SparseMatrix<double>::InnerIterator it(x, s_ind); it; ++it) {
+  for (unsigned m = 0; m < subx.cols(); ++m){
 
-    auto j = it.index();
-    auto lagged_amount = k - lag[j];
-
-    if (lagged_amount != 0) {
-      penalty(w, j, wscale, lag_scaling[lagged_amount], g_sum);
-      lag[j] = k;
+    for (Eigen::SparseMatrix<double>::InnerIterator it(subx, m); it; ++it) {
+    
+      auto j = it.index();
+      auto lagged_amount = k - lag[j];
+    
+      if (lagged_amount != 0) {
+        penalty(w, j, wscale, lag_scaling[lagged_amount], g_sum);
+        lag[j] = k;
+      }
     }
+    
   }
 }
 
@@ -104,8 +106,8 @@ LaggedUpdate(const unsigned                     k,
 //' Updates `a` with a weighted sample in `x`
 //'
 //' @param a weights or gradient vector
-//' @param x the feature matrix. Sparse or dense Eigen object.
-//' @param s_ind the index of the sample
+//' @param subx the selected feature matrix. Sparse or dense Eigen object.
+//' @param B the batchsize
 //' @param n_classes number of classes
 //' @param g_change change in gradient
 //' @param scaling step size
@@ -114,18 +116,24 @@ LaggedUpdate(const unsigned                     k,
 inline
 void
 AddWeighted(Eigen::ArrayXXd&                   a,
-            const Eigen::SparseMatrix<double>& x,
+            const Eigen::SparseMatrix<double>& subx,
             const Eigen::ArrayXd&              x_center_scaled,
-            const unsigned                     i,
+            const unsigned                     B,
             const unsigned                     n_classes,
-            const Eigen::ArrayXd&              g_change,
+            const Eigen::ArrayXXd&             g_change,
             const double                       scaling,
             const bool                         standardize) noexcept
 {
+  Eigen::ArrayXd g_change_col = Eigen::ArrayXd::Zero(n_classes);
   for (decltype(a.rows()) k = 0; k < a.rows(); ++k) {
-    a.row(k) += x.col(i)*g_change(k)*scaling;
-    if (standardize)
-      a.row(k) -= x_center_scaled*g_change(k)*scaling;
+    
+    for (unsigned i = 0; i < B; ++i){
+        g_change_col = g_change.col(i);
+        a.row(k) += subx.col(i)*g_change_col(k)*scaling;
+        if (standardize)
+          a.row(k) -= x_center_scaled*g_change_col(k)*scaling;
+    }
+    
   }
 }
 
@@ -189,6 +197,7 @@ Reset(const unsigned         k,
 //' @param debug whether we are debuggin and should store loss from the
 //'   fit inside `losses`.
 //' @param cyclic whether we use cyclic SAGA or not.
+//' @param B the batchsize
 //'
 //' @return Updates `w`, `intercept`, `g_sum`, `g_sum_intercept`, `g`,
 //'   `n_iter`, `return_codes`, and possibly `losses`.
@@ -219,9 +228,13 @@ Saga(Penalty&                           penalty,
      std::vector<unsigned>&             return_codes,
      std::vector<double>&               losses,
      const bool                         debug,
-     const bool                         cyclic) noexcept
+     const bool                         cyclic,
+     const unsigned                     B) noexcept
 {
   using namespace std;
+
+  // epoch size
+  const unsigned epoch = floor(n_samples/B);
 
   // Keep track of when each feature was last updated
   std::vector<unsigned> lag(n_features);
@@ -229,67 +242,72 @@ Saga(Penalty&                           penalty,
   double wscale = 1.0;
 
   vector<double> lag_scaling;
-  lag_scaling.reserve(n_samples + 1);
+  lag_scaling.reserve(epoch + 1);
   lag_scaling.push_back(0.0);
   lag_scaling.push_back(1.0);
   double geo_sum = 1.0;
   double wscale_update = 1.0 - alpha*gamma;
 
-  for (unsigned i = 2; i < n_samples + 1; ++i) {
+  for (unsigned i = 2; i < epoch + 1; ++i) {
     geo_sum *= wscale_update;
     double tmp = lag_scaling.back() + geo_sum;
     lag_scaling.push_back(tmp);
   }
 
   penalty.setParameters(gamma, alpha, beta);
-
+  
   // Gradient vector and change in gradient vector
-  Eigen::ArrayXd g        = Eigen::ArrayXd::Zero(n_classes);
-  Eigen::ArrayXd g_change = Eigen::ArrayXd::Zero(n_classes);
+  Eigen::ArrayXXd g                = Eigen::ArrayXXd::Zero(n_classes, B);
+  Eigen::ArrayXXd g_change         = Eigen::ArrayXXd::Zero(n_classes, B);
 
-  Eigen::ArrayXd linear_predictor(n_classes);
+  Eigen::ArrayXXd linear_predictor = Eigen::ArrayXXd::Zero(n_classes, B);
 
   // Setup functor for checking convergence
   ConvergenceCheck convergence_check{w, tol};
   
   // Setup index generator
-  Eigen::ArrayXi index;
-
+  Eigen::ArrayXXi index = Eigen::ArrayXXi::Zero(B, epoch);
+  Eigen::ArrayXi  s_ind = Eigen::ArrayXi::Zero(B);
+  
+  // Setup selected sample matrix
+  Eigen::SparseMatrix<double> subx(n_features, B);
+  
   // Outer loop
   unsigned it_outer = 0;
   bool converged = false;
   do {
     
-    // Pull samples
-    if (!cyclic) {index = IndexStochastic(n_samples, n_samples);}
-    else {index = IndexCyclic(n_samples, n_samples);}
+    // Pull an epoch of samples
+    index = Index(n_samples, B, cyclic);
     
     // Inner loop
-    for (unsigned it_inner = 0; it_inner < n_samples; ++it_inner) {
-
+    for (unsigned it_inner = 0; it_inner < epoch; ++it_inner) {
+      
       // Pull a sample
-      unsigned s_ind = index(it_inner);
-
+      s_ind = index.col(it_inner);
+      
+      // Select samples
+      subx = SelectSparse(x, s_ind);
+      
       LaggedUpdate(it_inner,
                    w,
                    n_features,
                    g_sum,
                    lag,
-                   x,
-                   s_ind,
+                   subx,
                    lag_scaling,
                    wscale,
                    penalty);
 
-      linear_predictor = (w.matrix() * x.col(s_ind)).array()*wscale + intercept;
+      linear_predictor = ((w.matrix() * subx).array()*wscale).colwise() + intercept;
 
       if (standardize)
         linear_predictor -= (w.matrix() * x_center_scaled.matrix()).array()*wscale;
 
       family.Gradient(linear_predictor, y, s_ind, g);
 
-      g_change = g - g_memory.col(s_ind);
-      g_memory.col(s_ind) = g;
+      g_change = g - SelectArray(g_memory, s_ind);
+      SetCol(g_memory, g, s_ind);
 
       // Rescale and unlag weights whenever wscale becomes too small
       if (wscale < sgdnet::SMALL) {
@@ -308,18 +326,18 @@ Saga(Penalty&                           penalty,
 
       // Update coefficients (w) with sparse step (with L2 scaling)
       if (fit_intercept) {
-        g_sum_intercept += g_change/n_samples;
+        g_sum_intercept += g_change.rowwise().sum()/n_samples;
         // The 0.01 factor is intercept decay to avoid intercept oscillation
-        intercept -= gamma*(g_sum_intercept*0.01 + g_change/n_samples);
+        intercept -= gamma*(g_sum_intercept*0.01 +  g_change.rowwise().sum()/n_samples);
       }
 
       AddWeighted(w,
-                  x,
+                  subx,
                   x_center_scaled,
-                  s_ind,
+                  B,
                   n_classes,
                   g_change,
-                  -gamma/wscale,
+                  -(gamma/(wscale*B)),
                   standardize);
 
       // Gradient-average step
@@ -328,24 +346,23 @@ Saga(Penalty&                           penalty,
                    n_features,
                    g_sum,
                    lag,
-                   x,
-                   s_ind,
+                   subx,
                    lag_scaling,
                    wscale,
                    penalty);
 
       // Update the gradient average
       AddWeighted(g_sum,
-                  x,
+                  subx,
                   x_center_scaled,
-                  s_ind,
+                  B,
                   n_classes,
                   g_change,
                   1.0/n_samples,
                   standardize);
 
     } // Outer loop
-
+    
     // Unlag and rescale coefficients
     wscale = Reset(n_samples,
                    w,

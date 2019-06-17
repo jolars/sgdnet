@@ -198,7 +198,7 @@ sgdnet.default <- function(x,
                            thresh = 0.001,
                            standardize.response = FALSE,
                            cyclic = FALSE,
-                           batchsize = 100,
+                           batchsize = 1,
                            ...) {
 
   # Collect the call so we can use it in update() later on

@@ -383,14 +383,14 @@ Rescale(Eigen::ArrayXXd               weights,
 //' @param n_samples the sampler uses range from 0 to n_samples
 //' @param length the number of random index
 
-Eigen::ArrayXi
-IndexStochastic(const int n_samples,
-                const int length)
+Eigen::ArrayXXi
+IndexStochastic(const unsigned n_samples,
+                const unsigned length)
 {
-  Eigen::ArrayXi index(length);
-  for (int i=0; i < length; ++i){
-    int s_ind = floor(R::runif(0.0, n_samples));
-    index.row(i) = s_ind;
+  Eigen::ArrayXXi index(1, length);
+  for (unsigned i = 0; i < length; ++i){
+    unsigned s_ind = floor(R::runif(0.0, n_samples));
+    index.col(i) = s_ind;
   }
   return(index);
 }
@@ -400,28 +400,92 @@ IndexStochastic(const int n_samples,
 //' @param n_samples the sampler uses range from 0 to n_samples
 //' @param length the number of random index
 
-Eigen::ArrayXi
-IndexCyclic(const int n_samples,
-            const int length)
+Eigen::ArrayXXi
+IndexCyclic(const unsigned n_samples,
+            const unsigned length)
 {
-  Eigen::ArrayXi index(length);
-  for (int i=0; i < length; ++i){
-    index.row(i) = i;
+  Eigen::ArrayXXi index(1, length);
+  index.row(0) = Eigen::ArrayXi::LinSpaced(n_samples, 0, n_samples);
+  return(index);
+}
+
+//' Return a batch of index, each column is a vector of stochasitc index
+//' 
+//' @param n_sampels the sampler uses range from 0 to n_samples
+//' @param B the batch size
+
+Eigen::ArrayXXi 
+IndexBatch(const unsigned n_samples,
+           const unsigned B)
+{
+  const unsigned n_iter = floor(n_samples/B);
+  Eigen::ArrayXXi index(B, n_iter);
+  Eigen::ArrayXi  pool = Eigen::ArrayXi::LinSpaced(n_samples, 0, n_samples);
+  
+  for (unsigned i = 0; i < n_iter; ++i){
+    std::random_shuffle(pool.data(), pool.data()+n_samples);
+    index.col(i) = pool.head(B);
   }
   return(index);
+}
+
+//' Return index according to parameters
+//' 
+//' @param n_sampels the sampler uses range from 0 to n_samples
+//' @param B the batch size
+//' @param cyclic use cyclic index if true
+
+Eigen::ArrayXXi
+Index(const unsigned  n_samples,
+      const unsigned  B,
+      const bool cyclic)
+{
+  if (B > 1)  return(IndexBatch(n_samples, B));
+  if (cyclic) return(IndexCyclic(n_samples, n_samples));
+  else        return(IndexStochastic(n_samples, n_samples));
 }
 
 //' Select a submatrix from given matrix using array of index
 //' 
 //' @param x input matrix
-//' @param ind array of index to select corresponding columns
+//' @param ind index array of selected columns
 
 Eigen::MatrixXd
 SelectCol(const Eigen::MatrixXd& x,
           Eigen::ArrayXi&        ind)
 {
   Eigen::MatrixXd subx = Eigen::MatrixXd::Zero(x.rows(), ind.rows());
-  for (int i = 0; i < ind.rows(); ++i) {
+  for (unsigned i = 0; i < ind.rows(); ++i) {
+    subx.col(i) = x.col(ind(i));
+  }
+  return(subx);
+}
+
+//' Select a submatrix from given sparse matrix using array of index
+//' 
+//' @param x input sparse matrix
+//' @param ind index array of selected columns
+Eigen::SparseMatrix<double>
+SelectSparse(const Eigen::SparseMatrix<double>& x,
+             Eigen::ArrayXi&                    ind)
+{
+  Eigen::SparseMatrix<double> subx(x.rows(), ind.rows());
+  for (unsigned i = 0; i < ind.rows(); ++i) {
+    subx.col(i) = x.col(ind(i));
+  }
+  return(subx);
+}
+
+//' Select a subarray from given array using array of index
+//' 
+//' @param x input array
+//' @param ind index array of selected columns
+Eigen::ArrayXXd
+SelectArray(const Eigen::ArrayXXd& x,
+            Eigen::ArrayXi&        ind)
+{
+  Eigen::ArrayXXd subx = Eigen::ArrayXXd::Zero(x.rows(), ind.rows());
+  for (unsigned i = 0; i < ind.rows(); ++i) {
     subx.col(i) = x.col(ind(i));
   }
   return(subx);
@@ -431,16 +495,41 @@ SelectCol(const Eigen::MatrixXd& x,
 //' 
 //' @param g_memory the gradient table to update
 //' @param g new gradient
-//' @ind array of selected columns
+//' @param ind index array of selected columns
 
 void
 SetCol(Eigen::ArrayXXd& g_memory,
-       Eigen::ArrayXd&  g,
+       Eigen::ArrayXXd& g,
        Eigen::ArrayXi&  ind)
 {
-  for (int i = 0; i < ind.rows(); ++i){
-    g_memory.col(ind(i)) = g;
+  for (unsigned i = 0; i < ind.rows(); ++i){
+    g_memory.col(ind(i)) = g.col(i);
   }
+}
+
+//' Set up update array for weights and gradient average
+//' 
+//' @param g_change the change in a batch
+//' @param subx selected samples
+//' @param B batchsize
+//' @param n_classes number of classes
+//' @param n_features number of features
+
+Eigen::ArrayXXd
+WeightStep(Eigen::ArrayXXd& g_change,
+           Eigen::MatrixXd& subx,
+           const unsigned   B,
+           const unsigned   n_classes,
+           const unsigned   n_features)
+{
+  Eigen::ArrayXd  g_change_col = Eigen::ArrayXd::Zero(n_classes);
+  Eigen::ArrayXXd step  = Eigen::ArrayXXd::Zero(n_classes, n_features);
+    
+  for (unsigned i = 0; i < B; ++i) {
+    g_change_col = g_change.col(i);
+    step += g_change_col.rowwise()*subx.col(i).transpose().array();
+  }
+  return(step);
 }
 
 #endif // SGDNET_UTILS_
