@@ -198,6 +198,7 @@ sgdnet.default <- function(x,
                            thresh = 0.001,
                            standardize.response = FALSE,
                            cyclic = FALSE,
+                           batchsize = 100,
                            ...) {
 
   # Collect the call so we can use it in update() later on
@@ -359,7 +360,8 @@ sgdnet.default <- function(x,
                   standardize_response = standardize.response,
                   tol = thresh,
                   type_multinomial = type.multinomial,
-                  cyclic=cyclic)
+                  cyclic = cyclic,
+                  batch_size = batchsize)
 
   # Fit the model by calling the Rcpp routine.
   if (is_sparse) {
