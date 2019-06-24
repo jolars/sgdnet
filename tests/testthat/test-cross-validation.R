@@ -6,12 +6,10 @@ test_that("cross-validation works, including its plot and predict methods", {
   set.seed(2)
 
   alphas <- list(0, 1, c(0.2, 0.5))
-  
-  #
+
   for (family in families()) {
     for (alpha in alphas) {
-      
-      #
+
       d <- random_data(n, p, family, density = 1)
       x <- as.matrix(d$x)
       y <- d$y

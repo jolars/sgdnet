@@ -192,8 +192,7 @@ test_that("refitting model with automatically generated path gives same fit", {
     fit1 <- do.call(sgdnet, pars)
     set.seed(i)
     fit2 <- do.call(sgdnet, modifyList(pars, list(lambda = fit1$lambda)))
-    
-    #
+
     compare_predictions(fit1, fit2, pars$x, type = "coefficients")
   }
 })

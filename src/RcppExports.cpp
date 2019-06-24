@@ -33,12 +33,9 @@ BEGIN_RCPP
 END_RCPP
 }
 
-RcppExport SEXP run_testthat_tests();
-
 static const R_CallMethodDef CallEntries[] = {
     {"_sgdnet_SgdnetDense", (DL_FUNC) &_sgdnet_SgdnetDense, 3},
     {"_sgdnet_SgdnetSparse", (DL_FUNC) &_sgdnet_SgdnetSparse, 3},
-    {"run_testthat_tests", (DL_FUNC) &run_testthat_tests, 0},
     {NULL, NULL, 0}
 };
 
