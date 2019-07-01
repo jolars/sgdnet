@@ -92,7 +92,7 @@ public:
            Eigen::ArrayXi&         ind,
            Eigen::ArrayXXd&        gradient) const noexcept
   {
-    for (int i = 0; i < ind.rows(); ++i){
+    for (int i = 0; i < ind.rows(); ++i) {
       gradient.col(i) = linear_predictor(i) - y(ind(i));
     }
   }
@@ -166,7 +166,7 @@ public:
            Eigen::ArrayXi&         ind,
            Eigen::ArrayXXd&        gradient) const noexcept
   {
-    for (int i = 0; i < ind.rows(); ++i){
+    for (int i = 0; i < ind.rows(); ++i) {
       gradient.col(i) = 1.0 - y(ind(i)) - 1.0/(1.0 + std::exp(linear_predictor(i)));
     }
   }
@@ -254,7 +254,7 @@ public:
     unsigned p = linear_predictor.rows();
     Eigen::ArrayXd linear_predictor_col = Eigen::ArrayXd::Zero(p);
     
-    for (unsigned i = 0; i < ind.rows(); ++i){
+    for (unsigned i = 0; i < ind.rows(); ++i) {
       linear_predictor_col = linear_predictor.col(i);
       auto lse = LogSumExp(linear_predictor_col);
       auto c = static_cast<unsigned>(y(ind(i)) + 0.5);
@@ -370,7 +370,7 @@ public:
            Eigen::ArrayXi&         ind,
            Eigen::ArrayXXd&        gradient) const noexcept
   {
-    for (unsigned i = 0; i < ind.rows(); ++i){
+    for (unsigned i = 0; i < ind.rows(); ++i) {
       gradient.col(i) = linear_predictor.col(i) - y.col(ind(i)).array();
     }
   }

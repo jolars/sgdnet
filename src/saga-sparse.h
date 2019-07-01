@@ -85,7 +85,7 @@ LaggedUpdate(const unsigned                     k,
              const double                       wscale,
              const Penalty&                     penalty) noexcept
 {
-  for (unsigned m = 0; m < subx.cols(); ++m){
+  for (unsigned m = 0; m < subx.cols(); ++m) {
 
     for (Eigen::SparseMatrix<double>::InnerIterator it(subx, m); it; ++it) {
     
@@ -127,7 +127,7 @@ AddWeighted(Eigen::ArrayXXd&                   a,
   Eigen::ArrayXd g_change_col = Eigen::ArrayXd::Zero(n_classes);
   for (decltype(a.rows()) k = 0; k < a.rows(); ++k) {
     
-    for (unsigned i = 0; i < B; ++i){
+    for (unsigned i = 0; i < B; ++i) {
         g_change_col = g_change.col(i);
         a.row(k) += subx.col(i)*g_change_col(k)*scaling;
         if (standardize)

@@ -388,11 +388,11 @@ IndexStochastic(const unsigned n_samples,
                 const unsigned length)
 {
   Eigen::ArrayXXi index(1, length);
-  for (unsigned i = 0; i < length; ++i){
+  for (unsigned i = 0; i < length; ++i) {
     unsigned s_ind = floor(R::runif(0.0, n_samples));
     index.col(i) = s_ind;
   }
-  return(index);
+  return index;
 }
 
 //' Return a vector of cyclic index
@@ -406,7 +406,7 @@ IndexCyclic(const unsigned n_samples,
 {
   Eigen::ArrayXXi index(1, length);
   index.row(0) = Eigen::ArrayXi::LinSpaced(n_samples, 0, n_samples);
-  return(index);
+  return index;
 }
 
 //' Return a batch of index, each column is a vector of stochasitc index
@@ -422,11 +422,11 @@ IndexBatch(const unsigned n_samples,
   Eigen::ArrayXXi index(B, n_iter);
   Eigen::ArrayXi  pool = Eigen::ArrayXi::LinSpaced(n_samples, 0, n_samples);
   
-  for (unsigned i = 0; i < n_iter; ++i){
+  for (unsigned i = 0; i < n_iter; ++i) {
     std::random_shuffle(pool.data(), pool.data()+n_samples);
     index.col(i) = pool.head(B);
   }
-  return(index);
+  return index;
 }
 
 //' Return index according to parameters
@@ -440,9 +440,12 @@ Index(const unsigned  n_samples,
       const unsigned  B,
       const bool cyclic)
 {
-  if (B > 1)  return(IndexBatch(n_samples, B));
-  if (cyclic) return(IndexCyclic(n_samples, n_samples));
-  else        return(IndexStochastic(n_samples, n_samples));
+  if (B > 1)  
+    return IndexBatch(n_samples, B);
+  if (cyclic) 
+    return IndexCyclic(n_samples, n_samples);
+  else        
+    return IndexStochastic(n_samples, n_samples);
 }
 
 //' Select a submatrix from given matrix using array of index
@@ -458,7 +461,7 @@ SelectCol(const Eigen::MatrixXd& x,
   for (unsigned i = 0; i < ind.rows(); ++i) {
     subx.col(i) = x.col(ind(i));
   }
-  return(subx);
+  return subx;
 }
 
 //' Select a submatrix from given sparse matrix using array of index
@@ -473,7 +476,7 @@ SelectSparse(const Eigen::SparseMatrix<double>& x,
   for (unsigned i = 0; i < ind.rows(); ++i) {
     subx.col(i) = x.col(ind(i));
   }
-  return(subx);
+  return subx;
 }
 
 //' Select a subarray from given array using array of index
@@ -488,7 +491,7 @@ SelectArray(const Eigen::ArrayXXd& x,
   for (unsigned i = 0; i < ind.rows(); ++i) {
     subx.col(i) = x.col(ind(i));
   }
-  return(subx);
+  return subx;
 }
 
 //' Set a batch of columns of gradient table to a new value
@@ -502,7 +505,7 @@ SetCol(Eigen::ArrayXXd& g_memory,
        Eigen::ArrayXXd& g,
        Eigen::ArrayXi&  ind)
 {
-  for (unsigned i = 0; i < ind.rows(); ++i){
+  for (unsigned i = 0; i < ind.rows(); ++i) {
     g_memory.col(ind(i)) = g.col(i);
   }
 }
@@ -529,7 +532,7 @@ WeightStep(Eigen::ArrayXXd& g_change,
     g_change_col = g_change.col(i);
     step += g_change_col.rowwise()*subx.col(i).transpose().array();
   }
-  return(step);
+  return step;
 }
 
 #endif // SGDNET_UTILS_

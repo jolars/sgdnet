@@ -100,154 +100,155 @@
 //'   `n_iter`, `return_codes`, and possibly `losses`.
 template <typename Family, typename Penalty>
 void
-  Saga(Penalty&               penalty,
-       const Eigen::MatrixXd& x,
-       const Eigen::ArrayXd&  x_center_scaled,
-       const Eigen::MatrixXd& y,
-       Eigen::ArrayXd&        intercept,
-       const bool             fit_intercept,
-       const bool             is_sparse,
-       const bool             standardize,
-       Eigen::ArrayXXd&       w,
-       const Family&          family,
-       const double           gamma,
-       const double           alpha,
-       const double           beta,
-       Eigen::ArrayXXd&       g_memory,
-       Eigen::ArrayXXd&       g_sum,
-       Eigen::ArrayXd&        g_sum_intercept,
-       const unsigned         n_samples,
-       const unsigned         n_features,
-       const unsigned         n_classes,
-       const unsigned         max_iter,
-       const double           tol,
-       unsigned&              n_iter,
-       std::vector<unsigned>& return_codes,
-       std::vector<double>&   losses,
-       const bool             debug,
-       const bool             cyclic,
-       const unsigned         B) noexcept
-  {
-    using namespace std;
+Saga(Penalty&               penalty,
+     const Eigen::MatrixXd& x,
+     const Eigen::ArrayXd&  x_center_scaled,
+     const Eigen::MatrixXd& y,
+     Eigen::ArrayXd&        intercept,
+     const bool             fit_intercept,
+     const bool             is_sparse,
+     const bool             standardize,
+     Eigen::ArrayXXd&       w,
+     const Family&          family,
+     const double           gamma,
+     const double           alpha,
+     const double           beta,
+     Eigen::ArrayXXd&       g_memory,
+     Eigen::ArrayXXd&       g_sum,
+     Eigen::ArrayXd&        g_sum_intercept,
+     const unsigned         n_samples,
+     const unsigned         n_features,
+     const unsigned         n_classes,
+     const unsigned         max_iter,
+     const double           tol,
+     unsigned&              n_iter,
+     std::vector<unsigned>& return_codes,
+     std::vector<double>&   losses,
+     const bool             debug,
+     const bool             cyclic,
+     const unsigned         B) noexcept
+{
+  using namespace std;
     
-    double wscale = 1.0;
+  double wscale = 1.0;
     
-    double wscale_update = 1.0 - alpha*gamma;
+  double wscale_update = 1.0 - alpha*gamma;
     
-    penalty.setParameters(gamma, alpha, beta);
+  penalty.setParameters(gamma, alpha, beta);
     
-    // Gradient vector and change in gradient vector
-    Eigen::ArrayXXd g                = Eigen::ArrayXXd::Zero(n_classes, B);
-    Eigen::ArrayXXd g_change         = Eigen::ArrayXXd::Zero(n_classes, B);
+  // Gradient vector and change in gradient vector
+  Eigen::ArrayXXd g                = Eigen::ArrayXXd::Zero(n_classes, B);
+  Eigen::ArrayXXd g_change         = Eigen::ArrayXXd::Zero(n_classes, B);
     
-    Eigen::ArrayXXd linear_predictor = Eigen::ArrayXXd::Zero(n_classes, B);
+  Eigen::ArrayXXd linear_predictor = Eigen::ArrayXXd::Zero(n_classes, B);
     
-    // change for weight and average gradient 
-    Eigen::ArrayXXd step             = Eigen::ArrayXXd::Zero(n_classes, n_features);
+  // change for weight and average gradient 
+  Eigen::ArrayXXd step             = Eigen::ArrayXXd::Zero(n_classes, n_features);
     
-    // Setup functor for checking convergence
-    ConvergenceCheck convergence_check{w, tol};
+  // Setup functor for checking convergence
+  ConvergenceCheck convergence_check{w, tol};
     
-    // Setup selected sample matrix
-    Eigen::MatrixXd subx = Eigen::MatrixXd::Zero(n_features, B);
+  // Setup selected sample matrix
+  Eigen::MatrixXd subx = Eigen::MatrixXd::Zero(n_features, B);
     
-    // epoch size
-    const unsigned epoch = floor(n_samples/B);  
+  // epoch size
+  const unsigned epoch = floor(n_samples/B);  
     
-    // Setup index generator
-    Eigen::ArrayXXi index = Eigen::ArrayXXi::Zero(B, epoch);
-    Eigen::ArrayXi  s_ind = Eigen::ArrayXi::Zero(B);
+  // Setup index generator
+  Eigen::ArrayXXi index = Eigen::ArrayXXi::Zero(B, epoch);
+  Eigen::ArrayXi  s_ind = Eigen::ArrayXi::Zero(B);
     
-    // Outer loop
-    unsigned it_outer = 0;
-    bool converged = false;
-    do {
+  // Outer loop
+  unsigned it_outer = 0;
+  bool converged = false;
+  do {
       
-      // Pull samples
-      index = Index(n_samples, B, cyclic);
+    // Pull samples
+    index = Index(n_samples, B, cyclic);
       
-      // Inner loop
-      for (unsigned it_inner = 0; it_inner < epoch; ++it_inner) {
+    // Inner loop
+    for (unsigned it_inner = 0; it_inner < epoch; ++it_inner) {
         
-        // Pull a epoch
-        s_ind = index.col(it_inner);
+      // Pull a epoch
+      s_ind = index.col(it_inner);
         
-        // Select samples
-        subx = SelectCol(x, s_ind);
+      // Select samples
+      subx = SelectCol(x, s_ind);
 
-        linear_predictor = ((w.matrix() * subx).array()*wscale).colwise() + intercept;
+      linear_predictor = ((w.matrix() * subx).array()*wscale).colwise() + intercept;
         
-        family.Gradient(linear_predictor, y, s_ind, g);
+      family.Gradient(linear_predictor, y, s_ind, g);
         
-        g_change = g - SelectArray(g_memory, s_ind);
-        SetCol(g_memory, g, s_ind);
+      g_change = g - SelectArray(g_memory, s_ind);
+      SetCol(g_memory, g, s_ind);
         
-        //Rescale and unlag weights whenever wscale becomes too small
-        if (wscale < sgdnet::SMALL) {
-          //Unlag and rescale coefficients
-          w *= wscale;
-          wscale = 1.0;
-        }
-        
-        wscale *= wscale_update;
-        
-        if (fit_intercept) {
-          g_sum_intercept += g_change.rowwise().sum()/n_samples;
-          intercept -= gamma*(g_sum_intercept + g_change.rowwise().sum()/n_samples);
-        }
-        
-        step = WeightStep(g_change, subx, B, n_classes, n_features);
-        
-        // Update coefficients (w)s with sparse step (with L2 scaling)
-        w -= (step/B)*(gamma/wscale);
-          
-        // Gradient-average step
-        for (unsigned j = 0; j < n_features; ++j){ 
-          penalty(w, j, wscale, 1.0, g_sum);
-        }
-          
-        // Update the gradient average
-        g_sum += step/n_samples;
-        
-      } // Outer loop
-      
-      // Unlag and rescale coefficients
-      w *= wscale;
-      wscale = 1.0;
-      
-      if (debug) {
-        double loss = EpochLoss(x,
-                                x_center_scaled,
-                                y,
-                                w,
-                                intercept,
-                                family,
-                                alpha,
-                                beta,
-                                n_samples,
-                                n_features,
-                                n_classes,
-                                is_sparse,
-                                standardize);
-        losses.push_back(loss);
+      //Rescale and unlag weights whenever wscale becomes too small
+      if (wscale < sgdnet::SMALL) {
+        //Unlag and rescale coefficients
+        w *= wscale;
+        wscale = 1.0;
       }
+        
+      wscale *= wscale_update;
+        
+      if (fit_intercept) {
+        g_sum_intercept += g_change.rowwise().sum()/n_samples;
+        intercept -= gamma*(g_sum_intercept + g_change.rowwise().sum()/n_samples);
+      }
+        
+      step = WeightStep(g_change, subx, B, n_classes, n_features);
+        
+      // Update coefficients (w)s with sparse step (with L2 scaling)
+      w -= (step/B)*(gamma/wscale);
+          
+      // Gradient-average step
+      for (unsigned j = 0; j < n_features; ++j){ 
+        penalty(w, j, wscale, 1.0, g_sum);
+      }
+          
+      // Update the gradient average
+      g_sum += step/n_samples;
+        
+    } // Outer loop
       
-      converged = convergence_check(w);
-      ++it_outer;
+    // Unlag and rescale coefficients
+    w *= wscale;
+    wscale = 1.0;
       
-    } while (!converged && it_outer < max_iter); // outer loop
-    
-    // Update accumulated number of epochs
-    n_iter += it_outer;
-    
-    if (it_outer == max_iter) {
-      // Iteration limit reached
-      return_codes.push_back(1);
-    } else {
-      // Successful convergence
-      return_codes.push_back(0);
+    if (debug) {
+      double loss = EpochLoss(x,
+                              x_center_scaled,
+                              y,
+                              w,
+                              intercept,
+                              family,
+                              alpha,
+                              beta,
+                              n_samples,
+                              n_features,
+                              n_classes,
+                              is_sparse,
+                              standardize);
+      losses.push_back(loss);
     }
+      
+    converged = convergence_check(w);
+    
+    ++it_outer;
+      
+  } while (!converged && it_outer < max_iter); // outer loop
+    
+  // Update accumulated number of epochs
+  n_iter += it_outer;
+    
+  if (it_outer == max_iter) {
+    // Iteration limit reached
+    return_codes.push_back(1);
+  } else {
+    // Successful convergence
+    return_codes.push_back(0);
   }
+}
 
 #endif /* SGDNET_SAGA-DENSE_ */
 
