@@ -409,6 +409,10 @@ IndexCyclic(const unsigned n_samples,
   return index;
 }
 
+//' wrapper aroud R's RNG such that we get a unifrom distribution over 
+//' [0,n) as required by the STL algorithm
+inline int randWrapper(const int n) { return floor(unif_rand()*n); }
+
 //' Return a batch of index, each column is a vector of stochasitc index
 //' 
 //' @param n_sampels the sampler uses range from 0 to n_samples
@@ -423,7 +427,7 @@ IndexBatch(const unsigned n_samples,
   Eigen::ArrayXi  pool = Eigen::ArrayXi::LinSpaced(n_samples, 0, n_samples);
   
   for (unsigned i = 0; i < n_iter; ++i) {
-    std::random_shuffle(pool.data(), pool.data()+n_samples);
+    std::random_shuffle(pool.data(), pool.data()+n_samples, randWrapper);
     index.col(i) = pool.head(B);
   }
   return index;
