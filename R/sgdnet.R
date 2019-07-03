@@ -265,6 +265,15 @@ sgdnet.default <- function(x,
 
   if (maxit <= 0)
     stop("maximum number of iterations cannot be negative or zero.")
+  
+  if (batchsize <= 0)
+    stop("batch size cannot be negative or zero.")
+  
+  if (batchsize > n_samples)
+    stop("batch size cannot be larger than sample size.")
+  
+  if (batchsize%%1 > 0)
+    stop("batch size should be an integer.")
 
   # TODO(jolars): implement group lasso penalty for multinomial model
   type.multinomial <- "ungrouped"

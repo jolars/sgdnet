@@ -3,7 +3,7 @@ context("general family tests")
 test_that("all combinations run without errors", {
   n <- 500
   p <- 2
-  
+
   grid <- expand.grid(
     family = c("gaussian", "binomial", "multinomial", "mgaussian"),
     intercept = TRUE, # glmnet behaves oddly when the intercept is missing
@@ -11,7 +11,7 @@ test_that("all combinations run without errors", {
     standardize = c(TRUE, FALSE),
     stringsAsFactors = FALSE
   )
-  
+
   for (i in seq_len(nrow(grid))) {
     pars <- list(
       standardize = grid$standardize[i],
@@ -22,22 +22,22 @@ test_that("all combinations run without errors", {
       thresh = 1e-8,
       maxit = 100000
     )
-    
+
     set.seed(i)
-    
+
     d <- random_data(n, p, grid$family[i], grid$intercept[i])
-    
+
     x <- as.matrix(d$x)
-    
+
     pars$y <- d$y
     pars$x <- x
     pars2 <- pars
     pars2$batchsize <- 10
-    
+
     sfit <- do.call(sgdnet, pars)
     bfit <- do.call(sgdnet, pars2)
     gfit <- do.call(glmnet, pars)
-    
+
     compare_predictions(sfit, gfit, x, tol = 1e-2)
     compare_predictions(bfit, gfit, x, tol = 1e-2)
   }
