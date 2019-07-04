@@ -78,6 +78,9 @@ public:
   }
 };
 
+// class MCP : public Penalty {};
+// class SCAD : public Penalty {};
+
 } // namespace sgdnet
 
 #endif /* SGDNET_PENALTIES_ */
