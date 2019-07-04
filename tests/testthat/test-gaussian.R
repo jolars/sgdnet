@@ -36,7 +36,7 @@ test_that("all weights are zero when lambda > lambda_max", {
   lambda_max <- max(abs(crossprod(yy, xx)) * sy)/NROW(x)
 
   fit <- sgdnet(x, y, maxit = 1000, thresh = 0.0001)
-  fit_batch <- sgdnet(x, y, maxit = 1000, thresh = 0.0001, B = 10)
+  fit_batch <- sgdnet(x, y, maxit = 1000, thresh = 0.0001, batchsize = 10)
   fit_cyclic <- sgdnet(x, y, maxit = 1000, thresh = 0.0001, cyclic = TRUE)
 
   expect_equal(max(fit$lambda), lambda_max)
