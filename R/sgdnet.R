@@ -148,6 +148,8 @@
 #'                of the arguments.}
 #' \item{`lambda`}{the sequence of lambda values scaled to the
 #'                 original scale of the input data.}
+#' \item{`gamma`}{the non-convexity parameter for MCP and SCAD}
+#' \item{`penalty`}{the regularization penalty}
 #' \item{`nobs`}{number of observations}
 #' \item{`npasses`}{accumulated number of outer iterations (epochs)
 #'                  for the entire regularization path}
@@ -187,10 +189,12 @@ sgdnet.default <- function(x,
                                       "multinomial",
                                       "mgaussian"),
                            alpha = 1,
+                           gamma = 3,
                            nlambda = 100,
                            lambda.min.ratio =
                              if (NROW(x) < NCOL(x)) 0.01 else 0.0001,
                            lambda = NULL,
+                           penalty = c("lasso", "ridge", "elasticnet", "MCP", "SCAD"),
                            maxit = 1000,
                            standardize = TRUE,
                            intercept = TRUE,
@@ -345,6 +349,7 @@ sgdnet.default <- function(x,
 
   control <- list(debug = debug,
                   elasticnet_mix = alpha,
+                  noncov = gamma,
                   family = family,
                   intercept = intercept,
                   is_sparse = is_sparse,
@@ -356,7 +361,8 @@ sgdnet.default <- function(x,
                   standardize = standardize,
                   standardize_response = standardize.response,
                   tol = thresh,
-                  type_multinomial = type.multinomial)
+                  type_multinomial = type.multinomial,
+                  type_penalty = penalty)
 
   # Fit the model by calling the Rcpp routine.
   if (is_sparse) {
