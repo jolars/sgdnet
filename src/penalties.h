@@ -11,17 +11,20 @@ public:
   void
   setParameters(const double gamma_in,
                 const double alpha_in,
-                const double beta_in) noexcept
+                const double beta_in,
+                const double noncov_in) noexcept
   {
     gamma = gamma_in;
     alpha = alpha_in;
     beta = beta_in;
+    noncov = noncov_in;
   }
 
 protected:
   double gamma = 0.0; // step size
   double alpha = 0.0; // l1 penalty strength
   double beta  = 0.0; // l2 penalty strength
+  double noncov = 0.0; // non-convexity parameter
 };
 
 class Ridge : public Penalty  {
@@ -78,8 +81,68 @@ public:
   }
 };
 
-// class MCP : public Penalty {};
-// class SCAD : public Penalty {};
+class MCP : public Penalty {
+public:
+  void
+  operator()(Eigen::ArrayXXd&       w,
+             const unsigned         j,
+             const double           w_scale,
+             const double           scaling,
+             const Eigen::ArrayXXd& g_sum) const noexcept
+  {
+    w.col(j) -= gamma/w_scale*scaling*g_sum.col(j);
+
+    double l1 = w.matrix().col(j).norm();
+
+    if (l1 <= noncov*beta) {
+      auto factor = gamma*beta/w.matrix().col(j).norm();
+
+      if (factor < 1.0) {
+        w.col(j) *= 1.0 - factor;
+        w.col(j) *= 1.0/(1.0 - gamma/noncov);
+      }
+      else
+        w.col(j) = 0.0;
+    }
+  }
+};
+
+class SCAD : public Penalty {
+public:
+  void
+  operator()(Eigen::ArrayXXd&       w,
+             const unsigned         j,
+             const double           w_scale,
+             const double           scaling,
+             const Eigen::ArrayXXd& g_sum) const noexcept
+  {
+
+    w.col(j) -= gamma/w_scale*scaling*g_sum.col(j);
+
+    double l1 = w.matrix().col(j).norm();
+    auto factor = gamma*beta/w.matrix().col(j).norm();
+
+    if (l1 <= beta) {
+
+      if (factor < 1.0)
+        w.col(j) *= 1.0 - factor;
+      else
+        w.col(j) = 0.0;
+    }
+
+    else if (l1 <= noncov*beta) {
+      factor *= noncov/(noncov - 1);
+
+      if (factor < 1.0) {
+        w.col(j) *= 1.0 - factor;
+        w.col(j) *= 1.0/(1.0 - gamma/(noncov - 1));
+      }
+
+      else
+        w.col(j) = 0.0;
+    }
+  }
+};
 
 } // namespace sgdnet
 
