@@ -76,12 +76,25 @@ RunSaga(const Rcpp::List& control, Args&&... args)
   auto elasticnet_mix = Rcpp::as<double>(control["elasticnet_mix"]);
   auto family_choice = Rcpp::as<std::string>(control["family"]);
   auto type_multinomial = Rcpp::as<std::string>(control["type_multinomial"]);
+  auto type_penalty = Rcpp::as<std::string>(control["type_penalty"]);
 
   bool group_lasso =
     family_choice == "mgaussian"
     || (family_choice == "multinomial" && type_multinomial == "grouped");
 
-  if (elasticnet_mix == 0.0) {
+  if (type_penalty == "MCP") {
+
+    sgdnet::MCP penalty;
+    elasticnet_mix = 1;
+    Saga(penalty, args...);
+
+  } else if (type_penalty == "SCAD") {
+
+    sgdnet::SCAD penalty;
+    elasticnet_mix = 1;
+    Saga(penalty, args...);
+
+  } else if (elasticnet_mix == 0.0) {
 
     sgdnet::Ridge penalty;
     Saga(penalty, args...);
@@ -128,6 +141,7 @@ SetupSgdnet(T                 x,
 
   const bool     fit_intercept    = Rcpp::as<bool>(control["intercept"]);
   const double   elasticnet_mix   = Rcpp::as<double>(control["elasticnet_mix"]);
+  const double   noncov           = Rcpp::as<double>(control["noncov"]);
   vector<double> lambda           = Rcpp::as<vector<double>>(control["lambda"]);
   const unsigned n_lambda         = Rcpp::as<unsigned>(control["n_lambda"]);
   const unsigned n_classes        = Rcpp::as<unsigned>(control["n_classes"]);
@@ -216,7 +230,6 @@ SetupSgdnet(T                 x,
   // Fit the path of penalty values
   for (unsigned lambda_ind = 0; lambda_ind < n_lambda; ++lambda_ind) {
     vector<double> losses;
-
     RunSaga(control,
             x,
             x_center_scaled,
@@ -230,6 +243,7 @@ SetupSgdnet(T                 x,
             step_size[lambda_ind],
             alpha[lambda_ind],
             beta[lambda_ind],
+            noncov,
             g_memory,
             g_sum,
             g_sum_intercept,

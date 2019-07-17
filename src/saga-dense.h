@@ -111,6 +111,7 @@ Saga(Penalty&               penalty,
      const double           gamma,
      const double           alpha,
      const double           beta,
+     const double           noncov,
      Eigen::ArrayXXd&       g_memory,
      Eigen::ArrayXXd&       g_sum,
      Eigen::ArrayXd&        g_sum_intercept,
@@ -130,7 +131,7 @@ Saga(Penalty&               penalty,
 
   double wscale_update = 1.0 - alpha*gamma;
 
-  penalty.setParameters(gamma, alpha, beta);
+  penalty.setParameters(gamma, alpha, beta, noncov);
 
   // Gradient vector and change in gradient vector
   Eigen::ArrayXd g        = Eigen::ArrayXd::Zero(n_classes);
