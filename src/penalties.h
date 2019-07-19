@@ -98,11 +98,11 @@ public:
       auto factor = beta*gamma*scaling/w.matrix().col(j).norm();
 
       if (factor < 1.0)
-        w.col(j) *= (1.0 - factor/w_scale)/(1.0+alpha+gamma-gamma/noncov);
+        w.col(j) *= (1.0 - factor/w_scale)/(1.0+alpha*gamma-gamma/noncov);
       else
         w.col(j) = 0.0;
 
-    } else {w.col(j) *= 1/(1+alpha*gamma); }
+    } else {w.col(j) *= 1/(1.0+alpha*gamma);}
 
   }
 };

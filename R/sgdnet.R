@@ -266,6 +266,12 @@ sgdnet.default <- function(x,
   if (maxit <= 0)
     stop("maximum number of iterations cannot be negative or zero.")
 
+  if (penalty == "MCP" & gamma <=1)
+    stop("gamma must be greater than 1 for the MCP penalty")
+
+  if (penalty == "SCAD" & gamma <=2)
+    stop("gamma must be greater than 2 for the SCAD penalty")
+
   # TODO(jolars): implement group lasso penalty for multinomial model
   type.multinomial <- "ungrouped"
   switch(
