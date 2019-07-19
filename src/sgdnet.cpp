@@ -85,13 +85,11 @@ RunSaga(const Rcpp::List& control, Args&&... args)
   if (type_penalty == "MCP") {
 
     sgdnet::MCP penalty;
-    elasticnet_mix = 1;
     Saga(penalty, args...);
 
   } else if (type_penalty == "SCAD") {
 
     sgdnet::SCAD penalty;
-    elasticnet_mix = 1;
     Saga(penalty, args...);
 
   } else if (elasticnet_mix == 0.0) {

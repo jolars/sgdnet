@@ -130,6 +130,7 @@ Saga(Penalty&               penalty,
   double wscale = 1.0;
 
   double wscale_update = 1.0 - alpha*gamma;
+  if (noncov > 0.0) { wscale_update = 1.0; }
 
   penalty.setParameters(gamma, alpha, beta, noncov);
 
