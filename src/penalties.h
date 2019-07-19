@@ -25,7 +25,6 @@ protected:
   double alpha = 0.0; // l1 penalty strength
   double beta  = 0.0; // l2 penalty strength
   double noncov = 0.0; // non-convexity parameter
-  double lambda = 0.0;
 };
 
 class Ridge : public Penalty  {
@@ -96,7 +95,7 @@ public:
     double l1 = w.matrix().col(j).norm();
 
     if (l1 <= noncov*beta) {
-      auto factor = beta*gamma/w.matrix().col(j).norm();
+      auto factor = beta*gamma*scaling/w.matrix().col(j).norm();
 
       if (factor < 1.0)
         w.col(j) *= (1.0 - factor/w_scale)/(1.0+alpha+gamma-gamma/noncov);
