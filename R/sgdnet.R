@@ -194,7 +194,7 @@ sgdnet.default <- function(x,
                            lambda.min.ratio =
                              if (NROW(x) < NCOL(x)) 0.01 else 0.0001,
                            lambda = NULL,
-                           penalty = c("lasso", "ridge", "elasticnet", "MCP", "SCAD"),
+                           penalty = "",
                            maxit = 1000,
                            standardize = TRUE,
                            intercept = TRUE,
