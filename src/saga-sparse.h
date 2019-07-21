@@ -171,6 +171,7 @@ Reset(const unsigned         k,
 //' @param gamma step size
 //' @param alpha L2-regularization penalty strength
 //' @param beta L1-regularization penalty strength
+//' @param noncov non-convexity parameter
 //' @param g_memory a storage for gradients
 //' @param g_sum gradient sum
 //' @param g_sum_intercept gradient sum for intercept

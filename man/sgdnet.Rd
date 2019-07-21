@@ -8,9 +8,9 @@
 sgdnet(x, ...)
 
 \method{sgdnet}{default}(x, y, family = c("gaussian", "binomial",
-  "multinomial", "mgaussian"), alpha = 1, nlambda = 100,
+  "multinomial", "mgaussian"), alpha = 1, gamma = 3, nlambda = 100,
   lambda.min.ratio = if (NROW(x) < NCOL(x)) 0.01 else 1e-04,
-  lambda = NULL, maxit = 1000, standardize = TRUE,
+  lambda = NULL, penalty = "", maxit = 1000, standardize = TRUE,
   intercept = TRUE, thresh = 0.001, standardize.response = FALSE,
   ...)
 }
@@ -73,6 +73,8 @@ any class (only available for multivariate models)}
 of the arguments.}
 \item{\code{lambda}}{the sequence of lambda values scaled to the
 original scale of the input data.}
+\item{\code{gamma}}{the non-convexity parameter for MCP and SCAD}
+\item{\code{penalty}}{the regularization penalty, should be specified if MCP and SCAD is used}
 \item{\code{nobs}}{number of observations}
 \item{\code{npasses}}{accumulated number of outer iterations (epochs)
 for the entire regularization path}

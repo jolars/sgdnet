@@ -149,7 +149,7 @@
 #' \item{`lambda`}{the sequence of lambda values scaled to the
 #'                 original scale of the input data.}
 #' \item{`gamma`}{the non-convexity parameter for MCP and SCAD}
-#' \item{`penalty`}{the regularization penalty}
+#' \item{`penalty`}{the regularization penalty, should be specified if MCP and SCAD is used}
 #' \item{`nobs`}{number of observations}
 #' \item{`npasses`}{accumulated number of outer iterations (epochs)
 #'                  for the entire regularization path}
