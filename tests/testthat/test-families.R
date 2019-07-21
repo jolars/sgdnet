@@ -19,8 +19,8 @@ test_that("all combinations run without errors", {
       intercept = grid$intercept[i],
       alpha = grid$alpha[i],
       nlambda = 5,
-      thresh = 1e-8,
-      maxit = 100000
+      thresh = 1e-10,
+      maxit = 1000000
     )
 
     set.seed(i)

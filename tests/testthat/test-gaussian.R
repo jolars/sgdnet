@@ -69,3 +69,35 @@ test_that("a constant response returns a completely sparse solution with interce
   expect_equal(as.vector(sfit$beta), rep(0, length(sfit$beta)))
   expect_equal(as.vector(sfit$a0), rep(mean(y), length(sfit$a0)))
 })
+
+test_that("we can approximately reproduce the ncvreg solution with MCP penalty", {
+  set.seed(0)
+
+  library(ncvreg)
+  data(Prostate)
+  X <- Prostate$X
+  y <- Prostate$y
+
+  ncv_mcp <- ncvreg(X, y, eps=1e-9)
+  sgd_mcp <- sgdnet(X, y, gamma = 3.0, lambda = ncv_mcp$lambda, thresh = 1e-9, penalty = "MCP")
+
+  print(max(coef(sgd_mcp)-coef(ncv_mcp)))
+  expect_equivalent(as.matrix(coef(sgd_mcp)), as.matrix(coef(ncv_mcp)),
+                    tolerance = 1e-4)
+})
+
+test_that("we can approximately reproduce the ncvreg solution with SCAD penalty", {
+  set.seed(0)
+
+  library(ncvreg)
+  data(Prostate)
+  X <- Prostate$X
+  y <- Prostate$y
+
+  ncv_scad <- ncvreg(X, y, gamma = 3.7, eps=1e-9, penalty = "SCAD")
+  sgd_scad <- sgdnet(X, y, gamma = 3.7, lambda = ncv_scad$lambda, thresh = 1e-9, penalty = "SCAD")
+
+  print(max(coef(sgd_scad)-coef(ncv_scad)))
+  expect_equivalent(as.matrix(coef(sgd_scad)), as.matrix(coef(ncv_scad)),
+                    tolerance = 1e-4)
+})
