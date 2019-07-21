@@ -93,18 +93,19 @@ public:
     w.col(j) -= gamma*scaling*g_sum.col(j);
 
     double l1 = w.matrix().col(j).norm();
-
-    if (l1 <= noncov*beta) {
+ 
+    if (l1 <= noncov*beta*(1.0 + gamma*alpha)) {
       auto factor = beta*gamma*scaling/w.matrix().col(j).norm();
 
       if (factor < 1.0)
-        w.col(j) *= (1.0 - factor/w_scale)/(1.0+alpha*gamma-gamma/noncov);
+        w.col(j) *= (1.0 - factor)/(1.0 + alpha*gamma - gamma/noncov);
       else
         w.col(j) = 0.0;
 
-    } else {w.col(j) *= 1/(1.0+alpha*gamma);}
+    } else { w.col(j) *= 1.0/(1.0 + alpha*gamma); }
 
   }
+
 };
 
 class SCAD : public Penalty {
@@ -122,25 +123,25 @@ public:
     double l1 = w.matrix().col(j).norm();
     auto factor = beta*gamma*scaling/w.matrix().col(j).norm();
 
-    if (l1 <= beta) {
+    if (l1 <= (beta+gamma*beta*(1.0 + alpha))) {
 
       if (factor < 1.0)
-        w.col(j) *= (1.0 - factor)/(1+alpha*gamma);
+        w.col(j) *= (1.0 - factor)/(1.0 + alpha*gamma);
       else
         w.col(j) = 0.0;
 
     }
 
-    else if (l1 <= noncov*beta) {
-      factor *= noncov/(noncov - 1);
+    else if (l1 <= noncov*beta*(1.0 + alpha*gamma)) {
+      factor *= noncov/(noncov - 1.0);
 
       if (factor < 1.0) {
-        w.col(j) *= (1.0 - factor)/(1.0+alpha*gamma-gamma/(noncov - 1));
+        w.col(j) *= (1.0 - factor)/(1.0 + alpha*gamma-gamma/(noncov - 1.0));
       }
 
       else
         w.col(j) = 0.0;
-    } else { w.col(j) *= 1/(1+alpha*gamma); }
+    } else { w.col(j) *= 1.0/(1.0 + alpha*gamma); }
 
   }
 };
