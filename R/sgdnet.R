@@ -108,6 +108,8 @@
 #' @param family reponse type, one of `'gaussian'`, `'binomial'`,
 #'   `'multinomial'`, or `'mgaussian'`. See **Supported families** for details.
 #' @param alpha elastic net mixing parameter
+#' @param gamma the non-convexity parameter for MCP and SCAD
+#' @param penalty the regularization penalty, should be specified if MCP and SCAD is used
 #' @param nlambda number of penalties in the regualrization path
 #' @param lambda.min.ratio the ratio between `lambda_max` (the smallest
 #'   penalty at which the solution is completely sparse) and the smallest
@@ -148,8 +150,6 @@
 #'                of the arguments.}
 #' \item{`lambda`}{the sequence of lambda values scaled to the
 #'                 original scale of the input data.}
-#' \item{`gamma`}{the non-convexity parameter for MCP and SCAD}
-#' \item{`penalty`}{the regularization penalty, should be specified if MCP and SCAD is used}
 #' \item{`nobs`}{number of observations}
 #' \item{`npasses`}{accumulated number of outer iterations (epochs)
 #'                  for the entire regularization path}

@@ -26,6 +26,8 @@ sgdnet(x, ...)
 
 \item{alpha}{elastic net mixing parameter}
 
+\item{gamma}{the non-convexity parameter for MCP and SCAD}
+
 \item{nlambda}{number of penalties in the regualrization path}
 
 \item{lambda.min.ratio}{the ratio between \code{lambda_max} (the smallest
@@ -33,6 +35,8 @@ penalty at which the solution is completely sparse) and the smallest
 lambda value on the path. See \strong{Regularization Path} for details.}
 
 \item{lambda}{regularization strength}
+
+\item{penalty}{the regularization penalty, should be specified if MCP and SCAD is used}
 
 \item{maxit}{maximum number of effective passes (epochs)}
 
@@ -73,8 +77,6 @@ any class (only available for multivariate models)}
 of the arguments.}
 \item{\code{lambda}}{the sequence of lambda values scaled to the
 original scale of the input data.}
-\item{\code{gamma}}{the non-convexity parameter for MCP and SCAD}
-\item{\code{penalty}}{the regularization penalty, should be specified if MCP and SCAD is used}
 \item{\code{nobs}}{number of observations}
 \item{\code{npasses}}{accumulated number of outer iterations (epochs)
 for the entire regularization path}

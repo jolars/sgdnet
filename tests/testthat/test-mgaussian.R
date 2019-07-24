@@ -24,7 +24,7 @@ test_that("we can approximate the closed form multivariate ridge regression solu
 
   expect_equivalent(beta_theoretical,
                     as.matrix(do.call(cbind, coef(sgdnet_fit))[-1, ]),
-                    tolerance = 1e-6)
+                    tolerance = 1e-5)
 })
 
 test_that("standardizing responses works", {
