@@ -15,7 +15,7 @@ test_that("sparse and dense implementations return equivalent results", {
       family = grid$family[i],
       intercept = grid$intercept[i],
       alpha = grid$alpha[i],
-      thresh = 1e-6,
+      thresh = 1e-10,
       nlambda = 5
     )
 
