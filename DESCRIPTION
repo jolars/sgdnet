@@ -29,7 +29,8 @@ Suggests:
     glmnet,
     knitr,
     rmarkdown,
-    latticeExtra
+    latticeExtra,
+    ncvreg
 LinkingTo: 
     Rcpp (>= 0.12.16),
     RcppEigen (>= 0.3.3.4.0)
