@@ -8,8 +8,8 @@ test_that("we expect lasso solution when the non-convexity parameter is large en
   y <- scale(airquality$Ozone)
 
   sgd_fit <- sgdnet(x, y, alpha = 1, thresh=1e-5)
-  sgd_mcp <- sgdnet(x, y, gamma = 1e+10, lambda = sgd_fit$lambda, thresh=1e-5, penalty = "MCP")
-  sgd_scad <- sgdnet(x, y, gamma = 1e+10, lambda = sgd_fit$lambda,thresh=1e-5,  penalty = "SCAD")
+  sgd_mcp <- sgdnet(x, y, non_convexity = 1e+10, lambda = sgd_fit$lambda, thresh=1e-5, penalty = "MCP")
+  sgd_scad <- sgdnet(x, y, non_convexity = 1e+10, lambda = sgd_fit$lambda,thresh=1e-5,  penalty = "SCAD")
 
   expect_equivalent(coef(sgd_fit), coef(sgd_mcp),
                     tolerance = 0.001)

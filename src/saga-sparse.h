@@ -234,7 +234,8 @@ Saga(Penalty&                           penalty,
   lag_scaling.push_back(1.0);
   double geo_sum = 1.0;
   double wscale_update = 1.0 - alpha*gamma;
-  if (noncov > 0.0) { wscale_update = 1.0; }
+  if (noncov > 1.0)
+    wscale_update = 1.0;
 
   for (unsigned i = 2; i < n_samples + 1; ++i) {
     geo_sum *= wscale_update;

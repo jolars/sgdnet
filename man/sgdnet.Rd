@@ -8,11 +8,11 @@
 sgdnet(x, ...)
 
 \method{sgdnet}{default}(x, y, family = c("gaussian", "binomial",
-  "multinomial", "mgaussian"), alpha = 1, gamma = 3, nlambda = 100,
-  lambda.min.ratio = if (NROW(x) < NCOL(x)) 0.01 else 1e-04,
-  lambda = NULL, penalty = "", maxit = 1000, standardize = TRUE,
-  intercept = TRUE, thresh = 0.001, standardize.response = FALSE,
-  ...)
+  "multinomial", "mgaussian"), alpha = 1, non_convexity = 1,
+  nlambda = 100, lambda.min.ratio = if (NROW(x) < NCOL(x)) 0.01 else
+  1e-04, lambda = NULL, penalty = c("", "MCP", "SCAD"), maxit = 1000,
+  standardize = TRUE, intercept = TRUE, thresh = 0.001,
+  standardize.response = FALSE, ...)
 }
 \arguments{
 \item{x}{input matrix}
@@ -26,7 +26,7 @@ sgdnet(x, ...)
 
 \item{alpha}{elastic net mixing parameter}
 
-\item{gamma}{the non-convexity parameter for MCP and SCAD}
+\item{non_convexity}{the non-convexity parameter for MCP and SCAD}
 
 \item{nlambda}{number of penalties in the regualrization path}
 
@@ -36,7 +36,8 @@ lambda value on the path. See \strong{Regularization Path} for details.}
 
 \item{lambda}{regularization strength}
 
-\item{penalty}{the regularization penalty, should be specified if MCP and SCAD is used}
+\item{penalty}{the regularization penalty, one of \code{''}, \code{'MCP'}, \code{'SCAD'},
+should be specified if MCP and SCAD is used.}
 
 \item{maxit}{maximum number of effective passes (epochs)}
 

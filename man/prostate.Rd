@@ -19,6 +19,8 @@
 \source{
 Stamey, T.A., Kabalin, J.N., McNeal, J.E., Johnstone, I.M., Freiha, F., Redwine, E.A. and Yang, N. (1989),
 Prostate specific antigen in the diagnosis and treatment of adenocarcinoma of the prostate: II. radical prostatectomy treated patients, Journal of Urology 141(5), 1076–1083.
+
+http://statweb.stanford.edu/~tibs/ElemStatLearn/datasets/prostate.data
 }
 \usage{
 prostate
@@ -27,5 +29,6 @@ prostate
 This data come from a study that examined the correlation
 between the level of prostate specific antigen
 and a number of clinical measures in men who were about to receive a radical prostatectomy.
+The response variable y is lpsa, which is log(prostate specific antigen).
 }
 \keyword{datasets}
