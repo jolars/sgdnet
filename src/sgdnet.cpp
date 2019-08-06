@@ -139,7 +139,7 @@ SetupSgdnet(T                 x,
 
   const bool     fit_intercept    = Rcpp::as<bool>(control["intercept"]);
   const double   elasticnet_mix   = Rcpp::as<double>(control["elasticnet_mix"]);
-  const double   noncov           = Rcpp::as<double>(control["noncov"]);
+  const double   nonconvexity     = Rcpp::as<double>(control["nonconvexity"]);
   vector<double> lambda           = Rcpp::as<vector<double>>(control["lambda"]);
   const unsigned n_lambda         = Rcpp::as<unsigned>(control["n_lambda"]);
   const unsigned n_classes        = Rcpp::as<unsigned>(control["n_classes"]);
@@ -241,7 +241,7 @@ SetupSgdnet(T                 x,
             step_size[lambda_ind],
             alpha[lambda_ind],
             beta[lambda_ind],
-            noncov,
+            nonconvexity,
             g_memory,
             g_sum,
             g_sum_intercept,

@@ -12,19 +12,19 @@ public:
   setParameters(const double gamma_in,
                 const double alpha_in,
                 const double beta_in,
-                const double noncov_in) noexcept
+                const double nonconv_in) noexcept
   {
     gamma = gamma_in;
     alpha = alpha_in;
     beta = beta_in;
-    noncov = noncov_in;
+    nonconvexity = nonconv_in;
   }
 
 protected:
   double gamma = 0.0; // step size
   double alpha = 0.0; // l1 penalty strength
   double beta  = 0.0; // l2 penalty strength
-  double noncov = 0.0; // non-convexity parameter
+  double nonconvexity = 0.0; // non-convexity parameter
 };
 
 class Ridge : public Penalty  {
@@ -91,17 +91,16 @@ public:
              const Eigen::ArrayXXd& g_sum) const noexcept
   {
     w.col(j) -= gamma*scaling*g_sum.col(j);
-
     double l1 = w.matrix().col(j).norm();
- 
-    if (l1 <= noncov*beta*(1.0 + gamma*alpha)) {
+
+    if (l1 <= nonconvexity*beta*(1.0 + gamma*alpha)) {
       auto factor = beta*gamma*scaling/w.matrix().col(j).norm();
 
-      if (factor < 1.0)
-        w.col(j) *= (1.0 - factor)/(1.0 + alpha*gamma - gamma/noncov);
+      if (factor < 1.0){
+        w.col(j) *= (1.0 - factor)/(1.0 + alpha*gamma - gamma/nonconvexity);
+      }
       else
         w.col(j) = 0.0;
-
     } else { w.col(j) *= 1.0/(1.0 + alpha*gamma); }
 
   }
@@ -132,11 +131,11 @@ public:
 
     }
 
-    else if (l1 <= noncov*beta*(1.0 + alpha*gamma)) {
-      factor *= noncov/(noncov - 1.0);
+    else if (l1 <= nonconvexity*beta*(1.0 + alpha*gamma)) {
+      factor *= nonconvexity/(nonconvexity - 1.0);
 
       if (factor < 1.0) {
-        w.col(j) *= (1.0 - factor)/(1.0 + alpha*gamma-gamma/(noncov - 1.0));
+        w.col(j) *= (1.0 - factor)/(1.0 + alpha*gamma-gamma/(nonconvexity - 1.0));
       }
 
       else

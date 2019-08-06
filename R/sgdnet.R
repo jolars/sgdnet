@@ -358,7 +358,7 @@ sgdnet.default <- function(x,
 
   control <- list(debug = debug,
                   elasticnet_mix = alpha,
-                  noncov = non_convexity,
+                  nonconvexity = non_convexity,
                   family = family,
                   intercept = intercept,
                   is_sparse = is_sparse,

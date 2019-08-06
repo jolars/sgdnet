@@ -171,7 +171,7 @@ Reset(const unsigned         k,
 //' @param gamma step size
 //' @param alpha L2-regularization penalty strength
 //' @param beta L1-regularization penalty strength
-//' @param noncov non-convexity parameter
+//' @param nonconvexity non-convexity parameter
 //' @param g_memory a storage for gradients
 //' @param g_sum gradient sum
 //' @param g_sum_intercept gradient sum for intercept
@@ -207,7 +207,7 @@ Saga(Penalty&                           penalty,
      const double                       gamma,
      const double                       alpha,
      const double                       beta,
-     const double                       noncov,
+     const double                       nonconvexity,
      Eigen::ArrayXXd&                   g_memory,
      Eigen::ArrayXXd&                   g_sum,
      Eigen::ArrayXd&                    g_sum_intercept,
@@ -234,8 +234,10 @@ Saga(Penalty&                           penalty,
   lag_scaling.push_back(1.0);
   double geo_sum = 1.0;
   double wscale_update = 1.0 - alpha*gamma;
-  if (noncov > 1.0)
+
+  if (nonconvexity > 1.0) {
     wscale_update = 1.0;
+  }
 
   for (unsigned i = 2; i < n_samples + 1; ++i) {
     geo_sum *= wscale_update;
@@ -243,7 +245,7 @@ Saga(Penalty&                           penalty,
     lag_scaling.push_back(tmp);
   }
 
-  penalty.setParameters(gamma, alpha, beta, noncov);
+  penalty.setParameters(gamma, alpha, beta, nonconvexity);
 
   // Gradient vector and change in gradient vector
   Eigen::ArrayXd g        = Eigen::ArrayXd::Zero(n_classes);
