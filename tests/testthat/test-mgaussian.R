@@ -47,11 +47,11 @@ test_that("standardizing responses works", {
 
   y_standardized <- scale(y, scale = apply(y, 2, sd2))
 
-  sfit <- sgdnet(x, y, family = "mgaussian", standardize.response = TRUE)
-  bfit <- sgdnet(x, y, family = "mgaussian", standardize.response = TRUE, batchsize = 10)
-  gfit <- glmnet(x, y, family = "mgaussian", standardize.response = TRUE)
+  sfit <- sgdnet(x, y, family = "mgaussian", standardize.response = TRUE, thresh = 1e-9)
+  bfit <- sgdnet(x, y, family = "mgaussian", standardize.response = TRUE, batchsize = 10, thresh = 1e-9)
+  gfit <- glmnet(x, y, family = "mgaussian", standardize.response = TRUE, thresh = 1e-9)
 
   expect_equal(sfit$lambda, gfit$lambda)
   expect_equivalent(coef(sfit), coef(gfit))
-  expect_equivalent(coef(bfit), coef(gfit), tolerance = 1e-2)
+  expect_equivalent(coef(bfit), coef(gfit), tolerance = 1e-3)
 })

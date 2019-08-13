@@ -271,8 +271,8 @@ sgdnet.default <- function(x,
   
   if (batchsize > n_samples)
     stop("batch size cannot be larger than sample size.")
-  
-  if (!is.integer(batchsize))
+
+  if (batchsize%%1 > 0)
     stop("batch size should be an integer.")
 
   # TODO(jolars): implement group lasso penalty for multinomial model
