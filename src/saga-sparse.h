@@ -88,16 +88,15 @@ LaggedUpdate(const unsigned                     k,
   for (unsigned m = 0; m < subx.cols(); ++m) {
 
     for (Eigen::SparseMatrix<double>::InnerIterator it(subx, m); it; ++it) {
-    
+
       auto j = it.index();
       auto lagged_amount = k - lag[j];
-    
+
       if (lagged_amount != 0) {
         penalty(w, j, wscale, lag_scaling[lagged_amount], g_sum);
         lag[j] = k;
       }
     }
-    
   }
 }
 
@@ -126,14 +125,14 @@ AddWeighted(Eigen::ArrayXXd&                   a,
 {
   Eigen::ArrayXd g_change_col = Eigen::ArrayXd::Zero(n_classes);
   for (decltype(a.rows()) k = 0; k < a.rows(); ++k) {
-    
+
     for (unsigned i = 0; i < B; ++i) {
         g_change_col = g_change.col(i);
         a.row(k) += subx.col(i)*g_change_col(k)*scaling;
         if (standardize)
           a.row(k) -= x_center_scaled*g_change_col(k)*scaling;
     }
-    
+
   }
 }
 
@@ -255,7 +254,7 @@ Saga(Penalty&                           penalty,
   }
 
   penalty.setParameters(gamma, alpha, beta);
-  
+
   // Gradient vector and change in gradient vector
   Eigen::ArrayXXd g                = Eigen::ArrayXXd::Zero(n_classes, B);
   Eigen::ArrayXXd g_change         = Eigen::ArrayXXd::Zero(n_classes, B);
@@ -264,31 +263,31 @@ Saga(Penalty&                           penalty,
 
   // Setup functor for checking convergence
   ConvergenceCheck convergence_check{w, tol};
-  
+
   // Setup index generator
   Eigen::ArrayXXi index = Eigen::ArrayXXi::Zero(B, epoch);
   Eigen::ArrayXi  s_ind = Eigen::ArrayXi::Zero(B);
-  
+
   // Setup selected sample matrix
   Eigen::SparseMatrix<double> subx(n_features, B);
-  
+
   // Outer loop
   unsigned it_outer = 0;
   bool converged = false;
   do {
-    
+
     // Pull an epoch of samples
     index = Index(n_samples, B, cyclic);
-    
+
     // Inner loop
     for (unsigned it_inner = 0; it_inner < epoch; ++it_inner) {
-      
+
       // Pull a sample
       s_ind = index.col(it_inner);
-      
+
       // Select samples
       subx = SelectSparse(x, s_ind);
-      
+
       LaggedUpdate(it_inner,
                    w,
                    n_features,
@@ -362,7 +361,7 @@ Saga(Penalty&                           penalty,
                   standardize);
 
     } // Outer loop
-    
+
     // Unlag and rescale coefficients
     wscale = Reset(n_samples,
                    w,
