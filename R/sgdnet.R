@@ -106,7 +106,7 @@
 #' @param x input matrix
 #' @param y response variable
 #' @param family reponse type, one of `'gaussian'`, `'binomial'`,
-#'   `'multinomial'`, or `'mgaussian'`. See **Supported families** for details.
+#'   `'multinomial'`, `'mgaussian'` or `'poisson'`. See **Supported families** for details.
 #' @param alpha elastic net mixing parameter
 #' @param nlambda number of penalties in the regualrization path
 #' @param lambda.min.ratio the ratio between `lambda_max` (the smallest
@@ -185,7 +185,8 @@ sgdnet.default <- function(x,
                            family = c("gaussian",
                                       "binomial",
                                       "multinomial",
-                                      "mgaussian"),
+                                      "mgaussian",
+                                      "poisson"),
                            alpha = 1,
                            nlambda = 100,
                            lambda.min.ratio =
@@ -271,6 +272,9 @@ sgdnet.default <- function(x,
     }
   )
 
+  # Only use adaptive stepsize for poisson
+  adaptive <- FALSE
+
   # Setup reponse type options and assert appropriate input
   family <- match.arg(family)
 
@@ -335,6 +339,16 @@ sgdnet.default <- function(x,
       grouped <- TRUE
 
       n_classes <- n_targets
+    },
+    poisson = {
+      n_classes <- 1L
+
+      if (length(unique(y)) == 1)
+        stop("only one class in response.")
+
+      adaptive <- TRUE
+
+      y <- as.numeric(y)
     }
   )
 
@@ -356,7 +370,8 @@ sgdnet.default <- function(x,
                   standardize = standardize,
                   standardize_response = standardize.response,
                   tol = thresh,
-                  type_multinomial = type.multinomial)
+                  type_multinomial = type.multinomial,
+                  adaptive_gamma = adaptive)
 
   # Fit the model by calling the Rcpp routine.
   if (is_sparse) {
@@ -369,7 +384,7 @@ sgdnet.default <- function(x,
   n_penalties <- length(lambda)
   path_names <- paste0("s", seq_len(n_penalties) - 1L)
 
-  if (family %in% c("gaussian", "binomial")) {
+  if (family %in% c("gaussian", "binomial", "poisson")) {
     # NOTE(jolars): I would rather not to this, i.e. have different outputs
     # depending on family, but this makes it equivalent to glmnet output
     a0 <- unlist(res$a0)
