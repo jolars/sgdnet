@@ -409,6 +409,90 @@ private:
   const bool standardize_response;
 };
 
+class Poisson : public Family {
+public:
+  Poisson() : Family(1.0) {}
+
+  void
+  Preprocess(Eigen::MatrixXd& y,
+             Eigen::ArrayXd&  y_center,
+             Eigen::ArrayXd&  y_scale) const noexcept
+  {
+    // no preprocessing
+  }
+
+  double
+  Loss(const Eigen::ArrayXd&  linear_predictor,
+       const Eigen::MatrixXd& y,
+       const unsigned         i) const noexcept
+  {
+    return std::exp(linear_predictor(0)) - y(i)*linear_predictor(0);
+  }
+
+  void
+  Gradient(const Eigen::ArrayXd&  linear_predictor,
+           const Eigen::MatrixXd& y,
+           const unsigned         i,
+           Eigen::ArrayXd&        gradient) const noexcept
+  {
+    gradient(0) = std::exp(linear_predictor(0)) - y(i);
+  }
+
+  double
+  NullDeviance(const Eigen::MatrixXd& y,
+               const bool             fit_intercept) const noexcept
+  {
+    Eigen::ArrayXd linear_predictor(1);
+
+    if (fit_intercept) {
+      auto y_bar = Mean(y.transpose());
+      linear_predictor(0) = std::log(y_bar(0));
+    } else {
+      linear_predictor(0) = 0.0;
+    }
+
+    double loss = 0.0;
+    for (unsigned i = 0; i < y.cols(); ++i){
+      if (y(i) != 0)
+        loss +=  y(i)*std::log(y(i)) - y(i)*linear_predictor(0);
+    }
+    return 2.0 * loss;
+  }
+
+  void
+  FitNullModel(const Eigen::MatrixXd& y,
+               const bool             fit_intercept,
+               Eigen::ArrayXd&        intercept) {
+
+    if (fit_intercept) {
+      auto y_bar = Mean(y.transpose());
+      intercept(0) = std::log(y_bar(0));
+    } else {
+      intercept(0) = 0.0;
+    }
+  }
+
+  template <typename T>
+  double
+    LambdaMax(const T&               x,
+              const Eigen::MatrixXd& y,
+              const Eigen::ArrayXd&  y_scale) const noexcept
+    {
+      auto n = y.rows();
+
+      Eigen::VectorXd y_map(n);
+
+      auto y_bar = Mean(y);
+      auto y_std = StandardDeviation(y, y_bar);
+
+      for (decltype(n) i = 0; i < n; ++i)
+        y_map(i) = (y(i) - y_bar(0))/y_std(0);
+
+      return y_std(0)*(x.transpose() * y_map).cwiseAbs().maxCoeff()/n;
+    }
+
+};
+
 } // namespace sgdnet
 
 #endif // SGDNET_FAMILIES_
