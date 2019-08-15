@@ -60,7 +60,8 @@ StepSize(const double               max_squared_sum,
 double
 ColNormsMax(const Eigen::SparseMatrix<double>& x,
             const Eigen::ArrayXd&              x_center_scaled,
-            const bool                         standardize)
+            const bool                         standardize,
+            Eigen::ArrayXd&                    col_norm_x)
 {
   auto m = x.cols();
 
@@ -70,6 +71,7 @@ ColNormsMax(const Eigen::SparseMatrix<double>& x,
       standardize ? (x.col(j) - x_center_scaled.matrix()).squaredNorm()
                   : x.col(j).squaredNorm();
 
+    col_norm_x(j) = norm;
     norm_max = std::max(norm_max, norm);
   }
 
@@ -79,8 +81,10 @@ ColNormsMax(const Eigen::SparseMatrix<double>& x,
 double
 ColNormsMax(const Eigen::MatrixXd& x,
             const Eigen::ArrayXd&  x_center_scaled,
-            const bool             standardize) {
+            const bool             standardize,
+            Eigen::ArrayXd&        col_norm_x) {
   // dense features are already scaled and centered (if required)
+  col_norm_x = x.colwise().squaredNorm().eval();
   return x.colwise().squaredNorm().maxCoeff();
 }
 
@@ -537,6 +541,65 @@ WeightStep(Eigen::ArrayXXd& g_change,
     step += g_change_col.rowwise()*subx.col(i).transpose().array();
   }
   return step;
+}
+
+//' Compute constant for optimal batchsize and step size for mini batch
+//' @param x columnwise sample matrix
+//' @param n_sample number of samples
+//' @param n_feature number of features
+
+Eigen::VectorXcd
+Eigen_value(const Eigen::MatrixXd& x,
+            const unsigned   n_samples,
+            const unsigned   n_features)
+{
+  Eigen::MatrixXd tx = x.transpose().eval();
+  Eigen::MatrixXd temp;
+  temp = n_samples > n_features ? x*tx:tx*x;
+  Eigen::EigenSolver<Eigen::MatrixXd> es(temp);
+
+  // compute eigen value for a square matrix
+  Eigen::VectorXcd value = es.eigenvalues();
+
+  return(value);
+}
+
+void
+BatchOpt(const Eigen::VectorXcd&    value,
+         const unsigned             n_samples,
+         const unsigned             n_features,
+         double                     max,
+         double                     bar,
+         const std::vector<double>& alpha,
+         std::vector<unsigned>&     Batchsize,
+         std::vector<double>&       Batchstep)
+{
+  double mu = value.real().minCoeff()/n_samples;
+  double L = value.real().maxCoeff()/n_samples;
+
+  unsigned B; // optimal batchsize
+
+  double rightterm;
+  double Lpratical;
+  double alpha_i;
+
+  for (unsigned i = 0; i < alpha.size(); ++i) {
+    alpha_i = alpha[i]; // l2 strength
+
+    // compute optimal batchsize
+    B = std::floor(1.0 + ((mu + alpha_i) * (n_samples - 1))/(4.0 * (bar + alpha_i)));
+
+    rightterm = (n_samples - B)/(B * (n_samples - 1)) * (max + alpha_i)
+              + n_samples/(4 * B) * (mu + alpha_i);
+
+    Lpratical = L * n_samples * (B - 1)/(B * (n_samples - 1))
+              + max * (n_samples - B)/(B * (n_samples - 1)) + alpha_i;
+
+    Batchsize[i] = B;
+
+    // optimal stepsize
+    Batchstep[i] = 1.0/(4.0 * std::max(Lpratical, rightterm));
+  }
 }
 
 #endif // SGDNET_UTILS_
