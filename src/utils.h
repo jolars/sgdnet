@@ -387,12 +387,12 @@ Eigen::ArrayXXi
 IndexStochastic(const unsigned n_samples,
                 const unsigned length)
 {
-  Eigen::ArrayXXi index(1, length);
+  Eigen::ArrayXXi ind(1, length);
   for (unsigned i = 0; i < length; ++i) {
     unsigned s_ind = floor(R::runif(0.0, n_samples));
-    index.col(i) = s_ind;
+    ind.col(i) = s_ind;
   }
-  return index;
+  return ind;
 }
 
 //' Return a vector of cyclic index
@@ -404,9 +404,13 @@ Eigen::ArrayXXi
 IndexCyclic(const unsigned n_samples,
             const unsigned length)
 {
-  Eigen::ArrayXXi index(1, length);
-  index.row(0) = Eigen::ArrayXi::LinSpaced(n_samples, 0, n_samples);
-  return index;
+  Eigen::ArrayXXi ind(1, length);
+
+  unsigned start = floor(R::runif(0.0, n_samples));
+  ind.block(0,0,1,(n_samples-start)) = Eigen::ArrayXi::LinSpaced((n_samples-start), start, n_samples-1);
+  ind.block(0,n_samples-start,1,start) = Eigen::ArrayXi::LinSpaced(start, 0, start-1);
+
+  return ind;
 }
 
 //' wrapper aroud R's RNG such that we get a unifrom distribution over 
@@ -423,14 +427,14 @@ IndexBatch(const unsigned n_samples,
            const unsigned B)
 {
   const unsigned n_iter = floor(n_samples/B);
-  Eigen::ArrayXXi index(B, n_iter);
+  Eigen::ArrayXXi ind(B, n_iter);
   Eigen::ArrayXi  pool = Eigen::ArrayXi::LinSpaced(n_samples, 0, n_samples);
   
   for (unsigned i = 0; i < n_iter; ++i) {
     std::random_shuffle(pool.data(), pool.data()+n_samples, randWrapper);
-    index.col(i) = pool.head(B);
+    ind.col(i) = pool.head(B);
   }
-  return index;
+  return ind;
 }
 
 //' Return index according to parameters
@@ -440,9 +444,9 @@ IndexBatch(const unsigned n_samples,
 //' @param cyclic use cyclic index if true
 
 Eigen::ArrayXXi
-Index(const unsigned  n_samples,
-      const unsigned  B,
-      const bool cyclic)
+Ind(const unsigned  n_samples,
+    const unsigned  B,
+    const bool cyclic)
 {
   if (B > 1)  
     return IndexBatch(n_samples, B);

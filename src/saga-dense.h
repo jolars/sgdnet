@@ -155,7 +155,7 @@ Saga(Penalty&               penalty,
   const unsigned epoch = floor(n_samples/B);  
 
   // Setup index generator
-  Eigen::ArrayXXi index = Eigen::ArrayXXi::Zero(B, epoch);
+  Eigen::ArrayXXi ind   = Eigen::ArrayXXi::Zero(B, epoch);
   Eigen::ArrayXi  s_ind = Eigen::ArrayXi::Zero(B);
 
   // Outer loop
@@ -164,13 +164,13 @@ Saga(Penalty&               penalty,
   do {
 
     // Pull samples
-    index = Index(n_samples, B, cyclic);
+    ind = Ind(n_samples, B, cyclic);
 
     // Inner loop
     for (unsigned it_inner = 0; it_inner < epoch; ++it_inner) {
 
       // Pull a epoch
-      s_ind = index.col(it_inner);
+      s_ind = ind.col(it_inner);
 
       // Select samples
       subx = SelectCol(x, s_ind);
