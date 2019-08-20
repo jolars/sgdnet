@@ -44,8 +44,9 @@ public:
            Eigen::ArrayXXd&        gradient) const noexcept;
 
   double
-  NullDeviance(const Eigen::MatrixXd& y, // samples in rows
-               const bool             fit_intercept) const noexcept;
+  NullDeviance(const Eigen::MatrixXd&     y, // samples in rows
+               const bool                 fit_intercept,
+               const std::vector<double>& sample_weight) const noexcept;
 
   void
   FitNullModel(const Eigen::MatrixXd& y, // samples in rows
@@ -98,15 +99,16 @@ public:
   }
 
   double
-  NullDeviance(const Eigen::MatrixXd& y,
-               const bool             fit_intercept) const noexcept
+  NullDeviance(const Eigen::MatrixXd&     y,
+               const bool                 fit_intercept,
+               const std::vector<double>& sample_weight) const noexcept
   {
     Eigen::ArrayXd linear_predictor = Mean(y.transpose());
 
     double loss = 0.0;
     auto n = y.cols();
     for (decltype(n) i = 0; i < n; ++i)
-      loss += Loss(linear_predictor, y, i);
+      loss += sample_weight[i] * Loss(linear_predictor, y, i);
 
     return 2.0 * loss;
   }
@@ -172,8 +174,9 @@ public:
   }
 
   double
-  NullDeviance(const Eigen::MatrixXd& y,
-               const bool             fit_intercept) const noexcept
+  NullDeviance(const Eigen::MatrixXd&     y,
+               const bool                 fit_intercept,
+               const std::vector<double>& sample_weight) const noexcept
   {
     Eigen::ArrayXd linear_predictor(1);
 
@@ -186,7 +189,7 @@ public:
 
     double loss = 0.0;
     for (unsigned i = 0; i < y.cols(); ++i)
-      loss += Loss(linear_predictor, y, i);
+      loss += sample_weight[i] * Loss(linear_predictor, y, i);
 
     return 2.0 * loss;
   }
@@ -269,8 +272,9 @@ public:
   }
 
   double
-  NullDeviance(const Eigen::MatrixXd& y,
-               const bool             fit_intercept) const noexcept
+  NullDeviance(const Eigen::MatrixXd&     y,
+               const bool                 fit_intercept,
+               const std::vector<double>& sample_weight) const noexcept
   {
     Eigen::ArrayXd linear_predictor(n_classes);
 
@@ -287,7 +291,7 @@ public:
     auto loss = 0.0;
     for (decltype(y.cols()) i = 0; i < y.cols(); ++i) {
       auto c = static_cast<unsigned>(y(i) + 0.5);
-      loss += lse - linear_predictor[c];
+      loss += sample_weight[i] * (lse - linear_predictor[c]);
     }
 
     return 2.0 * loss;
@@ -376,14 +380,15 @@ public:
   }
 
   double
-  NullDeviance(const Eigen::MatrixXd& y,
-               const bool             fit_intercept) const noexcept
+  NullDeviance(const Eigen::MatrixXd&     y,
+               const bool                 fit_intercept,
+               const std::vector<double>& sample_weight) const noexcept
   {
     auto linear_predictor = Mean(y.transpose());
 
     double loss = 0.0;
     for (decltype(y.cols()) i = 0; i < y.cols(); ++i)
-      loss += Loss(linear_predictor, y, i);
+      loss += sample_weight[i] * Loss(linear_predictor, y, i);
 
     return 2.0 * loss;
   }
