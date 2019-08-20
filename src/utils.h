@@ -24,7 +24,7 @@
 //' Compute step size for SAGA
 //'
 //' @param max_squared_sum the maximum of the squared norm over samples
-//' @param alpha the amount of L1 regularization
+//' @param alpha the amount of L2 regularization
 //' @param fit_intercept whether the intercept should be fit
 //' @param L_scaling scaling factor for the lipschitz constant (L)
 //' @param n_samples number of samples

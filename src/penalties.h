@@ -22,8 +22,8 @@ public:
 
 protected:
   double gamma = 0.0; // step size
-  double alpha = 0.0; // l1 penalty strength
-  double beta  = 0.0; // l2 penalty strength
+  double alpha = 0.0; // l2 penalty strength
+  double beta  = 0.0; // l1 penalty strength
   double nonconvexity = 0.0; // non-convexity parameter
 };
 
