@@ -272,7 +272,7 @@ sgdnet.default <- function(x,
     }
   )
 
-  # Only use adaptive stepsize for poisson
+  # Only use adaptive step size for poisson
   adaptive <- FALSE
 
   # Setup reponse type options and assert appropriate input
@@ -345,6 +345,9 @@ sgdnet.default <- function(x,
 
       if (length(unique(y)) == 1)
         stop("only one class in response.")
+
+      if (any(y != abs(y)))
+        stop("response for poisson regression must not be negative")
 
       adaptive <- TRUE
 

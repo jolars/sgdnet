@@ -8,7 +8,7 @@
 sgdnet(x, ...)
 
 \method{sgdnet}{default}(x, y, family = c("gaussian", "binomial",
-  "multinomial", "mgaussian"), alpha = 1, nlambda = 100,
+  "multinomial", "mgaussian", "poisson"), alpha = 1, nlambda = 100,
   lambda.min.ratio = if (NROW(x) < NCOL(x)) 0.01 else 1e-04,
   lambda = NULL, maxit = 1000, standardize = TRUE,
   intercept = TRUE, thresh = 0.001, standardize.response = FALSE,
@@ -22,7 +22,7 @@ sgdnet(x, ...)
 \item{y}{response variable}
 
 \item{family}{reponse type, one of \code{'gaussian'}, \code{'binomial'},
-\code{'multinomial'}, or \code{'mgaussian'}. See \strong{Supported families} for details.}
+\code{'multinomial'}, \code{'mgaussian'} or \code{'poisson'}. See \strong{Supported families} for details.}
 
 \item{alpha}{elastic net mixing parameter}
 
