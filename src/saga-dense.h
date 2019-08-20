@@ -146,7 +146,7 @@ Saga(Penalty&               penalty,
   ConvergenceCheck convergence_check{w, tol};
 
   // assist adaptive step size (only for poisson)
-  const unsigned line_search_freq = 5;
+  const unsigned line_search_freq = 1;
   Eigen::ArrayXd line_search = Eigen::ArrayXd::Zero(n_classes);
   const double line_search_scaling = std::pow(2.0, line_search_freq/n_samples);
 
