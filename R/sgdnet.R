@@ -190,7 +190,7 @@ sgdnet.default <- function(x,
                                       "multinomial",
                                       "mgaussian"),
                            alpha = 1,
-                           non_convexity = 1.0,
+                           non_convexity = switch(penalty, MCP=3, SCAD=3.7),
                            nlambda = 100,
                            lambda.min.ratio =
                              if (NROW(x) < NCOL(x)) 0.01 else 0.0001,
@@ -250,6 +250,10 @@ sgdnet.default <- function(x,
     lambda <- double(0L)
   else
     nlambda <- length(lambda)
+
+  # disable non-convex penalty
+  if (missing(penalty))
+    non_convexity = 1.0
 
   if (nlambda == 0)
     stop("lambda path cannot be of zero length.")
