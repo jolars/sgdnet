@@ -426,7 +426,8 @@ public:
        const Eigen::MatrixXd& y,
        const unsigned         i) const noexcept
   {
-    return std::exp(linear_predictor(0)) - y(i)*linear_predictor(0);
+    auto dev = y(i) > 0 ? y(i)*std::log(y(i)) - y(i)*linear_predictor(0):0;
+    return dev - y(i) + std::exp(linear_predictor(0));
   }
 
   void
