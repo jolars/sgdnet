@@ -205,6 +205,7 @@ void
 Saga(Penalty&                           penalty,
      const Eigen::SparseMatrix<double>& x,
      const Eigen::ArrayXd&              x_center_scaled,
+     const std::vector<double>&         sample_weight,
      const Eigen::MatrixXd&             y,
      Eigen::ArrayXd&                    intercept,
      const bool                         fit_intercept,
@@ -305,6 +306,8 @@ Saga(Penalty&                           penalty,
 
       family.Gradient(linear_predictor, y, s_ind, g);
 
+      SampleWeight(g, s_ind, sample_weight);
+
       g_change = g - SelectArray(g_memory, s_ind);
       SetCol(g_memory, g, s_ind);
 
@@ -386,7 +389,8 @@ Saga(Penalty&                           penalty,
                               n_features,
                               n_classes,
                               is_sparse,
-                              standardize);
+                              standardize,
+                              sample_weight);
       losses.push_back(loss);
     }
 

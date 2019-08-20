@@ -100,33 +100,34 @@
 //'   `n_iter`, `return_codes`, and possibly `losses`.
 template <typename Family, typename Penalty>
 void
-Saga(Penalty&               penalty,
-     const Eigen::MatrixXd& x,
-     const Eigen::ArrayXd&  x_center_scaled,
-     const Eigen::MatrixXd& y,
-     Eigen::ArrayXd&        intercept,
-     const bool             fit_intercept,
-     const bool             is_sparse,
-     const bool             standardize,
-     Eigen::ArrayXXd&       w,
-     const Family&          family,
-     const double           gamma,
-     const double           alpha,
-     const double           beta,
-     Eigen::ArrayXXd&       g_memory,
-     Eigen::ArrayXXd&       g_sum,
-     Eigen::ArrayXd&        g_sum_intercept,
-     const unsigned         n_samples,
-     const unsigned         n_features,
-     const unsigned         n_classes,
-     const unsigned         max_iter,
-     const double           tol,
-     unsigned&              n_iter,
-     std::vector<unsigned>& return_codes,
-     std::vector<double>&   losses,
-     const bool             debug,
-     const bool             cyclic,
-     const unsigned         B) noexcept
+Saga(Penalty&                   penalty,
+     const Eigen::MatrixXd&     x,
+     const Eigen::ArrayXd&      x_center_scaled,
+     const std::vector<double>& sample_weight,
+     const Eigen::MatrixXd&     y,
+     Eigen::ArrayXd&            intercept,
+     const bool                 fit_intercept,
+     const bool                 is_sparse,
+     const bool                 standardize,
+     Eigen::ArrayXXd&           w,
+     const Family&              family,
+     const double               gamma,
+     const double               alpha,
+     const double               beta,
+     Eigen::ArrayXXd&           g_memory,
+     Eigen::ArrayXXd&           g_sum,
+     Eigen::ArrayXd&            g_sum_intercept,
+     const unsigned             n_samples,
+     const unsigned             n_features,
+     const unsigned             n_classes,
+     const unsigned             max_iter,
+     const double               tol,
+     unsigned&                  n_iter,
+     std::vector<unsigned>&     return_codes,
+     std::vector<double>&       losses,
+     const bool                 debug,
+     const bool                 cyclic,
+     const unsigned             B) noexcept
 {
   using namespace std;
 
@@ -179,6 +180,8 @@ Saga(Penalty&               penalty,
 
       family.Gradient(linear_predictor, y, s_ind, g);
 
+      SampleWeight(g, s_ind, sample_weight);
+
       g_change = g - SelectArray(g_memory, s_ind);
       SetCol(g_memory, g, s_ind);
 
@@ -228,7 +231,8 @@ Saga(Penalty&               penalty,
                               n_features,
                               n_classes,
                               is_sparse,
-                              standardize);
+                              standardize,
+                              sample_weight);
       losses.push_back(loss);
     }
 
