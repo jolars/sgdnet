@@ -252,7 +252,7 @@ sgdnet.default <- function(x,
     nlambda <- length(lambda)
 
   # disable non-convex penalty
-  if (missing(penalty))
+  if (penalty == "")
     non_convexity = 1.0
 
   if (nlambda == 0)

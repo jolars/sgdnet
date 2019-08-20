@@ -8,9 +8,10 @@
 sgdnet(x, ...)
 
 \method{sgdnet}{default}(x, y, family = c("gaussian", "binomial",
-  "multinomial", "mgaussian"), alpha = 1, non_convexity = 1,
-  nlambda = 100, lambda.min.ratio = if (NROW(x) < NCOL(x)) 0.01 else
-  1e-04, lambda = NULL, penalty = c("", "MCP", "SCAD"), maxit = 1000,
+  "multinomial", "mgaussian"), alpha = 1,
+  non_convexity = switch(penalty, MCP = 3, SCAD = 3.7), nlambda = 100,
+  lambda.min.ratio = if (NROW(x) < NCOL(x)) 0.01 else 1e-04,
+  lambda = NULL, penalty = c("", "MCP", "SCAD"), maxit = 1000,
   standardize = TRUE, intercept = TRUE, thresh = 0.001,
   standardize.response = FALSE, ...)
 }
