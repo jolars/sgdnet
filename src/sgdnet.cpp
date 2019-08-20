@@ -138,6 +138,7 @@ SetupSgdnet(T                 x,
   const bool     debug            = Rcpp::as<bool>(control["debug"]);
   const bool     cyclic           = Rcpp::as<bool>(control["cyclic"]);
   const unsigned B                = Rcpp::as<unsigned>(control["batch_size"]);
+  const vector<double> sample_weight = Rcpp::as<vector<double>>(control["sample_weight"]);
 
   auto n_samples  = x.rows();
   auto n_features = x.cols();
@@ -153,7 +154,7 @@ SetupSgdnet(T                 x,
                                              : Eigen::ArrayXd::Zero(n_features);
 
   // Store null deviance here before processing response
-  double null_deviance = family.NullDeviance(y.transpose(), fit_intercept);
+  double null_deviance = family.NullDeviance(y.transpose(), fit_intercept, sample_weight);
 
   Eigen::ArrayXd y_center = Eigen::ArrayXd::Zero(n_classes);
   Eigen::ArrayXd y_scale  = Eigen::ArrayXd::Ones(n_classes);
@@ -210,7 +211,7 @@ SetupSgdnet(T                 x,
 
   // Null deviance on scaled y for computing deviance ratio
   family.FitNullModel(y, fit_intercept, intercept);
-  double null_deviance_scaled = family.NullDeviance(y, fit_intercept);
+  double null_deviance_scaled = family.NullDeviance(y, fit_intercept, sample_weight);
 
   vector<double> deviance_ratio;
   deviance_ratio.reserve(n_lambda);
@@ -222,6 +223,7 @@ SetupSgdnet(T                 x,
     RunSaga(control,
             x,
             x_center_scaled,
+            sample_weight,
             y,
             intercept,
             fit_intercept,
@@ -257,7 +259,8 @@ SetupSgdnet(T                 x,
                                n_classes,
                                family,
                                is_sparse,
-                               standardize);
+                               standardize,
+                               sample_weight);
 
     deviance_ratio.emplace_back(1.0 - deviance/null_deviance_scaled);
 
