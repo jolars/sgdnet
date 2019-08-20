@@ -179,6 +179,29 @@ score.sgdnet_mgaussian <- function(fit,
 
 #' @rdname score
 #' @export
+score.sgdnet_poisson <- function(fit,
+                                 x,
+                                 y,
+                                 type.measure = c("deviance", "mse", "mae"),
+                                 s = fit$lambda,
+                                 ...) {
+  type.measure <- match.arg(type.measure)
+  y <- as.vector(y)
+
+  y_hat <- stats::predict(fit, x, s = s)
+
+  devhat <- y * y_hat - exp(y_hat)
+  devy <- y * log(y) - y
+  devy[y == 0] = 0
+
+  switch(type.measure,
+         deviance = colMeans(2*(devy - devhat)),
+         mse = colMeans((exp(y_hat) - y)^2),
+         mae = colMeans(abs(exp(y_hat) - y)))
+}
+
+#' @rdname score
+#' @export
 score.cv_sgdnet <- function(fit,
                             x,
                             y,

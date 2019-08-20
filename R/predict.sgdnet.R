@@ -565,6 +565,23 @@ predict.sgdnet_mgaussian <- function(object,
   predict.sgdnet_multinomial(object, newx, s, type, exact, newoffset, ...)
 }
 
+#' @inherit predict.sgdnet
+#' @export
+#' @rdname predict.sgdnet
+predict.sgdnet_poisson <- function(object,
+                                   newx = NULL,
+                                   s = NULL,
+                                   type = c("link",
+                                            "response",
+                                            "coefficients",
+                                            "nonzero"),
+                                   exact = FALSE,
+                                   newoffset = NULL,
+                                   ...) {
+  type <- match.arg(type)
+  NextMethod("predict", type = type)
+}
+
 #' Extract Model Coefficients for sgdnet Model
 #'
 #' This is simply a wrapper for [predict.sgdnet()] with `type = "coefficients"`.

@@ -6,6 +6,7 @@
 \alias{score.sgdnet_binomial}
 \alias{score.sgdnet_multinomial}
 \alias{score.sgdnet_mgaussian}
+\alias{score.sgdnet_poisson}
 \alias{score.cv_sgdnet}
 \title{Score the Performance of a Model fit with \code{\link[=sgdnet]{sgdnet()}}}
 \usage{
@@ -22,6 +23,9 @@ score(fit, ...)
   ...)
 
 \method{score}{sgdnet_mgaussian}(fit, x, y, type.measure = c("deviance",
+  "mse", "mae"), s = fit$lambda, ...)
+
+\method{score}{sgdnet_poisson}(fit, x, y, type.measure = c("deviance",
   "mse", "mae"), s = fit$lambda, ...)
 
 \method{score}{cv_sgdnet}(fit, x, y, type.measure, s = c("lambda_1se",

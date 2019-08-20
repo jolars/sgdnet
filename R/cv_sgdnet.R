@@ -55,7 +55,8 @@
 #'   `gaussian`    \tab x (`mse`)  \tab  x    \tab x     \tab         \tab      \cr
 #'   `binomial`    \tab x          \tab  x    \tab x     \tab x       \tab x    \cr
 #'   `multinomial` \tab x          \tab  x    \tab x     \tab x       \tab      \cr
-#'   `mgaussian`   \tab x (`mse`)  \tab  x    \tab x     \tab         \tab
+#'   `mgaussian`   \tab x (`mse`)  \tab  x    \tab x     \tab         \tab      \cr
+#'   `poisson`     \tab x          \tab  x    \tab x     \tab         \tab
 #' }
 #'
 #' @inheritParams sgdnet
@@ -234,6 +235,8 @@ cv_sgdnet <- function(x,
         "Binomial Deviance"
       else if (inherits(fit, "sgdnet_multinomial"))
         "Multnomial Deviance"
+      else if (inherits(fit, "sgdnet_poisson"))
+        "Poisson Deviance"
     },
     mse = "Mean-Squared Error",
     mae = "Mean Absolute Error",
