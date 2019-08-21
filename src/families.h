@@ -38,10 +38,11 @@ public:
        const unsigned         i) const noexcept;
 
   void
-  Gradient(const Eigen::ArrayXXd&  linear_predictor,
-           const Eigen::MatrixXd&  y, // samples in columns
-           Eigen::ArrayXi&         ind,
-           Eigen::ArrayXXd&        gradient) const noexcept;
+  Gradient(const Eigen::ArrayXXd&     linear_predictor,
+           const Eigen::MatrixXd&     y, // samples in columns
+           Eigen::ArrayXi&            ind,
+           const std::vector<double>& sample_weight,
+           Eigen::ArrayXXd&           gradient) const noexcept;
 
   double
   NullDeviance(const Eigen::MatrixXd&     y, // samples in rows
@@ -88,13 +89,14 @@ public:
   }
 
   void
-  Gradient(const Eigen::ArrayXXd&  linear_predictor,
-           const Eigen::MatrixXd&  y,
-           Eigen::ArrayXi&         ind,
-           Eigen::ArrayXXd&        gradient) const noexcept
+  Gradient(const Eigen::ArrayXXd&     linear_predictor,
+           const Eigen::MatrixXd&     y,
+           Eigen::ArrayXi&            ind,
+           const std::vector<double>& sample_weight,
+           Eigen::ArrayXXd&           gradient) const noexcept
   {
     for (int i = 0; i < ind.rows(); ++i) {
-      gradient.col(i) = linear_predictor(i) - y(ind(i));
+      gradient.col(i) = (linear_predictor(i) - y(ind(i)))*sample_weight[ind(i)];
     }
   }
 
@@ -163,13 +165,14 @@ public:
   }
 
   void
-  Gradient(const Eigen::ArrayXXd&  linear_predictor,
-           const Eigen::MatrixXd&  y,
-           Eigen::ArrayXi&         ind,
-           Eigen::ArrayXXd&        gradient) const noexcept
+  Gradient(const Eigen::ArrayXXd&     linear_predictor,
+           const Eigen::MatrixXd&     y,
+           Eigen::ArrayXi&            ind,
+           const std::vector<double>& sample_weight,
+           Eigen::ArrayXXd&           gradient) const noexcept
   {
     for (int i = 0; i < ind.rows(); ++i) {
-      gradient.col(i) = 1.0 - y(ind(i)) - 1.0/(1.0 + std::exp(linear_predictor(i)));
+      gradient.col(i) = (1.0 - y(ind(i)) - 1.0/(1.0 + std::exp(linear_predictor(i))))*sample_weight[ind(i)];
     }
   }
 
@@ -249,10 +252,11 @@ public:
   }
 
   void
-  Gradient(const Eigen::ArrayXXd&  linear_predictor,
-           const Eigen::MatrixXd&  y,
-           Eigen::ArrayXi&         ind,
-           Eigen::ArrayXXd&        gradient) const noexcept
+  Gradient(const Eigen::ArrayXXd&     linear_predictor,
+           const Eigen::MatrixXd&     y,
+           Eigen::ArrayXi&            ind,
+           const std::vector<double>& sample_weight,
+           Eigen::ArrayXXd&           gradient) const noexcept
   {
     unsigned p = linear_predictor.rows();
     Eigen::ArrayXd linear_predictor_col = Eigen::ArrayXd::Zero(p);
@@ -268,6 +272,7 @@ public:
         if (j == c)
           gradient(j, i) -= 1.0;
       }
+      gradient.col(i) *= sample_weight[ind(i)];
     }
   }
 
@@ -369,13 +374,14 @@ public:
   }
 
   void
-  Gradient(const Eigen::ArrayXXd&  linear_predictor,
-           const Eigen::MatrixXd&  y,
-           Eigen::ArrayXi&         ind,
-           Eigen::ArrayXXd&        gradient) const noexcept
+  Gradient(const Eigen::ArrayXXd&     linear_predictor,
+           const Eigen::MatrixXd&     y,
+           Eigen::ArrayXi&            ind,
+           const std::vector<double>& sample_weight,
+           Eigen::ArrayXXd&           gradient) const noexcept
   {
     for (unsigned i = 0; i < ind.rows(); ++i) {
-      gradient.col(i) = linear_predictor.col(i) - y.col(ind(i)).array();
+      gradient.col(i) = (linear_predictor.col(i) - y.col(ind(i)).array())*sample_weight[ind(i)];
     }
   }
 

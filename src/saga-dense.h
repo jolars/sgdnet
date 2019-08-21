@@ -178,9 +178,7 @@ Saga(Penalty&                   penalty,
 
       linear_predictor = ((w.matrix() * subx).array()*wscale).colwise() + intercept;
 
-      family.Gradient(linear_predictor, y, s_ind, g);
-
-      SampleWeight(g, s_ind, sample_weight);
+      family.Gradient(linear_predictor, y, s_ind, sample_weight, g);
 
       g_change = g - SelectArray(g_memory, s_ind);
       SetCol(g_memory, g, s_ind);

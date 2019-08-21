@@ -547,20 +547,5 @@ WeightStep(Eigen::ArrayXXd& g_change,
   return step;
 }
 
-//' Add observation weights to gradient
-//'
-//' @param g gradient of selected samples to be weighted
-//' @param ind index array of selected columns
-//' @param sample_weight observation weights
-void
-SampleWeight(Eigen::ArrayXXd&           g,
-             Eigen::ArrayXi&            ind,
-             const std::vector<double>& sample_weight)
-{
-  for (unsigned i = 0; i < ind.rows(); ++i) {
-    g.col(i) *= sample_weight[ind(i)];
-  }
-}
-
 #endif // SGDNET_UTILS_
 
