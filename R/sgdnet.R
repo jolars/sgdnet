@@ -176,6 +176,7 @@
 #'
 #' # Multivariate gaussian regression
 #' mgaussian_fit <- sgdnet(student$x, student$y, family = "mgaussian")
+#'
 sgdnet <- function(x, ...) UseMethod("sgdnet")
 
 #' @export
@@ -344,7 +345,7 @@ sgdnet.default <- function(x,
       n_classes <- 1L
 
       if (length(unique(y)) == 1)
-        stop("only one class in response.")
+        stop("response is constant.")
 
       if (any(y != abs(y)))
         stop("response for poisson regression must not be negative")

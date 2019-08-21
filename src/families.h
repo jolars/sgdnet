@@ -488,8 +488,9 @@ public:
       auto y_bar = Mean(y);
       auto y_std = StandardDeviation(y, y_bar);
 
-      for (decltype(n) i = 0; i < n; ++i)
+      for (decltype(n) i = 0; i < n; ++i) {
         y_map(i) = (y(i) - y_bar(0))/y_std(0);
+      }
 
       return y_std(0)*(x.transpose() * y_map).cwiseAbs().maxCoeff()/n;
     }
