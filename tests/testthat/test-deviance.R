@@ -51,8 +51,28 @@ test_that("we receive the correct deviance from deviance.sgdnet()", {
     2*loss
   }
 
+  poisson_nulldev <- function(y, intercept = FALSE) {
+    no <- length(y)
+
+    if (intercept) {
+      pred <- log(mean(y))
+    } else {
+      pred <- 0;
+    }
+
+    loss <- 0
+    for (i in seq_len(no)) {
+      if (y[i] != 0) {
+        loss <- loss + y[i]*log(y[i]) - y[i]
+      }
+      loss <- loss - (y[i]*pred - exp(pred))
+    }
+
+    2*loss
+  }
+
   grid <- expand.grid(
-    family = c("gaussian", "binomial", "multinomial", "mgaussian"),
+    family = c("gaussian", "binomial", "multinomial", "mgaussian", "poisson"),
     intercept = c(TRUE, FALSE),
     alpha = c(0, 0.5, 1),
     standardize = c(TRUE, FALSE),
@@ -74,7 +94,8 @@ test_that("we receive the correct deviance from deviance.sgdnet()", {
                 gaussian = rnorm(n, 10, 2),
                 binomial = rbinom(n, 1, 0.8),
                 multinomial = rbinom(n, 2, 0.5),
-                mgaussian = cbind(rnorm(n, 100), rnorm(n)))
+                mgaussian = cbind(rnorm(n, 100), rnorm(n)),
+                poisson = rpois(n, 2))
     pars$y <- y
     intercept <- pars$intercept
 
@@ -84,7 +105,8 @@ test_that("we receive the correct deviance from deviance.sgdnet()", {
       gaussian = sum((y - mean(y))^2),
       binomial = binomial_nulldev(y, intercept = intercept),
       multinomial = multinomial_nulldev(y, intercept = intercept),
-      mgaussian = sum((t(y) - colMeans(y))^2)
+      mgaussian = sum((t(y) - colMeans(y))^2),
+      poisson = poisson_nulldev(y, intercept = intercept)
     )
 
     sfit <- do.call(sgdnet, pars)

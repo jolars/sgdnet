@@ -8,7 +8,8 @@ random_data <- function(n = 100,
                         family = c("gaussian",
                                    "binomial",
                                    "multinomial",
-                                   "mgaussian"),
+                                   "mgaussian",
+                                   "poisson"),
                         intercept = TRUE,
                         density = 0.5) {
   family <- match.arg(family)
@@ -45,6 +46,10 @@ random_data <- function(n = 100,
     },
     mgaussian = {
       y <- matrix(rnorm(n*k, z, 0.01), n, k)
+    },
+    poisson = {
+      mu <- exp(z)
+      y <- rpois(n, mu)
     }
   )
 
@@ -101,7 +106,7 @@ compare_predictions <- function(f1,
 
 # Store the current families
 families <- function() {
-  c("gaussian", "binomial", "multinomial", "mgaussian")
+  c("gaussian", "binomial", "multinomial", "mgaussian", "poisson")
 }
 
 # Capture plots without plotting

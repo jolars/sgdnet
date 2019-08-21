@@ -36,7 +36,7 @@ test_that("predictions run smoothly for a range of combinations and options", {
   x <- matrix(rnorm(n*p), n, p)
 
   grid <- expand.grid(
-    family = c("gaussian", "binomial", "multinomial", "mgaussian"),
+    family = c("gaussian", "binomial", "multinomial", "mgaussian", "poisson"),
     exact = c(TRUE, FALSE),
     s = c(0, 1/n),
     type = c("link", "response", "coefficients", "nonzero", "class"),
@@ -56,7 +56,8 @@ test_that("predictions run smoothly for a range of combinations and options", {
                 gaussian = rnorm(n, 10, 2),
                 binomial = rbinom(n, 1, 0.8),
                 multinomial = rbinom(n, 3, 0.5),
-                mgaussian = cbind(rnorm(n, -10), rnorm(n, 10)))
+                mgaussian = cbind(rnorm(n, -10), rnorm(n, 10)),
+                poisson = rpois(n, 2))
 
     fit <- sgdnet(x, y, family = family, maxit = 10, thresh = 1e-1)
 
