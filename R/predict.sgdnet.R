@@ -579,7 +579,10 @@ predict.sgdnet_poisson <- function(object,
                                    newoffset = NULL,
                                    ...) {
   type <- match.arg(type)
-  NextMethod("predict", type = type)
+  fit <- NextMethod("predict", type = type)
+  switch(type,
+         response = exp(fit),
+         fit)
 }
 
 #' Extract Model Coefficients for sgdnet Model

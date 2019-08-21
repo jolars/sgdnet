@@ -454,8 +454,10 @@ public:
 
     double loss = 0.0;
     for (unsigned i = 0; i < y.cols(); ++i){
-      if (y(i) != 0)
-        loss +=  y(i)*std::log(y(i)) - y(i)*linear_predictor(0);
+      if (y(i) != 0) {
+        loss +=  y(i)*std::log(y(i)) - y(i);
+      }
+      loss -= y(i)*linear_predictor(0) - std::exp(linear_predictor(0));
     }
     return 2.0 * loss;
   }
