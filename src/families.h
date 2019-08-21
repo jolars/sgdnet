@@ -38,21 +38,22 @@ public:
        const unsigned         i) const noexcept;
 
   void
-  Gradient(const Eigen::ArrayXXd&     linear_predictor,
-           const Eigen::MatrixXd&     y, // samples in columns
-           Eigen::ArrayXi&            ind,
-           const std::vector<double>& sample_weight,
-           Eigen::ArrayXXd&           gradient) const noexcept;
+  Gradient(const Eigen::ArrayXXd& linear_predictor,
+           const Eigen::MatrixXd& y, // samples in columns
+           Eigen::ArrayXi&        ind,
+           const Eigen::VectorXd& weight,
+           Eigen::ArrayXXd&       gradient) const noexcept;
 
   double
-  NullDeviance(const Eigen::MatrixXd&     y, // samples in rows
-               const bool                 fit_intercept,
-               const std::vector<double>& sample_weight) const noexcept;
+  NullDeviance(const Eigen::MatrixXd& y, // samples in rows
+               const bool             fit_intercept,
+               const Eigen::VectorXd& weight) const noexcept;
 
   void
   FitNullModel(const Eigen::MatrixXd& y, // samples in rows
                const bool             fit_intercept,
-               Eigen::ArrayXd&        intercept) const noexcept;
+               Eigen::ArrayXd&        intercept,
+               const Eigen::VectorXd& weight) const noexcept;
 
   template <typename T>
   double
@@ -89,28 +90,28 @@ public:
   }
 
   void
-  Gradient(const Eigen::ArrayXXd&     linear_predictor,
-           const Eigen::MatrixXd&     y,
-           Eigen::ArrayXi&            ind,
-           const std::vector<double>& sample_weight,
-           Eigen::ArrayXXd&           gradient) const noexcept
+  Gradient(const Eigen::ArrayXXd& linear_predictor,
+           const Eigen::MatrixXd& y,
+           Eigen::ArrayXi&        ind,
+           const Eigen::VectorXd& weight,
+           Eigen::ArrayXXd&       gradient) const noexcept
   {
     for (int i = 0; i < ind.rows(); ++i) {
-      gradient.col(i) = (linear_predictor(i) - y(ind(i)))*sample_weight[ind(i)];
+      gradient.col(i) = (linear_predictor(i) - y(ind(i)))*weight[ind(i)];
     }
   }
 
   double
-  NullDeviance(const Eigen::MatrixXd&     y,
-               const bool                 fit_intercept,
-               const std::vector<double>& sample_weight) const noexcept
+  NullDeviance(const Eigen::MatrixXd& y,
+               const bool             fit_intercept,
+               const Eigen::VectorXd& weight) const noexcept
   {
-    Eigen::ArrayXd linear_predictor = Mean(y.transpose());
+    Eigen::ArrayXd linear_predictor = Mean((y.array().rowwise() * weight.transpose().array()).transpose());
 
     double loss = 0.0;
     auto n = y.cols();
     for (decltype(n) i = 0; i < n; ++i)
-      loss += sample_weight[i] * Loss(linear_predictor, y, i);
+      loss += weight[i] * Loss(linear_predictor, y, i);
 
     return 2.0 * loss;
   }
@@ -118,8 +119,9 @@ public:
   void
   FitNullModel(const Eigen::MatrixXd& y,
                const bool             fit_intercept,
-               Eigen::ArrayXd&        intercept) {
-    intercept = Mean(y.transpose());
+               Eigen::ArrayXd&        intercept,
+               const Eigen::VectorXd& weight) {
+    intercept = Mean((y.array().rowwise() * weight.transpose().array()).transpose());
   }
 
   template <typename T>
@@ -165,26 +167,26 @@ public:
   }
 
   void
-  Gradient(const Eigen::ArrayXXd&     linear_predictor,
-           const Eigen::MatrixXd&     y,
-           Eigen::ArrayXi&            ind,
-           const std::vector<double>& sample_weight,
-           Eigen::ArrayXXd&           gradient) const noexcept
+  Gradient(const Eigen::ArrayXXd& linear_predictor,
+           const Eigen::MatrixXd& y,
+           Eigen::ArrayXi&        ind,
+           const Eigen::VectorXd& weight,
+           Eigen::ArrayXXd&       gradient) const noexcept
   {
     for (int i = 0; i < ind.rows(); ++i) {
-      gradient.col(i) = (1.0 - y(ind(i)) - 1.0/(1.0 + std::exp(linear_predictor(i))))*sample_weight[ind(i)];
+      gradient.col(i) = (1.0 - y(ind(i)) - 1.0/(1.0 + std::exp(linear_predictor(i))))*weight[ind(i)];
     }
   }
 
   double
-  NullDeviance(const Eigen::MatrixXd&     y,
-               const bool                 fit_intercept,
-               const std::vector<double>& sample_weight) const noexcept
+  NullDeviance(const Eigen::MatrixXd& y,
+               const bool             fit_intercept,
+               const Eigen::VectorXd& weight) const noexcept
   {
     Eigen::ArrayXd linear_predictor(1);
 
     if (fit_intercept) {
-      auto y_bar = Mean(y.transpose());
+      auto y_bar = Mean((y.array().rowwise() * weight.transpose().array()).transpose());
       linear_predictor(0) = Link(y_bar(0));
     } else {
       linear_predictor(0) = 0.0;
@@ -192,7 +194,7 @@ public:
 
     double loss = 0.0;
     for (unsigned i = 0; i < y.cols(); ++i)
-      loss += sample_weight[i] * Loss(linear_predictor, y, i);
+      loss += weight[i] * Loss(linear_predictor, y, i);
 
     return 2.0 * loss;
   }
@@ -200,10 +202,11 @@ public:
   void
   FitNullModel(const Eigen::MatrixXd& y,
                const bool             fit_intercept,
-               Eigen::ArrayXd&        intercept) {
+               Eigen::ArrayXd&        intercept,
+               const Eigen::VectorXd& weight) {
 
     if (fit_intercept) {
-      auto y_bar = Mean(y.transpose());
+      auto y_bar = Mean((y.array().rowwise() * weight.transpose().array()).transpose());
       intercept(0) = Link(y_bar(0));
     } else {
       intercept(0) = 0.0;
@@ -252,11 +255,11 @@ public:
   }
 
   void
-  Gradient(const Eigen::ArrayXXd&     linear_predictor,
-           const Eigen::MatrixXd&     y,
-           Eigen::ArrayXi&            ind,
-           const std::vector<double>& sample_weight,
-           Eigen::ArrayXXd&           gradient) const noexcept
+  Gradient(const Eigen::ArrayXXd& linear_predictor,
+           const Eigen::MatrixXd& y,
+           Eigen::ArrayXi&        ind,
+           const Eigen::VectorXd& weight,
+           Eigen::ArrayXXd&       gradient) const noexcept
   {
     unsigned p = linear_predictor.rows();
     Eigen::ArrayXd linear_predictor_col = Eigen::ArrayXd::Zero(p);
@@ -272,14 +275,14 @@ public:
         if (j == c)
           gradient(j, i) -= 1.0;
       }
-      gradient.col(i) *= sample_weight[ind(i)];
+      gradient.col(i) *= weight[ind(i)];
     }
   }
 
   double
-  NullDeviance(const Eigen::MatrixXd&     y,
-               const bool                 fit_intercept,
-               const std::vector<double>& sample_weight) const noexcept
+  NullDeviance(const Eigen::MatrixXd& y,
+               const bool             fit_intercept,
+               const Eigen::VectorXd& weight) const noexcept
   {
     Eigen::ArrayXd linear_predictor(n_classes);
 
@@ -296,7 +299,7 @@ public:
     auto loss = 0.0;
     for (decltype(y.cols()) i = 0; i < y.cols(); ++i) {
       auto c = static_cast<unsigned>(y(i) + 0.5);
-      loss += sample_weight[i] * (lse - linear_predictor[c]);
+      loss += weight[i] * (lse - linear_predictor[c]);
     }
 
     return 2.0 * loss;
@@ -305,7 +308,8 @@ public:
   void
   FitNullModel(const Eigen::MatrixXd& y,
                const bool             fit_intercept,
-               Eigen::ArrayXd&        intercept) {
+               Eigen::ArrayXd&        intercept,
+               const Eigen::VectorXd& weight) {
 
     if (fit_intercept)
       intercept = Proportions(y, n_classes);
@@ -374,27 +378,27 @@ public:
   }
 
   void
-  Gradient(const Eigen::ArrayXXd&     linear_predictor,
-           const Eigen::MatrixXd&     y,
-           Eigen::ArrayXi&            ind,
-           const std::vector<double>& sample_weight,
-           Eigen::ArrayXXd&           gradient) const noexcept
+  Gradient(const Eigen::ArrayXXd& linear_predictor,
+           const Eigen::MatrixXd& y,
+           Eigen::ArrayXi&        ind,
+           const Eigen::VectorXd& weight,
+           Eigen::ArrayXXd&       gradient) const noexcept
   {
     for (unsigned i = 0; i < ind.rows(); ++i) {
-      gradient.col(i) = (linear_predictor.col(i) - y.col(ind(i)).array())*sample_weight[ind(i)];
+      gradient.col(i) = (linear_predictor.col(i) - y.col(ind(i)).array())*weight[ind(i)];
     }
   }
 
   double
-  NullDeviance(const Eigen::MatrixXd&     y,
-               const bool                 fit_intercept,
-               const std::vector<double>& sample_weight) const noexcept
+  NullDeviance(const Eigen::MatrixXd& y,
+               const bool             fit_intercept,
+               const Eigen::VectorXd& weight) const noexcept
   {
-    auto linear_predictor = Mean(y.transpose());
+    auto linear_predictor = Mean((y.array().rowwise() * weight.transpose().array()).transpose());
 
     double loss = 0.0;
     for (decltype(y.cols()) i = 0; i < y.cols(); ++i)
-      loss += sample_weight[i] * Loss(linear_predictor, y, i);
+      loss += weight[i] * Loss(linear_predictor, y, i);
 
     return 2.0 * loss;
   }
@@ -402,8 +406,9 @@ public:
   void
   FitNullModel(const Eigen::MatrixXd& y,
                const bool             fit_intercept,
-               Eigen::ArrayXd&        intercept) {
-    intercept = Mean(y.transpose());
+               Eigen::ArrayXd&        intercept,
+               const Eigen::VectorXd& weight) {
+    intercept = Mean((y.array().rowwise() * weight.transpose().array()).transpose());
   }
 
   template <typename T>

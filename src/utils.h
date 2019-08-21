@@ -192,27 +192,27 @@ RegularizationPath(std::vector<double>&   lambda,
 //' @param n_samples number of samples
 //' @param n_features number of features
 //' @param n_classes number of pseudo-classes
-//' @param sample_weight observation weights
+//' @param weight observation weights
 //'
 //' @return The loss of the current epoch is appended to `losses`.
 //'
 //' @noRd
 template <typename T, typename Family>
 double
-EpochLoss(const T&                   x,
-          const Eigen::ArrayXd&      x_center_scaled,
-          const Eigen::MatrixXd&     y,
-          const Eigen::ArrayXXd&     w,
-          const Eigen::ArrayXd&      intercept,
-          const Family&              family,
-          const double               alpha,
-          const double               beta,
-          const unsigned             n_samples,
-          const unsigned             n_features,
-          const unsigned             n_classes,
-          const bool                 is_sparse,
-          const bool                 standardize,
-          const std::vector<double>& sample_weight)
+EpochLoss(const T&               x,
+          const Eigen::ArrayXd&  x_center_scaled,
+          const Eigen::MatrixXd& y,
+          const Eigen::ArrayXXd& w,
+          const Eigen::ArrayXd&  intercept,
+          const Family&          family,
+          const double           alpha,
+          const double           beta,
+          const unsigned         n_samples,
+          const unsigned         n_features,
+          const unsigned         n_classes,
+          const bool             is_sparse,
+          const bool             standardize,
+          const Eigen::VectorXd& weight)
 {
   Eigen::ArrayXd linear_predictor(n_classes);
 
@@ -222,7 +222,7 @@ EpochLoss(const T&                   x,
     linear_predictor = (w.matrix() * x.col(s_ind)).array() + intercept;
     if (standardize && is_sparse)
       linear_predictor -= (w.matrix() * x_center_scaled.matrix()).array();
-    loss += sample_weight[s_ind] * family.Loss(linear_predictor, y, s_ind)/n_samples;
+    loss += weight[s_ind] * family.Loss(linear_predictor, y, s_ind)/n_samples;
   }
 
   return loss;
@@ -301,23 +301,23 @@ AdaptiveTranspose(Eigen::MatrixXd& x)
 //' @param n_feature the number of features
 //' @param n_classes the number of classes
 //' @param family a pointer to the family object
-//' @param sample_weight observation weights
+//' @param weight observation weights
 //'
 //' @return Returns the deviance.
 template <typename T, typename Family>
 double
-Deviance(const T&                   x,
-         const Eigen::ArrayXd&      x_center_scaled,
-         const Eigen::MatrixXd&     y,
-         const Eigen::ArrayXXd&     w,
-         const Eigen::ArrayXd&      intercept,
-         const unsigned             n_samples,
-         const unsigned             n_features,
-         const unsigned             n_classes,
-         const Family&              family,
-         const bool                 is_sparse,
-         const bool                 standardize,
-         const std::vector<double>& sample_weight)
+Deviance(const T&               x,
+         const Eigen::ArrayXd&  x_center_scaled,
+         const Eigen::MatrixXd& y,
+         const Eigen::ArrayXXd& w,
+         const Eigen::ArrayXd&  intercept,
+         const unsigned         n_samples,
+         const unsigned         n_features,
+         const unsigned         n_classes,
+         const Family&          family,
+         const bool             is_sparse,
+         const bool             standardize,
+         const Eigen::VectorXd& weight)
 {
   double loss = 0.0;
   Eigen::ArrayXd linear_predictor(n_classes);
@@ -326,7 +326,7 @@ Deviance(const T&                   x,
     linear_predictor = (w.matrix() * x.col(s_ind)).array() + intercept;
     if (standardize && is_sparse)
       linear_predictor -= (w.matrix() * x_center_scaled.matrix()).array();
-    loss += sample_weight[s_ind] * family.Loss(linear_predictor, y, s_ind);
+    loss += weight[s_ind] * family.Loss(linear_predictor, y, s_ind);
   }
 
   return 2.0 * loss;
