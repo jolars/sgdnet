@@ -185,14 +185,15 @@ template <typename T>
 inline
 Eigen::ArrayXd
 Proportions(const T&       y,
-            const unsigned n_classes)
+            const unsigned n_classes,
+            const Eigen::VectorXd& weight)
 {
   Eigen::ArrayXd proportions = Eigen::ArrayXd::Zero(n_classes);
   auto n = y.cols();
 
   for (decltype(n) i = 0; i < n; ++i) {
     auto c = static_cast<decltype(n)>(y(i) + 0.5);
-    proportions(c) += 1.0/n;
+    proportions(c) += weight[i]*1.0/n;
   }
 
   return proportions;

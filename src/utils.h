@@ -60,7 +60,8 @@ StepSize(const double               max_squared_sum,
 double
 ColNormsMax(const Eigen::SparseMatrix<double>& x,
             const Eigen::ArrayXd&              x_center_scaled,
-            const bool                         standardize)
+            const bool                         standardize,
+            const Eigen::VectorXd&             weight)
 {
   auto m = x.cols();
 
@@ -70,6 +71,7 @@ ColNormsMax(const Eigen::SparseMatrix<double>& x,
       standardize ? (x.col(j) - x_center_scaled.matrix()).squaredNorm()
                   : x.col(j).squaredNorm();
 
+    norm *= weight[j];
     norm_max = std::max(norm_max, norm);
   }
 
@@ -79,9 +81,11 @@ ColNormsMax(const Eigen::SparseMatrix<double>& x,
 double
 ColNormsMax(const Eigen::MatrixXd& x,
             const Eigen::ArrayXd&  x_center_scaled,
-            const bool             standardize) {
+            const bool             standardize,
+            const Eigen::VectorXd& weight) {
   // dense features are already scaled and centered (if required)
-  return x.colwise().squaredNorm().maxCoeff();
+  Eigen::MatrixXd x_weight = x.array().rowwise() * weight.transpose().array();
+  return x_weight.colwise().squaredNorm().maxCoeff();
 }
 
 //' Preprocess data
@@ -152,11 +156,12 @@ RegularizationPath(std::vector<double>&   lambda,
                    const Eigen::ArrayXd&  y_scale,
                    std::vector<double>&   alpha,
                    std::vector<double>&   beta,
-                   const Family&          family)
+                   const Family&          family,
+                   const Eigen::VectorXd& weight)
 {
   if (lambda.empty()) {
     double lambda_max =
-      family.LambdaMax(x, y, y_scale)/std::max(elasticnet_mix, 0.001);
+      family.LambdaMax(x, y, y_scale, weight)/std::max(elasticnet_mix, 0.001);
 
     if (lambda_max != 0.0)
       lambda = LogSpace(lambda_max, lambda_max*lambda_min_ratio, n_lambda);

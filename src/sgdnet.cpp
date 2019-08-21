@@ -174,13 +174,14 @@ SetupSgdnet(T                 x,
                      y_scale,
                      alpha,
                      beta,
-                     family);
+                     family,
+                     weight);
 
   // Transpose for more efficient access of samples
   AdaptiveTranspose(x);
   AdaptiveTranspose(y);
 
-  auto step_size = StepSize(ColNormsMax(x, x_center_scaled, standardize),
+  auto step_size = StepSize(ColNormsMax(x, x_center_scaled, standardize, weight),
                             alpha,
                             fit_intercept,
                             family.L_scaling,

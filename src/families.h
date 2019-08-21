@@ -59,7 +59,8 @@ public:
   double
   LambdaMax(const T&               x, // samples in rows
             const Eigen::MatrixXd& y,
-            const Eigen::ArrayXd&  y_scale) const noexcept;
+            const Eigen::ArrayXd&  y_scale,
+            const Eigen::VectorXd& weight) const noexcept;
 
   double L_scaling;
 };
@@ -128,9 +129,11 @@ public:
   double
   LambdaMax(const T&               x,
             const Eigen::MatrixXd& y,
-            const Eigen::ArrayXd&  y_scale) const noexcept
+            const Eigen::ArrayXd&  y_scale,
+            const Eigen::VectorXd& weight) const noexcept
   {
-    return y_scale(0)*(x.transpose() * y).cwiseAbs().maxCoeff()/x.rows();
+    Eigen::MatrixXd y_weight = y.array().colwise() * weight.array();
+    return y_scale(0)*(x.transpose() * y_weight).cwiseAbs().maxCoeff()/x.rows();
   }
 };
 
@@ -217,7 +220,8 @@ public:
   double
   LambdaMax(const T&               x,
             const Eigen::MatrixXd& y,
-            const Eigen::ArrayXd&  y_scale) const noexcept
+            const Eigen::ArrayXd&  y_scale,
+            const Eigen::VectorXd& weight) const noexcept
   {
     auto n = y.rows();
 
@@ -227,7 +231,7 @@ public:
     auto y_std = StandardDeviation(y, y_bar);
 
     for (decltype(n) i = 0; i < n; ++i)
-      y_map(i) = (y(i) - y_bar(0))/y_std(0);
+      y_map(i) = weight[i]*(y(i) - y_bar(0))/y_std(0);
 
     return y_std(0)*(x.transpose() * y_map).cwiseAbs().maxCoeff()/n;
   }
@@ -287,7 +291,7 @@ public:
     Eigen::ArrayXd linear_predictor(n_classes);
 
     if (fit_intercept)
-      linear_predictor = Proportions(y, n_classes);
+      linear_predictor = Proportions(y, n_classes, weight);
     else
       linear_predictor.setConstant(1.0/n_classes);
 
@@ -312,7 +316,7 @@ public:
                const Eigen::VectorXd& weight) {
 
     if (fit_intercept)
-      intercept = Proportions(y, n_classes);
+      intercept = Proportions(y, n_classes, weight);
     else
       intercept = 1.0/n_classes;
 
@@ -323,7 +327,8 @@ public:
   double
   LambdaMax(const T&               x,
             const Eigen::MatrixXd& y,
-            const Eigen::ArrayXd&  y_scale) const noexcept
+            const Eigen::ArrayXd&  y_scale,
+            const Eigen::VectorXd& weight) const noexcept
   {
     auto n = y.rows();
 
@@ -341,7 +346,7 @@ public:
     Eigen::ArrayXXd inner_products = x.transpose() * y_map;
 
     for (decltype(inner_products.cols()) k = 0; k < inner_products.cols(); ++k)
-      inner_products.col(k) *= y_std(k);
+      inner_products.col(k) *= y_std(k)*weight[k];
 
     return inner_products.abs().maxCoeff()/n;
   }
@@ -415,7 +420,8 @@ public:
   double
   LambdaMax(const T&               x,
             const Eigen::MatrixXd& y,
-            const Eigen::ArrayXd&  y_scale) const noexcept
+            const Eigen::ArrayXd&  y_scale,
+            const Eigen::VectorXd& weight) const noexcept
   {
     Eigen::MatrixXd y_map(y);
 
@@ -427,7 +433,7 @@ public:
     Eigen::ArrayXXd inner_products = x.transpose() * y_map;
 
     for (decltype(inner_products.cols()) k = 0; k < inner_products.cols(); ++k)
-      inner_products.col(k) *= y_scale(k)*y_std(k);
+      inner_products.col(k) *= y_scale(k)*y_std(k)*weight[k];
 
     return inner_products.square().rowwise().sum().sqrt().maxCoeff()/y.rows();
   }
