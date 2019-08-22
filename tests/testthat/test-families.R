@@ -1,5 +1,3 @@
-context("general family tests")
-
 test_that("all combinations run without errors", {
   n <- 500
   p <- 2

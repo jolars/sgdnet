@@ -477,23 +477,23 @@ public:
 
   template <typename T>
   double
-    LambdaMax(const T&               x,
-              const Eigen::MatrixXd& y,
-              const Eigen::ArrayXd&  y_scale) const noexcept
-    {
-      auto n = y.rows();
+  LambdaMax(const T&               x,
+            const Eigen::MatrixXd& y,
+            const Eigen::ArrayXd&  y_scale) const noexcept
+  {
+    auto n = y.rows();
 
-      Eigen::VectorXd y_map(n);
+    Eigen::VectorXd y_map(n);
 
-      auto y_bar = Mean(y);
-      auto y_std = StandardDeviation(y, y_bar);
+    auto y_bar = Mean(y);
+    auto y_std = StandardDeviation(y, y_bar);
 
-      for (decltype(n) i = 0; i < n; ++i) {
-        y_map(i) = (y(i) - y_bar(0))/y_std(0);
-      }
-
-      return y_std(0)*(x.transpose() * y_map).cwiseAbs().maxCoeff()/n;
+    for (decltype(n) i = 0; i < n; ++i) {
+      y_map(i) = (y(i) - y_bar(0))/y_std(0);
     }
+
+    return y_std(0)*(x.transpose() * y_map).cwiseAbs().maxCoeff()/n;
+  }
 
 };
 

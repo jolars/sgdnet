@@ -1,5 +1,3 @@
-context("lambda path")
-
 test_that("lambda paths are computed as in glmnet", {
   library(glmnet)
   glmnet.control(fdev = 0)

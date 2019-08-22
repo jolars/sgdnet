@@ -1,5 +1,3 @@
-context("printing")
-
 test_that("printing works for univariate families", {
   fit <- sgdnet(rnorm(10), rnorm(10))
   expect_silent(dont_print(fit))

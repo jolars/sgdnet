@@ -1,5 +1,3 @@
-context("plotting")
-
 test_that("we can produce plots for all out models", {
   y <- mtcars$mpg
   x <- subset(mtcars, select = -mpg)

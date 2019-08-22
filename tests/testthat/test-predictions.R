@@ -1,5 +1,3 @@
-context("predictions")
-
 test_that("prediction for gaussian models peform as expected", {
   set.seed(1)
 

@@ -1,15 +1,14 @@
-context("poisson regression")
-
 test_that("solutions along regularization path are the same as glmnet", {
   set.seed(1)
 
-  N=2000; p=10
-  nzc=2
-  x=matrix(rnorm(N*p),N,p)
-  beta=rnorm(nzc)
-  f = x[,seq(nzc)]%*%beta
-  mu=exp(f)
-  y=rpois(N,mu)
+  N <- 2000
+  p <- 10
+  nzc <- 2
+  x <- matrix(rnorm(N*p),N,p)
+  beta <- rnorm(nzc)
+  f <- x[,seq(nzc)]%*%beta
+  mu <- exp(f)
+  y <- rpois(N,mu)
   
   sgd_l1 <- sgdnet(x,y,family="poisson",alpha=1,nlambda=10,thresh=1e-9)
   glm_l1 <- glmnet(x,y,family="poisson",alpha=1,nlambda=10,thresh=1e-9)

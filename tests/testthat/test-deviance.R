@@ -1,5 +1,3 @@
-context("deviance")
-
 test_that("deviance functions run and return as expected", {
   fit <- sgdnet(mtcars$mpg, mtcars$drat)
   expect_is(deviance(fit), "numeric")

@@ -1,5 +1,3 @@
-context("binomial regression")
-
 test_that("non-penalized logistic regression has similar results as glm()", {
   set.seed(1)
 

@@ -1,5 +1,3 @@
-context("options")
-
 test_that("sgdnet options can be set and respected", {
   opts <- options()
   options(sgdnet.debug = TRUE)

@@ -1,5 +1,3 @@
-context("sparse and dense comparisons")
-
 test_that("sparse and dense implementations return equivalent results", {
   grid <- expand.grid(
     family = c("gaussian", "binomial", "multinomial", "mgaussian"),
