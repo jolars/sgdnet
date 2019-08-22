@@ -101,7 +101,7 @@ test_that("we receive the correct deviance from deviance.sgdnet() with sample we
       alpha = grid$alpha[i],
       thresh = 0.1,
       lambda = 1/nrow(x),
-      weights = c(0.5, 1.5, 0.5, 1.5, rep(1, nrow(x)-4))
+      weights = c(rep(0.5, n/2), rep(1.5, n/2))
     )
 
     y <- switch(pars$family,
@@ -115,10 +115,10 @@ test_that("we receive the correct deviance from deviance.sgdnet() with sample we
     # compute null deviance manually
     nulldev <- switch(
       pars$family,
-      gaussian = gaussian_nulldev(y, weights = weights),
-      binomial = binomial_nulldev(y, intercept = intercept, weights = weights),
-      multinomial = multinomial_nulldev(y, intercept = intercept, weights = weights),
-      mgaussian = mgaussian_nulldev(y, weights = weights)
+      gaussian = gaussian_nulldev(y, weights = pars$weights),
+      binomial = binomial_nulldev(y, intercept = intercept, weights = pars$weights),
+      multinomial = multinomial_nulldev(y, intercept = intercept, weights = pars$weights),
+      mgaussian = mgaussian_nulldev(y, weights = pars$weights)
     )
 
     sfit <- do.call(sgdnet, pars)
@@ -126,5 +126,50 @@ test_that("we receive the correct deviance from deviance.sgdnet() with sample we
 
     expect_equal(sfit$nulldev, gfit$nulldev, tolerance = 1e-6)
     expect_equal(sfit$nulldev, nulldev)
+  }
+})
+
+test_that("compare solution with glmnet using sample weights", {
+
+  n <- 500
+  p <- 2
+
+  grid <- expand.grid(
+    family = c("gaussian", "binomial", "multinomial", "mgaussian"),
+    intercept = TRUE, # glmnet behaves oddly when the intercept is missing
+    alpha = c(0, 0.75, 1),
+    standardize = TRUE,
+    stringsAsFactors = FALSE
+  )
+
+  for (i in seq_len(nrow(grid))) {
+    pars <- list(
+      standardize = grid$standardize[i],
+      family = grid$family[i],
+      intercept = grid$intercept[i],
+      alpha = grid$alpha[i],
+      lambda = 0.0001,
+      thresh = 1e-7,
+      maxit = 1000
+    )
+
+    set.seed(i)
+
+    d <- random_data(n, p, grid$family[i], grid$intercept[i])
+    x <- as.matrix(d$x)
+
+    pars$y <- d$y
+    pars$x <- x
+    pars$weights <- c(rep(0.5, 250), rep(1.5, 250))
+
+    sfit <- do.call(sgdnet, pars)
+    gfit <- do.call(glmnet, pars)
+
+    if (pars$family == "gaussian" || pars$family == "binomial") {
+      expect_equal(coef(sfit), coef(gfit), tolerance = 1e-3)
+    } else {
+      expect_equal(as.matrix(do.call(cbind, coef(sfit))[-1, ]),
+                   as.matrix(do.call(cbind, coef(gfit))[-1, ]), tolerance = 1e-3)
+    }
   }
 })
