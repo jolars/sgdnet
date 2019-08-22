@@ -190,12 +190,12 @@ sgdnet.default <- function(x,
                                       "multinomial",
                                       "mgaussian"),
                            alpha = 1,
-                           non_convexity = switch(penalty, MCP=3, SCAD=3.7),
+                           non_convexity = ifelse(penalty == "MCP", 3, 3.7),
                            nlambda = 100,
                            lambda.min.ratio =
                              if (NROW(x) < NCOL(x)) 0.01 else 0.0001,
                            lambda = NULL,
-                           penalty = c("", "MCP","SCAD"),
+                           penalty = c("LASSO", "MCP","SCAD"),
                            maxit = 1000,
                            standardize = TRUE,
                            intercept = TRUE,
@@ -208,7 +208,7 @@ sgdnet.default <- function(x,
 
   # Collect sgdnet-specific options for debugging and more
   debug <- getOption("sgdnet.debug")
-  
+
   penalty <- match.arg(penalty)
 
   n_samples <- NROW(x)
@@ -251,9 +251,11 @@ sgdnet.default <- function(x,
   else
     nlambda <- length(lambda)
 
-  # disable non-convex penalty
-  if (penalty == "")
+  # disable non-convex penalty procedure
+  if (penalty == "LASSO" || alpha == 0) {
     non_convexity = 1.0
+    penalty = "LASSO"
+  }
 
   if (nlambda == 0)
     stop("lambda path cannot be of zero length.")
