@@ -149,7 +149,7 @@ test_that("compare solution with glmnet using sample weights", {
       intercept = grid$intercept[i],
       alpha = grid$alpha[i],
       lambda = 0.0001,
-      thresh = 1e-7,
+      thresh = 1e-9,
       maxit = 1000
     )
 
@@ -173,3 +173,4 @@ test_that("compare solution with glmnet using sample weights", {
     }
   }
 })
+
