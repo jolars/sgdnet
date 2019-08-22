@@ -74,6 +74,19 @@
 #' \eqn{\ell_{1/2}}{L1/2} norm. Note, also, that Y is a matrix
 #' of responses in this form.
 #'
+#' *Poisson regression*:
+#' \deqn{
+#'   -\frac1n \sum_{i=1}^n \Big( y_i (\beta_0 + \beta^\mathsf{T} x_i)
+#'   - e^{\beta_0 + \beta^\mathsf{T} x_i} \Big)
+#'   + \lambda \left( \frac{1 - \alpha}{2} ||\beta||_2^2
+#'                    + \alpha||\beta||_1 \right),
+#' }{
+#'   -1/n \sum_{i=1}^n {y_i (\beta_0 + \beta^T x_i) -
+#'     exp(\beta_0 + \beta^T x_i)}
+#'   + \lambda [(1 - \alpha)/2 ||\beta||_2^2 + \alpha||\beta||_1],
+#' }
+#' where \eqn{y_i \in \{0, 1, 2, ...\}}{y ~ {0, 1, 2, ...}}.
+#'
 #' @section Regularization Path:
 #' The default regularization path is a sequence of `nlambda`
 #' log-spaced elements
@@ -177,6 +190,8 @@
 #' # Multivariate gaussian regression
 #' mgaussian_fit <- sgdnet(student$x, student$y, family = "mgaussian")
 #'
+#' # Poisson regression
+#' poisson_fit <- sgdnet(caddisfly$x, caddisfly$y, family = "poisson")
 sgdnet <- function(x, ...) UseMethod("sgdnet")
 
 #' @export
@@ -348,7 +363,7 @@ sgdnet.default <- function(x,
         stop("response is constant.")
 
       if (any(y != abs(y)))
-        stop("response for poisson regression must not be negative")
+        stop("response for poisson regression must not be negative.")
 
       adaptive <- TRUE
 

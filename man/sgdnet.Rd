@@ -141,6 +141,19 @@ where \eqn{\mathbf{1}}{1} is a vector of all zeros, \eqn{\mathbf{B}}{B} is a
 matrix of coefficients, and \eqn{||\dot||_{12}}{||.||_12} is the mixed
 \eqn{\ell_{1/2}}{L1/2} norm. Note, also, that Y is a matrix
 of responses in this form.
+
+\emph{Poisson regression}:
+\deqn{
+  -\frac1n \sum_{i=1}^n \Big( y_i (\beta_0 + \beta^\mathsf{T} x_i)
+  - e^{\beta_0 + \beta^\mathsf{T} x_i} \Big)
+  + \lambda \left( \frac{1 - \alpha}{2} ||\beta||_2^2
+                   + \alpha||\beta||_1 \right),
+}{
+  -1/n \sum_{i=1}^n {y_i (\beta_0 + \beta^T x_i) -
+    exp(\beta_0 + \beta^T x_i)}
+  + \lambda [(1 - \alpha)/2 ||\beta||_2^2 + \alpha||\beta||_1],
+}
+where \eqn{y_i \in \{0, 1, 2, ...\}}{y ~ {0, 1, 2, ...}}.
 }
 
 \section{Regularization Path}{
@@ -192,6 +205,9 @@ multinom_fit <- sgdnet(wine$x, wine$y, family = "multinomial")
 
 # Multivariate gaussian regression
 mgaussian_fit <- sgdnet(student$x, student$y, family = "mgaussian")
+
+# Poisson regression
+poisson_fit <- sgdnet(caddisfly$x, caddisfly$y, family = "poisson")
 }
 \seealso{
 \code{\link[=predict.sgdnet]{predict.sgdnet()}}, \code{\link[=plot.sgdnet]{plot.sgdnet()}}, \code{\link[=coef.sgdnet]{coef.sgdnet()}},
