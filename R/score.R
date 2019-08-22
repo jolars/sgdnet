@@ -61,7 +61,7 @@ score.sgdnet_gaussian <- function(fit,
   type.measure <- match.arg(type.measure)
 
   y <- as.vector(y)
-  y_hat <- stats::predict(fit, x, s)
+  y_hat <- predict(fit, x, s)
 
   switch(type.measure,
          deviance = colMeans((y_hat - y)^2),
@@ -89,7 +89,7 @@ score.sgdnet_binomial <- function(fit,
   y <- as.factor(y)
   y <- diag(2)[as.numeric(y), ]
 
-  y_hat <- stats::predict(fit, x, s = s, type = "response", ...)
+  y_hat <- predict(fit, x, s = s, type = "response", ...)
 
   n_samples <- nrow(x)
 
@@ -134,7 +134,7 @@ score.sgdnet_multinomial <- function(fit,
   n_classes <- length(unique(y))
   y <- diag(n_classes)[as.numeric(y), ]
 
-  y_hat <- stats::predict(fit, x, s = s, type = "response", ...)
+  y_hat <- predict(fit, x, s = s, type = "response", ...)
 
   y <- array(y, dim(y_hat))
 
@@ -168,7 +168,7 @@ score.sgdnet_mgaussian <- function(fit,
                                    ...) {
   type.measure <- match.arg(type.measure)
 
-  y_hat <- stats::predict(fit, x, s = s, ...)
+  y_hat <- predict(fit, x, s = s, ...)
   y <- array(y, dim(y_hat))
 
   switch(type.measure,
@@ -188,7 +188,7 @@ score.sgdnet_poisson <- function(fit,
   type.measure <- match.arg(type.measure)
   y <- as.vector(y)
 
-  y_hat <- stats::predict(fit, x, s = s)
+  y_hat <- predict(fit, x, s = s)
 
   devhat <- y * y_hat - exp(y_hat)
   devy <- y * log(y) - y
