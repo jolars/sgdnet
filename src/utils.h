@@ -415,7 +415,9 @@ IndexCyclic(const unsigned n_samples,
 
 //' wrapper aroud R's RNG such that we get a unifrom distribution over 
 //' [0,n) as required by the STL algorithm
-inline int randWrapper(const int n) { return floor(unif_rand()*n); }
+inline int randWrapper(const int n) {
+  return Rcpp::as<int>(Rcpp::sample(n, 1)) - 1;
+}
 
 //' Return a batch of index, each column is a vector of stochasitc index
 //' 

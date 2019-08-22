@@ -34,6 +34,9 @@ test_that("we can approximate the closed form multivariate ridge regression solu
   expect_equivalent(beta_theoretical,
                     as.matrix(do.call(cbind, coef(sgdnet_fit))[-1, ]),
                     tolerance = 1e-6)
+  expect_equivalent(beta_theoretical,
+                    as.matrix(do.call(cbind, coef(batch_fit))[-1, ]),
+                    tolerance = 1e-6)
 })
 
 test_that("standardizing responses works", {
@@ -53,5 +56,5 @@ test_that("standardizing responses works", {
 
   expect_equal(sfit$lambda, gfit$lambda)
   expect_equivalent(coef(sfit), coef(gfit))
-  expect_equivalent(coef(bfit), coef(gfit), tolerance = 1e-3)
+  expect_equivalent(coef(bfit), coef(sfit))
 })

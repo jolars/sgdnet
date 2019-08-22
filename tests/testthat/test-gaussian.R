@@ -81,7 +81,7 @@ test_that("we can approximate the closed form ridge regression solution", {
                       intercept = FALSE,
                       thresh = 0.000001,
                       maxit = 1000,
-                      batchsize = 500)
+                      batchsize = n)
 
   expect_equivalent(beta_theoretical, coef(sgdnet_fit)[-1],
                     tolerance = 1e-3)
