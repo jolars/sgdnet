@@ -160,7 +160,7 @@ test_that("compare solution with glmnet using sample weights", {
 
     pars$y <- d$y
     pars$x <- x
-    pars$weights <- c(rep(0.5, 250), rep(1.5, 250))
+    pars$weights <- c(0.5, 1.5, rep(1, n-2))
 
     sfit <- do.call(sgdnet, pars)
     gfit <- do.call(glmnet, pars)
