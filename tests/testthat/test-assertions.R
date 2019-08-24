@@ -1,5 +1,3 @@
-context("assertions")
-
 test_that("assertions in predict.sgdnet() throw exceptions", {
   x <- with(trees, cbind(Girth, Volume))
   y <- trees$Height

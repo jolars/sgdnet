@@ -1,5 +1,3 @@
-context("multivariate gaussian regression")
-
 test_that("we can approximate the closed form multivariate ridge regression solution", {
   set.seed(1)
 

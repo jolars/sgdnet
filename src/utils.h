@@ -33,11 +33,13 @@ StepSize(const double               max_squared_sum,
          const std::vector<double>& alpha,
          const bool                 fit_intercept,
          const double               L_scaling,
-         const unsigned             n_samples)
+         const unsigned             n_samples,
+         std::vector<double>&       lipschitz)
 {
   // Lipschitz constant approximation
   std::vector<double> step_sizes;
   step_sizes.reserve(alpha.size());
+  lipschitz.reserve(alpha.size());
 
   for (auto alpha_i : alpha) {
     double L =
@@ -45,6 +47,7 @@ StepSize(const double               max_squared_sum,
       + alpha_i;
 
     double mu_n = 2.0*n_samples*alpha_i;
+    lipschitz.emplace_back(L);
     step_sizes.emplace_back(1.0 / (2.0*L + std::min(L, mu_n)));
   }
   return step_sizes;
@@ -60,7 +63,8 @@ StepSize(const double               max_squared_sum,
 double
 ColNormsMax(const Eigen::SparseMatrix<double>& x,
             const Eigen::ArrayXd&              x_center_scaled,
-            const bool                         standardize)
+            const bool                         standardize,
+            Eigen::ArrayXd&                    col_norm_x)
 {
   auto m = x.cols();
 
@@ -70,6 +74,7 @@ ColNormsMax(const Eigen::SparseMatrix<double>& x,
       standardize ? (x.col(j) - x_center_scaled.matrix()).squaredNorm()
                   : x.col(j).squaredNorm();
 
+    col_norm_x(j) = norm;
     norm_max = std::max(norm_max, norm);
   }
 
@@ -79,8 +84,10 @@ ColNormsMax(const Eigen::SparseMatrix<double>& x,
 double
 ColNormsMax(const Eigen::MatrixXd& x,
             const Eigen::ArrayXd&  x_center_scaled,
-            const bool             standardize) {
+            const bool             standardize,
+            Eigen::ArrayXd&        col_norm_x) {
   // dense features are already scaled and centered (if required)
+  col_norm_x = x.colwise().squaredNorm().eval();
   return x.colwise().squaredNorm().maxCoeff();
 }
 

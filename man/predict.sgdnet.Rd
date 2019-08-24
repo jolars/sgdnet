@@ -6,6 +6,7 @@
 \alias{predict.sgdnet_binomial}
 \alias{predict.sgdnet_multinomial}
 \alias{predict.sgdnet_mgaussian}
+\alias{predict.sgdnet_poisson}
 \title{Predictions for sgdnet Models}
 \usage{
 \method{predict}{sgdnet}(object, newx = NULL, s = NULL, type,
@@ -24,6 +25,10 @@
   exact = FALSE, newoffset = NULL, ...)
 
 \method{predict}{sgdnet_mgaussian}(object, newx = NULL, s = NULL,
+  type = c("link", "response", "coefficients", "nonzero"),
+  exact = FALSE, newoffset = NULL, ...)
+
+\method{predict}{sgdnet_poisson}(object, newx = NULL, s = NULL,
   type = c("link", "response", "coefficients", "nonzero"),
   exact = FALSE, newoffset = NULL, ...)
 }

@@ -188,6 +188,7 @@ Reset(const unsigned         k,
 //'   `debug` is true.
 //' @param debug whether we are debuggin and should store loss from the
 //'   fit inside `losses`.
+//' @param adaptive_gamma whether use adaptive step size
 //'
 //' @return Updates `w`, `intercept`, `g_sum`, `g_sum_intercept`, `g`,
 //'   `n_iter`, `return_codes`, and possibly `losses`.
@@ -196,6 +197,7 @@ void
 Saga(Penalty&                           penalty,
      const Eigen::SparseMatrix<double>& x,
      const Eigen::ArrayXd&              x_center_scaled,
+     Eigen::ArrayXd&                    col_norm_x,
      const Eigen::MatrixXd&             y,
      Eigen::ArrayXd&                    intercept,
      const bool                         fit_intercept,
@@ -203,9 +205,10 @@ Saga(Penalty&                           penalty,
      const bool                         standardize,
      Eigen::ArrayXXd&                   w,
      const Family&                      family,
-     const double                       gamma,
+     double                             gamma,
      const double                       alpha,
      const double                       beta,
+     double                             lipschitz,
      Eigen::ArrayXXd&                   g_memory,
      Eigen::ArrayXXd&                   g_sum,
      Eigen::ArrayXd&                    g_sum_intercept,
@@ -217,7 +220,8 @@ Saga(Penalty&                           penalty,
      unsigned&                          n_iter,
      std::vector<unsigned>&             return_codes,
      std::vector<double>&               losses,
-     const bool                         debug) noexcept
+     const bool                         debug,
+     const bool                         adaptive_gamma) noexcept
 {
   using namespace std;
 
@@ -250,6 +254,11 @@ Saga(Penalty&                           penalty,
   // Setup functor for checking convergence
   ConvergenceCheck convergence_check{w, tol};
 
+  // assist adaptive step size (only for poisson)
+  const unsigned line_search_freq = 1;
+  Eigen::ArrayXd line_search = Eigen::ArrayXd::Zero(n_classes);
+  const double line_search_scaling = std::pow(2.0, line_search_freq/n_samples);
+
   // Outer loop
   unsigned it_outer = 0;
   bool converged = false;
@@ -280,6 +289,28 @@ Saga(Penalty&                           penalty,
 
       g_change = g - g_memory.col(s_ind);
       g_memory.col(s_ind) = g;
+
+      // update step size (only for poisson)
+      if (adaptive_gamma && it_inner % line_search_freq == 0 && std::fabs(g(0)) > 1e-8) {
+
+        line_search(0) = linear_predictor(0) - g(0) * col_norm_x(s_ind)/lipschitz;
+        double a = family.Loss(line_search, y, s_ind);
+        double b = family.Loss(linear_predictor, y, s_ind);
+        b -= 0.5 * col_norm_x(s_ind) * (g(0) * g(0))/lipschitz;
+
+        if (a <= b) {
+          // decrease lioschitz constant
+          lipschitz /= line_search_scaling;
+        } else {
+          // decrease step size
+          lipschitz *= 2.0;
+        }
+
+        // update step size (gamma)
+        gamma = 1.0 / (2.0*lipschitz + std::min(lipschitz, 2.0*n_samples*alpha));
+        penalty.setParameters(gamma, alpha, beta);
+        wscale_update = 1.0 - alpha*gamma;
+      }
 
       // Rescale and unlag weights whenever wscale becomes too small
       if (wscale < sgdnet::SMALL) {

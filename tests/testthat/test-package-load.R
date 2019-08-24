@@ -1,5 +1,3 @@
-context("loading of package")
-
 test_that("default options are set when package is loaded", {
   detach("package:sgdnet")
   library("sgdnet")

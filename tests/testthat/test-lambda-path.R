@@ -1,5 +1,3 @@
-context("lambda path")
-
 test_that("lambda paths are computed as in glmnet", {
   library(glmnet)
   glmnet.control(fdev = 0)
@@ -12,7 +10,7 @@ test_that("lambda paths are computed as in glmnet", {
   set.seed(1)
 
   grid <- expand.grid(
-    family = c("gaussian", "binomial", "multinomial", "mgaussian"),
+    family = c("gaussian", "binomial", "multinomial", "mgaussian", "poisson"),
     intercept = TRUE,
     sparse = c(TRUE, FALSE),
     alpha = c(0, 0.5, 1),
@@ -37,7 +35,8 @@ test_that("lambda paths are computed as in glmnet", {
                      gaussian = rnorm(n, 10, 2),
                      binomial = rbinom(n, 1, 0.8),
                      multinomial = rbinom(n, 2, 0.5),
-                     mgaussian = cbind(rnorm(n), rnorm(n, -19)))
+                     mgaussian = cbind(rnorm(n), rnorm(n, -19)),
+                     poisson = rpois(n, 2))
 
     sfit <- do.call(sgdnet, pars)
     gfit <- do.call(glmnet, pars)
@@ -54,7 +53,8 @@ test_that("lambda path checks out against manual calculations", {
                          family = c("gaussian",
                                     "binomial",
                                     "multinomial",
-                                    "mgaussian"),
+                                    "mgaussian",
+                                    "poisson"),
                          standardize = TRUE,
                          alpha = 1,
                          ...) {
@@ -97,7 +97,7 @@ test_that("lambda path checks out against manual calculations", {
   }
 
   grid <- expand.grid(
-    family = c("gaussian", "binomial", "multinomial", "mgaussian"),
+    family = c("gaussian", "binomial", "multinomial", "mgaussian", "poisson"),
     intercept = c(TRUE, FALSE),
     alpha = c(0, 0.5, 1),
     standardize = c(TRUE, FALSE),
@@ -117,7 +117,8 @@ test_that("lambda path checks out against manual calculations", {
                      gaussian = mtcars$mpg,
                      binomial = mtcars$vs,
                      multinomial = mtcars$gear,
-                     mgaussian = cbind(mtcars$hp, mtcars$drat))
+                     mgaussian = cbind(mtcars$hp, mtcars$drat),
+                     poisson = mtcars$carb)
 
     fit <- do.call(sgdnet, pars)
 
@@ -136,7 +137,7 @@ test_that("the first lasso fit is sparse", {
   }
 
   grid <- expand.grid(
-    family = c("gaussian", "binomial", "multinomial", "mgaussian"),
+    family = c("gaussian", "binomial", "multinomial", "mgaussian", "poisson"),
     intercept = c(TRUE, FALSE),
     stringsAsFactors = FALSE
   )
@@ -153,7 +154,8 @@ test_that("the first lasso fit is sparse", {
                      gaussian = mtcars$mpg,
                      binomial = mtcars$vs,
                      multinomial = mtcars$gear,
-                     mgaussian = cbind(mtcars$hp, mtcars$drat))
+                     mgaussian = cbind(mtcars$hp, mtcars$drat),
+                     poisson = mtcars$carb)
 
     fit <- do.call(sgdnet, pars)
 
@@ -172,7 +174,7 @@ test_that("the first lasso fit is sparse", {
 
 test_that("refitting model with automatically generated path gives same fit", {
   grid <- expand.grid(
-    family = c("gaussian", "binomial", "multinomial", "mgaussian"),
+    family = c("gaussian", "binomial", "multinomial", "mgaussian", "poisson"),
     standardize = c(TRUE, FALSE),
     stringsAsFactors = FALSE
   )
@@ -187,7 +189,8 @@ test_that("refitting model with automatically generated path gives same fit", {
                      gaussian = mtcars$mpg,
                      binomial = mtcars$vs,
                      multinomial = mtcars$gear,
-                     mgaussian = cbind(mtcars$hp, mtcars$drat))
+                     mgaussian = cbind(mtcars$hp, mtcars$drat),
+                     poisson = mtcars$carb)
     set.seed(i)
     fit1 <- do.call(sgdnet, pars)
     set.seed(i)

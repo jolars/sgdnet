@@ -8,7 +8,7 @@
 sgdnet(x, ...)
 
 \method{sgdnet}{default}(x, y, family = c("gaussian", "binomial",
-  "multinomial", "mgaussian"), alpha = 1, nlambda = 100,
+  "multinomial", "mgaussian", "poisson"), alpha = 1, nlambda = 100,
   lambda.min.ratio = if (NROW(x) < NCOL(x)) 0.01 else 1e-04,
   lambda = NULL, maxit = 1000, standardize = TRUE,
   intercept = TRUE, thresh = 0.001, standardize.response = FALSE,
@@ -22,7 +22,7 @@ sgdnet(x, ...)
 \item{y}{response variable}
 
 \item{family}{reponse type, one of \code{'gaussian'}, \code{'binomial'},
-\code{'multinomial'}, or \code{'mgaussian'}. See \strong{Supported families} for details.}
+\code{'multinomial'}, \code{'mgaussian'} or \code{'poisson'}. See \strong{Supported families} for details.}
 
 \item{alpha}{elastic net mixing parameter}
 
@@ -141,6 +141,19 @@ where \eqn{\mathbf{1}}{1} is a vector of all zeros, \eqn{\mathbf{B}}{B} is a
 matrix of coefficients, and \eqn{||\dot||_{12}}{||.||_12} is the mixed
 \eqn{\ell_{1/2}}{L1/2} norm. Note, also, that Y is a matrix
 of responses in this form.
+
+\emph{Poisson regression}:
+\deqn{
+  -\frac1n \sum_{i=1}^n \Big( y_i (\beta_0 + \beta^\mathsf{T} x_i)
+  - e^{\beta_0 + \beta^\mathsf{T} x_i} \Big)
+  + \lambda \left( \frac{1 - \alpha}{2} ||\beta||_2^2
+                   + \alpha||\beta||_1 \right),
+}{
+  -1/n \sum_{i=1}^n {y_i (\beta_0 + \beta^T x_i) -
+    exp(\beta_0 + \beta^T x_i)}
+  + \lambda [(1 - \alpha)/2 ||\beta||_2^2 + \alpha||\beta||_1],
+}
+where \eqn{y_i \in \{0, 1, 2, ...\}}{y ~ {0, 1, 2, ...}}.
 }
 
 \section{Regularization Path}{
@@ -192,6 +205,9 @@ multinom_fit <- sgdnet(wine$x, wine$y, family = "multinomial")
 
 # Multivariate gaussian regression
 mgaussian_fit <- sgdnet(student$x, student$y, family = "mgaussian")
+
+# Poisson regression
+poisson_fit <- sgdnet(caddisfly$x, caddisfly$y, family = "poisson")
 }
 \seealso{
 \code{\link[=predict.sgdnet]{predict.sgdnet()}}, \code{\link[=plot.sgdnet]{plot.sgdnet()}}, \code{\link[=coef.sgdnet]{coef.sgdnet()}},

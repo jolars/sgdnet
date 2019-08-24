@@ -16,6 +16,7 @@
 
 #' @useDynLib sgdnet, .registration = TRUE
 #' @importFrom Rcpp sourceCpp
+#' @importFrom stats predict
 NULL
 
 #' Penalized Generalized Linear Models with Stochastic Gradient Descent

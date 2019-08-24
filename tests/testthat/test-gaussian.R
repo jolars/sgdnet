@@ -1,5 +1,3 @@
-context("gaussian regression")
-
 test_that("we can approximately reproduce the OLS solution", {
   set.seed(1)
 

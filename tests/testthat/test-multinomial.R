@@ -1,5 +1,3 @@
-context("multinomial response")
-
 x <- as.matrix(iris[, 1:4])
 y <- iris[, 5]
 

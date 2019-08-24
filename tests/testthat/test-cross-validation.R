@@ -1,5 +1,3 @@
-context("cross-validation")
-
 test_that("cross-validation works, including its plot and predict methods", {
   n <- 500
   p <- 2

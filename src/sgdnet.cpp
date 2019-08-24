@@ -136,6 +136,7 @@ SetupSgdnet(T                 x,
   const unsigned max_iter         = Rcpp::as<unsigned>(control["max_iter"]);
   const double   tol              = Rcpp::as<double>(control["tol"]);
   const bool     debug            = Rcpp::as<bool>(control["debug"]);
+  const bool     adaptive_gamma   = Rcpp::as<bool>(control["adaptive_gamma"]);
 
   auto n_samples  = x.rows();
   auto n_features = x.cols();
@@ -177,11 +178,18 @@ SetupSgdnet(T                 x,
   AdaptiveTranspose(x);
   AdaptiveTranspose(y);
 
-  auto step_size = StepSize(ColNormsMax(x, x_center_scaled, standardize),
+  // Compute sample norm at once for adaptive step size (gamma)
+  Eigen::ArrayXd col_norm_x(n_samples);
+
+  // Lipschitz constant approximation
+  vector<double> lipschitz;
+
+  auto step_size = StepSize(ColNormsMax(x, x_center_scaled, standardize, col_norm_x),
                             alpha,
                             fit_intercept,
                             family.L_scaling,
-                            n_samples);
+                            n_samples,
+                            lipschitz);
 
   // Intercept
   Eigen::ArrayXd intercept = Eigen::ArrayXd::Zero(n_classes);
@@ -220,6 +228,7 @@ SetupSgdnet(T                 x,
     RunSaga(control,
             x,
             x_center_scaled,
+            col_norm_x,
             y,
             intercept,
             fit_intercept,
@@ -230,6 +239,7 @@ SetupSgdnet(T                 x,
             step_size[lambda_ind],
             alpha[lambda_ind],
             beta[lambda_ind],
+            lipschitz[lambda_ind],
             g_memory,
             g_sum,
             g_sum_intercept,
@@ -241,7 +251,8 @@ SetupSgdnet(T                 x,
             n_iter,
             return_codes,
             losses,
-            debug);
+            debug,
+            adaptive_gamma);
 
     double deviance = Deviance(x,
                                x_center_scaled,
@@ -326,6 +337,11 @@ SetupFamily(const T&               x,
     auto standardize_response = Rcpp::as<bool>(control["standardize_response"]);
 
     sgdnet::MultivariateGaussian family{standardize_response};
+    return SetupSgdnet(x, y, std::move(family), is_sparse, control);
+
+  } else if (family_choice == "poisson") {
+
+    sgdnet::Poisson family;
     return SetupSgdnet(x, y, std::move(family), is_sparse, control);
 
   }

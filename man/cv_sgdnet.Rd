@@ -74,7 +74,8 @@ Family        \tab \code{deviance} \tab \code{mse} \tab \code{mae} \tab \code{cl
 \code{gaussian}    \tab x (\code{mse})  \tab  x    \tab x     \tab         \tab      \cr
 \code{binomial}    \tab x          \tab  x    \tab x     \tab x       \tab x    \cr
 \code{multinomial} \tab x          \tab  x    \tab x     \tab x       \tab      \cr
-\code{mgaussian}   \tab x (\code{mse})  \tab  x    \tab x     \tab         \tab
+\code{mgaussian}   \tab x (\code{mse})  \tab  x    \tab x     \tab         \tab      \cr
+\code{poisson}     \tab x          \tab  x    \tab x     \tab         \tab
 }
 }
 

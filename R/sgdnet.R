@@ -74,6 +74,19 @@
 #' \eqn{\ell_{1/2}}{L1/2} norm. Note, also, that Y is a matrix
 #' of responses in this form.
 #'
+#' *Poisson regression*:
+#' \deqn{
+#'   -\frac1n \sum_{i=1}^n \Big( y_i (\beta_0 + \beta^\mathsf{T} x_i)
+#'   - e^{\beta_0 + \beta^\mathsf{T} x_i} \Big)
+#'   + \lambda \left( \frac{1 - \alpha}{2} ||\beta||_2^2
+#'                    + \alpha||\beta||_1 \right),
+#' }{
+#'   -1/n \sum_{i=1}^n {y_i (\beta_0 + \beta^T x_i) -
+#'     exp(\beta_0 + \beta^T x_i)}
+#'   + \lambda [(1 - \alpha)/2 ||\beta||_2^2 + \alpha||\beta||_1],
+#' }
+#' where \eqn{y_i \in \{0, 1, 2, ...\}}{y ~ {0, 1, 2, ...}}.
+#'
 #' @section Regularization Path:
 #' The default regularization path is a sequence of `nlambda`
 #' log-spaced elements
@@ -106,7 +119,7 @@
 #' @param x input matrix
 #' @param y response variable
 #' @param family reponse type, one of `'gaussian'`, `'binomial'`,
-#'   `'multinomial'`, or `'mgaussian'`. See **Supported families** for details.
+#'   `'multinomial'`, `'mgaussian'` or `'poisson'`. See **Supported families** for details.
 #' @param alpha elastic net mixing parameter
 #' @param nlambda number of penalties in the regualrization path
 #' @param lambda.min.ratio the ratio between `lambda_max` (the smallest
@@ -176,6 +189,9 @@
 #'
 #' # Multivariate gaussian regression
 #' mgaussian_fit <- sgdnet(student$x, student$y, family = "mgaussian")
+#'
+#' # Poisson regression
+#' poisson_fit <- sgdnet(caddisfly$x, caddisfly$y, family = "poisson")
 sgdnet <- function(x, ...) UseMethod("sgdnet")
 
 #' @export
@@ -185,7 +201,8 @@ sgdnet.default <- function(x,
                            family = c("gaussian",
                                       "binomial",
                                       "multinomial",
-                                      "mgaussian"),
+                                      "mgaussian",
+                                      "poisson"),
                            alpha = 1,
                            nlambda = 100,
                            lambda.min.ratio =
@@ -271,6 +288,9 @@ sgdnet.default <- function(x,
     }
   )
 
+  # Only use adaptive step size for poisson
+  adaptive <- FALSE
+
   # Setup reponse type options and assert appropriate input
   family <- match.arg(family)
 
@@ -335,6 +355,19 @@ sgdnet.default <- function(x,
       grouped <- TRUE
 
       n_classes <- n_targets
+    },
+    poisson = {
+      n_classes <- 1L
+
+      if (length(unique(y)) == 1)
+        stop("response is constant.")
+
+      if (any(y != abs(y)))
+        stop("response for poisson regression must not be negative.")
+
+      adaptive <- TRUE
+
+      y <- as.numeric(y)
     }
   )
 
@@ -356,7 +389,8 @@ sgdnet.default <- function(x,
                   standardize = standardize,
                   standardize_response = standardize.response,
                   tol = thresh,
-                  type_multinomial = type.multinomial)
+                  type_multinomial = type.multinomial,
+                  adaptive_gamma = adaptive)
 
   # Fit the model by calling the Rcpp routine.
   if (is_sparse) {
@@ -369,7 +403,7 @@ sgdnet.default <- function(x,
   n_penalties <- length(lambda)
   path_names <- paste0("s", seq_len(n_penalties) - 1L)
 
-  if (family %in% c("gaussian", "binomial")) {
+  if (family %in% c("gaussian", "binomial", "poisson")) {
     # NOTE(jolars): I would rather not to this, i.e. have different outputs
     # depending on family, but this makes it equivalent to glmnet output
     a0 <- unlist(res$a0)
