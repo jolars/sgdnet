@@ -126,6 +126,8 @@
 #'   }
 #' @param standardize.response whether `y` should be standardized for
 #'   `family = "mgaussian"`
+#' @param cyclic whether use cyclic version of saga or not
+#' @param batchsize the size of sample to estimate gradient in one iteration
 #' @param ... ignored
 #'
 #' @return An object of class `'sgdnet'` with the following items:
@@ -196,6 +198,8 @@ sgdnet.default <- function(x,
                            intercept = TRUE,
                            thresh = 0.001,
                            standardize.response = FALSE,
+                           cyclic = FALSE,
+                           batchsize = 1,
                            ...) {
 
   # Collect the call so we can use it in update() later on
@@ -261,6 +265,15 @@ sgdnet.default <- function(x,
 
   if (maxit <= 0)
     stop("maximum number of iterations cannot be negative or zero.")
+  
+  if (batchsize <= 0)
+    stop("batch size cannot be negative or zero.")
+  
+  if (batchsize > n_samples)
+    stop("batch size cannot be larger than sample size.")
+
+  if (abs(batchsize - round(batchsize)) > .Machine$double.eps^0.5)
+    stop("batch size should be an integer.")
 
   # TODO(jolars): implement group lasso penalty for multinomial model
   type.multinomial <- "ungrouped"
@@ -356,7 +369,9 @@ sgdnet.default <- function(x,
                   standardize = standardize,
                   standardize_response = standardize.response,
                   tol = thresh,
-                  type_multinomial = type.multinomial)
+                  type_multinomial = type.multinomial,
+                  cyclic = cyclic,
+                  batch_size = batchsize)
 
   # Fit the model by calling the Rcpp routine.
   if (is_sparse) {

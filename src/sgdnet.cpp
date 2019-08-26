@@ -136,6 +136,8 @@ SetupSgdnet(T                 x,
   const unsigned max_iter         = Rcpp::as<unsigned>(control["max_iter"]);
   const double   tol              = Rcpp::as<double>(control["tol"]);
   const bool     debug            = Rcpp::as<bool>(control["debug"]);
+  const bool     cyclic           = Rcpp::as<bool>(control["cyclic"]);
+  const unsigned B                = Rcpp::as<unsigned>(control["batch_size"]);
 
   auto n_samples  = x.rows();
   auto n_features = x.cols();
@@ -241,7 +243,9 @@ SetupSgdnet(T                 x,
             n_iter,
             return_codes,
             losses,
-            debug);
+            debug,
+            cyclic,
+            B);
 
     double deviance = Deviance(x,
                                x_center_scaled,

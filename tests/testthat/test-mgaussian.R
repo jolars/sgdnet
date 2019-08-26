@@ -21,9 +21,21 @@ test_that("we can approximate the closed form multivariate ridge regression solu
                        intercept = FALSE,
                        thresh = 1e-5,
                        maxit = 1e4)
+  
+  batch_fit <- sgdnet(x, y,
+                       family = "mgaussian",
+                       alpha = 0,
+                       lambda = sd_y[1]*lambda/n,
+                       intercept = FALSE,
+                       thresh = 1e-5,
+                       maxit = 1e4,
+                       batchsize = 10)
 
   expect_equivalent(beta_theoretical,
                     as.matrix(do.call(cbind, coef(sgdnet_fit))[-1, ]),
+                    tolerance = 1e-6)
+  expect_equivalent(beta_theoretical,
+                    as.matrix(do.call(cbind, coef(batch_fit))[-1, ]),
                     tolerance = 1e-6)
 })
 
@@ -38,9 +50,11 @@ test_that("standardizing responses works", {
 
   y_standardized <- scale(y, scale = apply(y, 2, sd2))
 
-  sfit <- sgdnet(x, y, family = "mgaussian", standardize.response = TRUE)
-  gfit <- glmnet(x, y, family = "mgaussian", standardize.response = TRUE)
+  sfit <- sgdnet(x, y, family = "mgaussian", standardize.response = TRUE, thresh = 1e-9)
+  bfit <- sgdnet(x, y, family = "mgaussian", standardize.response = TRUE, batchsize = 10, thresh = 1e-9)
+  gfit <- glmnet(x, y, family = "mgaussian", standardize.response = TRUE, thresh = 1e-9)
 
   expect_equal(sfit$lambda, gfit$lambda)
   expect_equivalent(coef(sfit), coef(gfit))
+  expect_equivalent(coef(bfit), coef(sfit))
 })

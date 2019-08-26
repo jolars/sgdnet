@@ -93,6 +93,8 @@
 //'   `debug` is true.
 //' @param debug whether we are debuggin and should store loss from the
 //'   fit inside `losses`.
+//' @param cyclic whether we use cyclic SAGA or not.
+//' @param B the batchsize
 //'
 //' @return Updates `w`, `intercept`, `g_sum`, `g_sum_intercept`, `g`,
 //'   `n_iter`, `return_codes`, and possibly `losses`.
@@ -122,7 +124,9 @@ Saga(Penalty&               penalty,
      unsigned&              n_iter,
      std::vector<unsigned>& return_codes,
      std::vector<double>&   losses,
-     const bool             debug) noexcept
+     const bool             debug,
+     const bool             cyclic,
+     const unsigned         B) noexcept
 {
   using namespace std;
 
@@ -133,34 +137,54 @@ Saga(Penalty&               penalty,
   penalty.setParameters(gamma, alpha, beta);
 
   // Gradient vector and change in gradient vector
-  Eigen::ArrayXd g        = Eigen::ArrayXd::Zero(n_classes);
-  Eigen::ArrayXd g_change = Eigen::ArrayXd::Zero(n_classes);
+  Eigen::ArrayXXd g                = Eigen::ArrayXXd::Zero(n_classes, B);
+  Eigen::ArrayXXd g_change         = Eigen::ArrayXXd::Zero(n_classes, B);
 
-  Eigen::ArrayXd linear_predictor(n_classes);
+  Eigen::ArrayXXd linear_predictor = Eigen::ArrayXXd::Zero(n_classes, B);
+
+  // change for weight and average gradient 
+  Eigen::ArrayXXd step             = Eigen::ArrayXXd::Zero(n_classes, n_features);
 
   // Setup functor for checking convergence
   ConvergenceCheck convergence_check{w, tol};
+
+  // Setup selected sample matrix
+  Eigen::MatrixXd subx = Eigen::MatrixXd::Zero(n_features, B);
+
+  // epoch size
+  const unsigned epoch = floor(n_samples/B);  
+
+  // Setup index generator
+  Eigen::ArrayXXi ind   = Eigen::ArrayXXi::Zero(B, epoch);
+  Eigen::ArrayXi  s_ind = Eigen::ArrayXi::Zero(B);
 
   // Outer loop
   unsigned it_outer = 0;
   bool converged = false;
   do {
+
+    // Pull samples
+    ind = Ind(n_samples, B, cyclic);
+
     // Inner loop
-    for (unsigned it_inner = 0; it_inner < n_samples; ++it_inner) {
+    for (unsigned it_inner = 0; it_inner < epoch; ++it_inner) {
 
-      // Pull a sample
-      unsigned s_ind = floor(R::runif(0.0, n_samples));
+      // Pull a epoch
+      s_ind = ind.col(it_inner);
 
-      linear_predictor = (w.matrix() * x.col(s_ind)).array()*wscale + intercept;
+      // Select samples
+      subx = SelectCol(x, s_ind);
+
+      linear_predictor = ((w.matrix() * subx).array()*wscale).colwise() + intercept;
 
       family.Gradient(linear_predictor, y, s_ind, g);
 
-      g_change = g - g_memory.col(s_ind);
-      g_memory.col(s_ind) = g;
+      g_change = g - SelectArray(g_memory, s_ind);
+      SetCol(g_memory, g, s_ind);
 
-      // Rescale and unlag weights whenever wscale becomes too small
+      //Rescale and unlag weights whenever wscale becomes too small
       if (wscale < sgdnet::SMALL) {
-        // Unlag and rescale coefficients
+        //Unlag and rescale coefficients
         w *= wscale;
         wscale = 1.0;
       }
@@ -168,19 +192,22 @@ Saga(Penalty&               penalty,
       wscale *= wscale_update;
 
       if (fit_intercept) {
-        g_sum_intercept += g_change/n_samples;
-        intercept -= gamma*(g_sum_intercept + g_change/n_samples);
+        g_sum_intercept += g_change.rowwise().sum()/n_samples;
+        intercept -= gamma*(g_sum_intercept + g_change.rowwise().sum()/n_samples);
       }
 
-      // Update coefficients (w) with sparse step (with L2 scaling)
-      w -= g_change.rowwise()*x.col(s_ind).transpose().array()*(gamma/wscale);
+      step = WeightStep(g_change, subx, B, n_classes, n_features);
+
+      // Update coefficients (w)s with sparse step (with L2 scaling)
+      w -= (step/B)*(gamma/wscale);
 
       // Gradient-average step
-      for (unsigned j = 0; j < n_features; ++j)
+      for (unsigned j = 0; j < n_features; ++j){ 
         penalty(w, j, wscale, 1.0, g_sum);
+      }
 
       // Update the gradient average
-      g_sum += g_change.rowwise()*x.col(s_ind).transpose().array()/n_samples;
+      g_sum += step/n_samples;
 
     } // Outer loop
 
@@ -208,7 +235,7 @@ Saga(Penalty&               penalty,
     converged = convergence_check(w);
 
     ++it_outer;
-
+ 
   } while (!converged && it_outer < max_iter); // outer loop
 
   // Update accumulated number of epochs
@@ -224,6 +251,5 @@ Saga(Penalty&               penalty,
 }
 
 #endif /* SGDNET_SAGA-DENSE_ */
-
 
 
