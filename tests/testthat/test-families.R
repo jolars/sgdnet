@@ -31,14 +31,10 @@ test_that("all combinations run without errors", {
 
     pars$y <- d$y
     pars$x <- x
-    pars2 <- pars
-    pars2$batchsize <- 10
 
     sfit <- do.call(sgdnet, pars)
-    bfit <- do.call(sgdnet, pars2)
     gfit <- do.call(glmnet, pars)
 
     compare_predictions(sfit, gfit, x, tol = 1e-2)
-    compare_predictions(bfit, gfit, x, tol = 1e-2)
   }
 })
