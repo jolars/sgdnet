@@ -107,6 +107,7 @@
 #' @param y response variable
 #' @param family reponse type, one of `'gaussian'`, `'binomial'`,
 #'   `'multinomial'`, or `'mgaussian'`. See **Supported families** for details.
+#' @param weights observation weights
 #' @param alpha elastic net mixing parameter
 #' @param nlambda number of penalties in the regualrization path
 #' @param lambda.min.ratio the ratio between `lambda_max` (the smallest
@@ -188,6 +189,7 @@ sgdnet.default <- function(x,
                                       "binomial",
                                       "multinomial",
                                       "mgaussian"),
+                           weights = NULL,
                            alpha = 1,
                            nlambda = 100,
                            lambda.min.ratio =
@@ -248,6 +250,9 @@ sgdnet.default <- function(x,
   else
     nlambda <- length(lambda)
 
+  if (is.null(weights) || is_false(weights))
+    weights = rep(1, NROW(x))
+
   if (nlambda == 0)
     stop("lambda path cannot be of zero length.")
 
@@ -274,6 +279,17 @@ sgdnet.default <- function(x,
 
   if (abs(batchsize - round(batchsize)) > .Machine$double.eps^0.5)
     stop("batch size should be an integer.")
+
+  if (length(weights) != n_samples)
+    stop("number of elements in weights (", length(weights), ") do not equal to the number of rows of x (", n_samples,")", sep="")
+
+  if (any(weights < 0))
+    stop("observation weights should be strictly positive")
+
+  if (sum(weights) != n_samples){
+    weights <- weights * n_samples/sum(weights)
+    warning("sum of weight (", sum(weights),") is not equal to sample size (", n_samples,"). sgdnet rescales it")
+  }
 
   # TODO(jolars): implement group lasso penalty for multinomial model
   type.multinomial <- "ungrouped"
@@ -371,7 +387,8 @@ sgdnet.default <- function(x,
                   tol = thresh,
                   type_multinomial = type.multinomial,
                   cyclic = cyclic,
-                  batch_size = batchsize)
+                  batch_size = batchsize,
+                  sample_weight = weights)
 
   # Fit the model by calling the Rcpp routine.
   if (is_sparse) {

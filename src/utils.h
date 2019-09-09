@@ -60,7 +60,8 @@ StepSize(const double               max_squared_sum,
 double
 ColNormsMax(const Eigen::SparseMatrix<double>& x,
             const Eigen::ArrayXd&              x_center_scaled,
-            const bool                         standardize)
+            const bool                         standardize,
+            const Eigen::VectorXd&             weight)
 {
   auto m = x.cols();
 
@@ -70,6 +71,7 @@ ColNormsMax(const Eigen::SparseMatrix<double>& x,
       standardize ? (x.col(j) - x_center_scaled.matrix()).squaredNorm()
                   : x.col(j).squaredNorm();
 
+    norm *= weight[j];
     norm_max = std::max(norm_max, norm);
   }
 
@@ -79,9 +81,11 @@ ColNormsMax(const Eigen::SparseMatrix<double>& x,
 double
 ColNormsMax(const Eigen::MatrixXd& x,
             const Eigen::ArrayXd&  x_center_scaled,
-            const bool             standardize) {
+            const bool             standardize,
+            const Eigen::VectorXd& weight) {
   // dense features are already scaled and centered (if required)
-  return x.colwise().squaredNorm().maxCoeff();
+  Eigen::MatrixXd x_weight = x.array().rowwise() * weight.transpose().array();
+  return x_weight.colwise().squaredNorm().maxCoeff();
 }
 
 //' Preprocess data
@@ -152,11 +156,12 @@ RegularizationPath(std::vector<double>&   lambda,
                    const Eigen::ArrayXd&  y_scale,
                    std::vector<double>&   alpha,
                    std::vector<double>&   beta,
-                   const Family&          family)
+                   const Family&          family,
+                   const Eigen::VectorXd& weight)
 {
   if (lambda.empty()) {
     double lambda_max =
-      family.LambdaMax(x, y, y_scale)/std::max(elasticnet_mix, 0.001);
+      family.LambdaMax(x, y, y_scale, weight)/std::max(elasticnet_mix, 0.001);
 
     if (lambda_max != 0.0)
       lambda = LogSpace(lambda_max, lambda_max*lambda_min_ratio, n_lambda);
@@ -192,6 +197,7 @@ RegularizationPath(std::vector<double>&   lambda,
 //' @param n_samples number of samples
 //' @param n_features number of features
 //' @param n_classes number of pseudo-classes
+//' @param weight observation weights
 //'
 //' @return The loss of the current epoch is appended to `losses`.
 //'
@@ -210,7 +216,8 @@ EpochLoss(const T&               x,
           const unsigned         n_features,
           const unsigned         n_classes,
           const bool             is_sparse,
-          const bool             standardize)
+          const bool             standardize,
+          const Eigen::VectorXd& weight)
 {
   Eigen::ArrayXd linear_predictor(n_classes);
 
@@ -220,7 +227,7 @@ EpochLoss(const T&               x,
     linear_predictor = (w.matrix() * x.col(s_ind)).array() + intercept;
     if (standardize && is_sparse)
       linear_predictor -= (w.matrix() * x_center_scaled.matrix()).array();
-    loss += family.Loss(linear_predictor, y, s_ind)/n_samples;
+    loss += weight[s_ind] * family.Loss(linear_predictor, y, s_ind)/n_samples;
   }
 
   return loss;
@@ -299,6 +306,7 @@ AdaptiveTranspose(Eigen::MatrixXd& x)
 //' @param n_feature the number of features
 //' @param n_classes the number of classes
 //' @param family a pointer to the family object
+//' @param weight observation weights
 //'
 //' @return Returns the deviance.
 template <typename T, typename Family>
@@ -313,7 +321,8 @@ Deviance(const T&               x,
          const unsigned         n_classes,
          const Family&          family,
          const bool             is_sparse,
-         const bool             standardize)
+         const bool             standardize,
+         const Eigen::VectorXd& weight)
 {
   double loss = 0.0;
   Eigen::ArrayXd linear_predictor(n_classes);
@@ -322,7 +331,7 @@ Deviance(const T&               x,
     linear_predictor = (w.matrix() * x.col(s_ind)).array() + intercept;
     if (standardize && is_sparse)
       linear_predictor -= (w.matrix() * x_center_scaled.matrix()).array();
-    loss += family.Loss(linear_predictor, y, s_ind);
+    loss += weight[s_ind] * family.Loss(linear_predictor, y, s_ind);
   }
 
   return 2.0 * loss;

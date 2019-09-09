@@ -103,6 +103,7 @@ void
 Saga(Penalty&               penalty,
      const Eigen::MatrixXd& x,
      const Eigen::ArrayXd&  x_center_scaled,
+     const Eigen::VectorXd& weight,
      const Eigen::MatrixXd& y,
      Eigen::ArrayXd&        intercept,
      const bool             fit_intercept,
@@ -177,7 +178,7 @@ Saga(Penalty&               penalty,
 
       linear_predictor = ((w.matrix() * subx).array()*wscale).colwise() + intercept;
 
-      family.Gradient(linear_predictor, y, s_ind, g);
+      family.Gradient(linear_predictor, y, s_ind, weight, g);
 
       g_change = g - SelectArray(g_memory, s_ind);
       SetCol(g_memory, g, s_ind);
@@ -228,7 +229,8 @@ Saga(Penalty&               penalty,
                               n_features,
                               n_classes,
                               is_sparse,
-                              standardize);
+                              standardize,
+                              weight);
       losses.push_back(loss);
     }
 
