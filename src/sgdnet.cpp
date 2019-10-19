@@ -179,11 +179,25 @@ SetupSgdnet(T                 x,
   AdaptiveTranspose(x);
   AdaptiveTranspose(y);
 
-  auto step_size = StepSize(ColNormsMax(x, x_center_scaled, standardize),
+  // Compute sample norm at once for adaptive step size (gamma)
+  Eigen::ArrayXd col_norm_x(n_samples);
+
+  auto step_size = StepSize(ColNormsMax(x, x_center_scaled, standardize, col_norm_x),
                             alpha,
                             fit_intercept,
                             family.L_scaling,
                             n_samples);
+
+  vector<unsigned> Batch(n_samples, B);
+
+  double norm_max = col_norm_x.maxCoeff();
+  double norm_bar = col_norm_x.sum()/n_samples;
+
+  // optimize batch size and step size for mini batch
+  if (B > 1) {
+    const Eigen::VectorXcd value = Eigen_value(x, n_samples, n_features);
+    BatchOpt(value, n_samples, n_features, norm_max, norm_bar, lambda, Batch, step_size);
+  }
 
   // Intercept
   Eigen::ArrayXd intercept = Eigen::ArrayXd::Zero(n_classes);
@@ -245,7 +259,7 @@ SetupSgdnet(T                 x,
             losses,
             debug,
             cyclic,
-            B);
+            Batch[lambda_ind]);
 
     double deviance = Deviance(x,
                                x_center_scaled,
