@@ -35,6 +35,6 @@ test_that("all combinations run without errors", {
     sfit <- do.call(sgdnet, pars)
     gfit <- do.call(glmnet, pars)
 
-    compare_predictions(sfit, gfit, x, tol = 1e-3)
+    compare_predictions(sfit, gfit, x, tol = 1e-2)
   }
 })

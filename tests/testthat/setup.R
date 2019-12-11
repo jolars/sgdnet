@@ -2,6 +2,9 @@
 library(glmnet)
 glmnet.control(fdev = 0)
 
+# use ncvreg for penalty comparison
+ncvreg <- ncvreg::ncvreg
+
 # generate random data simulated from a generalized linear model
 random_data <- function(n = 100,
                         p = 2,

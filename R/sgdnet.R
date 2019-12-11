@@ -108,6 +108,9 @@
 #' @param family reponse type, one of `'gaussian'`, `'binomial'`,
 #'   `'multinomial'`, or `'mgaussian'`. See **Supported families** for details.
 #' @param alpha elastic net mixing parameter
+#' @param non_convexity the non-convexity parameter for MCP and SCAD
+#' @param penalty the regularization penalty, one of `''`, `'MCP'`, `'SCAD'`,
+#'   should be specified if MCP and SCAD is used.
 #' @param nlambda number of penalties in the regualrization path
 #' @param lambda.min.ratio the ratio between `lambda_max` (the smallest
 #'   penalty at which the solution is completely sparse) and the smallest
@@ -187,10 +190,12 @@ sgdnet.default <- function(x,
                                       "multinomial",
                                       "mgaussian"),
                            alpha = 1,
+                           non_convexity = ifelse(penalty == "MCP", 3, 3.7),
                            nlambda = 100,
                            lambda.min.ratio =
                              if (NROW(x) < NCOL(x)) 0.01 else 0.0001,
                            lambda = NULL,
+                           penalty = c("LASSO", "MCP","SCAD"),
                            maxit = 1000,
                            standardize = TRUE,
                            intercept = TRUE,
@@ -203,6 +208,8 @@ sgdnet.default <- function(x,
 
   # Collect sgdnet-specific options for debugging and more
   debug <- getOption("sgdnet.debug")
+
+  penalty <- match.arg(penalty)
 
   n_samples <- NROW(x)
   n_features <- NCOL(x)
@@ -244,6 +251,12 @@ sgdnet.default <- function(x,
   else
     nlambda <- length(lambda)
 
+  # disable non-convex penalty procedure
+  if (penalty == "LASSO" || alpha == 0) {
+    non_convexity = 1.0
+    penalty = "LASSO"
+  }
+
   if (nlambda == 0)
     stop("lambda path cannot be of zero length.")
 
@@ -261,6 +274,12 @@ sgdnet.default <- function(x,
 
   if (maxit <= 0)
     stop("maximum number of iterations cannot be negative or zero.")
+
+  if (penalty == "MCP" & non_convexity <= 1.0)
+    stop("gamma must be greater than 1 for the MCP penalty")
+
+  if (penalty == "SCAD" & non_convexity <= 2.0)
+    stop("gamma must be greater than 2 for the SCAD penalty")
 
   # TODO(jolars): implement group lasso penalty for multinomial model
   type.multinomial <- "ungrouped"
@@ -345,6 +364,7 @@ sgdnet.default <- function(x,
 
   control <- list(debug = debug,
                   elasticnet_mix = alpha,
+                  nonconvexity = non_convexity,
                   family = family,
                   intercept = intercept,
                   is_sparse = is_sparse,
@@ -356,7 +376,8 @@ sgdnet.default <- function(x,
                   standardize = standardize,
                   standardize_response = standardize.response,
                   tol = thresh,
-                  type_multinomial = type.multinomial)
+                  type_multinomial = type.multinomial,
+                  type_penalty = penalty)
 
   # Fit the model by calling the Rcpp routine.
   if (is_sparse) {
