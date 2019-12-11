@@ -228,6 +228,7 @@ SetupSgdnet(T                 x,
   // Fit the path of penalty values
   for (unsigned lambda_ind = 0; lambda_ind < n_lambda; ++lambda_ind) {
     vector<double> losses;
+
     RunSaga(control,
             x,
             x_center_scaled,
